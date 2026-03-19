@@ -25,7 +25,7 @@
 
     <header class="w-full bg-black text-white sticky top-0 z-50">
         <div class="px-4 py-4 mx-auto max-w-screen-2xl sm:px-6 lg:px-8 w-full">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-4">
 
             <div class="hidden lg:flex flex-1">
                 <x-header.search class="max-w-xs w-full" />
@@ -39,7 +39,7 @@
                 </a>
             </div>
 
-            <div class="flex items-center justify-end flex-1 gap-4">
+            <div class="flex items-center justify-end flex-1 gap-2 sm:gap-4">
 
                 @livewire('components.cart')
 
@@ -89,14 +89,17 @@
             </div>
         </div>
 
-
+        {{-- Buscador Mobile --}}
+        <div class="mt-4 lg:hidden px-4 pb-2">
+            <x-header.search class="w-full" />
+        </div>
 
         <nav class="mt-4 hidden lg:flex justify-center gap-6 text-xs font-bold text-white/80 border-t border-gray-800 pt-4 pb-2 relative"
             x-data="{ showProducts: false }">
             <a href="{{ url('/') }}" wire:navigate class="hover:text-[#71C229] transition py-2">Inicio</a>
 
             <div @mouseenter="showProducts = true" @mouseleave="showProducts = false">
-                <a href="#" class="hover:text-[#71C229] transition py-2 inline-block">Productos</a>
+                <a href="{{ route('catalog.view') }}" wire:navigate class="hover:text-[#71C229] transition py-2 inline-block">Productos</a>
 
                 <div x-show="showProducts" x-transition x-cloak
                     class="absolute top-[48px] left-0 w-full bg-black border-t-2 border-[#71C229] p-8 shadow-2xl z-50">

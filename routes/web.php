@@ -38,7 +38,10 @@ Route::post('/logout', function () {
     return redirect('/');
 })->name('logout');
 
+use App\Livewire\CatalogPage;
 Route::get('/collections/{slug}', CollectionPage::class)->name('collection.view');
+
+Route::get('/productos', CatalogPage::class)->name('catalog.view');
 
 Route::get('/products/{slug}', ProductPage::class)->name('product.view');
 

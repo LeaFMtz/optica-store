@@ -2,6 +2,9 @@
       action="{{ route('search.view') }}">
     <input name="term"
            type="search"
+           autocomplete="off"
+           data-lpignore="true"
+           data-bitwarden-ignore
            placeholder="¿Qué estás buscando?"
            class="w-full pl-6 pr-12 py-3 text-sm bg-black text-white border border-white rounded-full focus:ring-[#71C229] focus:border-[#71C229] placeholder-gray-400"
            value="{{ $this->term }}" />
