@@ -10,6 +10,7 @@ use Illuminate\Support\ServiceProvider;
 use Lunar\Admin\Support\Facades\LunarPanel;
 use Lunar\Base\ShippingModifiers;
 use Lunar\Facades\ModelManifest;
+use Lunar\Facades\Telemetry;
 use Lunar\Shipping\ShippingPlugin;
 
 class AppServiceProvider extends ServiceProvider
@@ -41,5 +42,7 @@ class AppServiceProvider extends ServiceProvider
             Product::class,
             // \App\Models\CustomProduct::class,
         );
+
+        Telemetry::optOut();
     }
 }

@@ -18,17 +18,6 @@ class Login extends Component
 
     public bool $remember = false;
 
-    /**
-     * @return array<string, string>
-     */
-    protected function rules(): array
-    {
-        return [
-            'email' => 'required|email',
-            'password' => 'required',
-        ];
-    }
-
     public function login(): void
     {
         $this->validate();
@@ -47,5 +36,16 @@ class Login extends Component
     public function render(): View
     {
         return view('livewire.auth.login');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function rules(): array
+    {
+        return [
+            'email' => 'required|email',
+            'password' => 'required',
+        ];
     }
 }
