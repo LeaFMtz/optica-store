@@ -26,5 +26,10 @@ if [ ! -d node_modules ] && command -v pnpm >/dev/null 2>&1; then
     pnpm install
 fi
 
+# LIMPIEZA PARA MANTENER SIN CACHE Y AL DIA EL ENTORNO DE DEV
+php artisan optimize:clear
+php artisan migrate
+php artisan storage:link
+
 # Ejecutar el comando principal (supervisord)
 exec "$@"

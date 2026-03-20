@@ -34,3 +34,4 @@ GEMINI.md
 _ide_helper.php
 .phpstorm.meta.php
 .editorconfig
+/storage/media-library

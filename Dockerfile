@@ -119,5 +119,4 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 80 5173
 
-ENTRYPOINT ["entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
