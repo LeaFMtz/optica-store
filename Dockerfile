@@ -33,15 +33,24 @@ ARG WITH_DEV_DEPS=false
 COPY docker/php.ini /usr/local/etc/php/conf.d/app.ini
 COPY docker/php-dev.ini /usr/local/etc/php/conf.d/app.ini.dev
 
+COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
+COPY docker/php-fpm-dev.conf /usr/local/etc/php-fpm.d/www-dev.conf
+
+COPY docker/supervisord.conf /etc/supervisor/supervisord.conf
+COPY docker/supervisord-dev.conf /etc/supervisor/supervisord-dev.conf
+
+# POR DEFECTO LAS CONFIGURACIONES BASICAS , LES JURO Q ME PARECIO ESTO LO MAS LIMPIO ARREGLEN
+# CN GUSTAVO DEL PASADO
 RUN if [ "$WITH_DEV_DEPS" = "true" ] ; then \
         rm /usr/local/etc/php/conf.d/app.ini; \
         mv /usr/local/etc/php/conf.d/app.ini.dev /usr/local/etc/php/conf.d/app.ini; \
+        rm /usr/local/etc/php-fpm.d/www.conf; \
+        mv /usr/local/etc/php-fpm.d/www-dev.conf /usr/local/etc/php-fpm.d/www.conf; \
+        rm -f /etc/supervisor/supervisord.conf && \
+        mv /etc/supervisor/supervisord-dev.conf /etc/supervisor/supervisord.conf; \
     fi
 
-COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
 COPY docker/nginx.conf /etc/nginx/nginx.conf
-COPY docker/supervisord.conf /etc/supervisor/supervisord.conf
-COPY docker/supervisord-dev.conf /etc/supervisor/supervisord-dev.conf
 
 WORKDIR /var/www/html
 
@@ -88,8 +97,13 @@ COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
 RUN if [ "$WITH_DEV_DEPS" = "true" ] ; then \
         apk add --no-cache nodejs npm git openssh && \
         npm install -g corepack && corepack enable pnpm; \
-        rm -f /etc/supervisor/supervisord.conf && \
-        mv /etc/supervisor/supervisord-dev.conf /etc/supervisor/supervisord.conf; \
+    fi
+
+COPY --from=build /usr/bin/composer /usr/local/bin/composer_temp
+RUN if [ "$WITH_DEV_DEPS" = "true" ] ; then \
+        mv /usr/local/bin/composer_temp /usr/local/bin/composer; \
+    else \
+        rm /usr/local/bin/composer_temp; \
     fi
 
 
@@ -98,6 +112,12 @@ RUN mkdir -p /var/www/html/storage/framework/{cache,sessions,views} \
     && mkdir -p /var/www/html/bootstrap/cache \
     && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
+RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE 80 5173
 
+ENTRYPOINT ["entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]

@@ -1,0 +1,41 @@
+services:
+    app:
+        build:
+            context: .
+            args:
+                WITH_DEV_DEPS: "true"
+        container_name: optica_app
+        restart: unless-stopped
+        entrypoint: ["/var/www/html/docker/entrypoint.sh"]
+        command: ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+        ports:
+
+            - "8000:80"
+            - "5173:5173"
+        volumes:
+            - .:/var/www/html:z
+        networks:
+            - optica_network
+        depends_on:
+            - db
+
+    db:
+        image: mysql:8.4.8
+        container_name: optica_db
+        restart: unless-stopped
+        ports:
+            - "3306:3306"
+        environment:
+            - MYSQL_DATABASE=${DB_DATABASE}
+            - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+        volumes:
+            - mysql_data:/var/lib/mysql
+        networks:
+            - optica_network
+
+networks:
+    optica_network:
+        driver: bridge
+
+volumes:
+    mysql_data:
