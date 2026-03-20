@@ -3,13 +3,6 @@ set -e
 
 # Ir al directorio de trabajo
 cd /var/www/html
-
-# Buscar o crear el .env
-if [ ! -f .env ]; then
-    echo "Entrypoint: .env no encontrado, creando desde .env.example..."
-    cp .env.example .env
-fi
-
 # Permisos 777 recursivos
 echo "Entrypoint: Seteando permisos 777 en storage y bootstrap/cache..."
 chmod -R 777 storage bootstrap/cache
