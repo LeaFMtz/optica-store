@@ -25,6 +25,14 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2
 
+    - name: Test de Permisos ECR (Sin Build)
+      run: |
+        # 1. Intentamos iniciar una subida (esto gatilla el ecr:InitiateLayerUpload)
+        # Si esto falla, el error saltará acá al instante sin esperar al build de Docker
+        aws ecr initiate-layer-upload --repository-name optica-store --region us-east-1
+        
+        echo "¡Permisos OK! Ya podés volver a poner el docker build."
+
     - name: Build, tag y push a ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
