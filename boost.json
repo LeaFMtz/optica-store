@@ -1,6 +1,6 @@
 {
     "agents": [
-        "gemini"
+        "opencode"
     ],
     "guidelines": true,
     "herd_mcp": false,
