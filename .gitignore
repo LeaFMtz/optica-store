@@ -28,8 +28,8 @@ public/build
 meilisearch/
 .phpunit.cache/test-results
 .pnpm-store
-.agents
-.gemini
+.gemini/
+!.engram/
 GEMINI.md
 _ide_helper.php
 .phpstorm.meta.php
