@@ -24,7 +24,7 @@ El sistema debe permitir a los usuarios gestionar su información personal.
 ## 2. Catálogo de Productos
 
 ### RF-010: Listado de Productos
-El sistema debe mostrar un catálogo de productos光学.
+El sistema debe mostrar un catálogo de productos ópticos.
 - Listado paginado de productos
 - Filtrar por categoría (lentes de contacto, marcos, cristales)
 - Ordenar por precio, nombre, relevancia
@@ -89,12 +89,20 @@ El sistema debe permitir seleccionar método de envío.
 - **Andreani** (integración requerida)
 - Opciones adicionales a explorar (OCA, Correo Argentino, etc.)
 - Cálculo de costo basado en zona/peso
+- **Nota**: Los métodos de envío requieren pago online previo
 
 ### RF-032: Método de Pago
 El sistema debe permitir seleccionar método de pago.
-- **Efectivo Contra Entrega** (disponible en MVP)
+- **Efectivo Contra Entrega**: Solo disponible para modalidad de retiro en local físico
 - **Tarjeta de crédito/débito** (Stripe - disponible en starter kit)
 - **Mercado Pago** (a evaluar para Argentina)
+
+### RF-032.1: Retiro en Local
+El sistema debe permitir la opción de retirar el pedido en el local físico.
+- Mostrar dirección del local
+- Horarios de atención disponibles
+- Validar que el pedido esté listo antes de permitir retiro
+- Solo permitir pago en efectivo para esta modalidad
 
 ### RF-033: Confirmación de Orden
 El sistema debe confirmar la creación de la orden.
@@ -112,7 +120,7 @@ El sistema debe gestionar los estados de una orden.
 - **Pendiente de Revisión**: Orden con receta médica esperando aprobación
 - **Aprobada**: Orden aprobada, lista para preparación
 - **En Preparación**: Orden siendo preparada
-- **Enviada**: Orden dispatched
+- **Enviada**: Orden despachada
 - **Entregada**: Orden entregada
 - **Cancelada**: Orden cancelada
 
