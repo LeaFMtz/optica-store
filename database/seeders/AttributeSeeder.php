@@ -10,9 +10,6 @@ use Lunar\Models\AttributeGroup;
 
 class AttributeSeeder extends AbstractSeeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $attributes = $this->getSeedData('attributes');
@@ -21,6 +18,14 @@ class AttributeSeeder extends AbstractSeeder
 
         DB::transaction(function () use ($attributes, $attributeGroup) {
             foreach ($attributes as $attribute) {
+                $existing = Attribute::where('handle', $attribute->handle)
+                    ->where('attribute_type', $attribute->attribute_type)
+                    ->first();
+
+                if ($existing) {
+                    continue;
+                }
+
                 Attribute::create([
                     'attribute_group_id' => $attributeGroup->id,
                     'attribute_type' => $attribute->attribute_type,
@@ -33,12 +38,12 @@ class AttributeSeeder extends AbstractSeeder
                     'system' => false,
                     'position' => $attributeGroup->attributes()->count() + 1,
                     'name' => [
-                        'en' => $attribute->name,
+                        'es' => $attribute->name,
                     ],
                     'description' => [
-                        'en' => $attribute->name,
+                        'es' => $attribute->name,
                     ],
-                    'configuration' => (array) $attribute->configuration,
+                    'configuration' => (array) ($attribute->configuration ?? []),
                 ]);
             }
         });

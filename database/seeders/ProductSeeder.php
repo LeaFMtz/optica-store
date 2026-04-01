@@ -51,9 +51,13 @@ class ProductSeeder extends AbstractSeeder
                 foreach ($product->attributes as $attributeHandle => $value) {
                     $attribute = $attributes->first(fn ($att) => $att->handle == $attributeHandle);
 
+                    if (!$attribute) {
+                        continue;
+                    }
+
                     if ($attribute->type == TranslatedText::class) {
                         $attributeData[$attributeHandle] = new TranslatedText([
-                            'en' => new Text($value),
+                            'es' => new Text($value),
                         ]);
 
                         continue;
@@ -100,8 +104,10 @@ class ProductSeeder extends AbstractSeeder
                     base_path("database/seeders/data/images/{$product->image}"),
                 )->preservingOriginal()->toMediaCollection('images');
 
-                $media->setCustomProperty('primary', true);
-                $media->save();
+                if ($media) {
+                    $media->setCustomProperty('primary', true);
+                    $media->save();
+                }
 
                 $collections->each(function ($coll) use ($product, $productModel) {
                     if (in_array(strtolower($coll->translateAttribute('name')), $product->collections)) {

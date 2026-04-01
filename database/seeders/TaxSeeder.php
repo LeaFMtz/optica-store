@@ -13,36 +13,39 @@ use Lunar\Models\TaxZoneCountry;
 
 class TaxSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        $taxClass = TaxClass::first();
+        if (TaxZone::count() > 0) {
+            $this->command->info('Tax zones already exist, skipping...');
 
-        $ukCountry = Country::firstWhere('iso3', 'GBR');
+            return;
+        }
 
-        $ukTaxZone = TaxZone::factory()->create([
-            'name' => 'UK',
+        $taxClass = TaxClass::getDefault();
+
+        $argentina = Country::firstWhere('iso3', 'ARG');
+
+        $argentinaTaxZone = TaxZone::factory()->create([
+            'name' => 'Argentina',
             'active' => true,
             'default' => true,
             'zone_type' => 'country',
         ]);
 
         TaxZoneCountry::factory()->create([
-            'country_id' => $ukCountry->id,
-            'tax_zone_id' => $ukTaxZone->id,
+            'country_id' => $argentina->id,
+            'tax_zone_id' => $argentinaTaxZone->id,
         ]);
 
-        $ukRate = TaxRate::factory()->create([
-            'name' => 'VAT',
-            'tax_zone_id' => $ukTaxZone->id,
+        $ivaRate = TaxRate::factory()->create([
+            'name' => 'IVA 21%',
+            'tax_zone_id' => $argentinaTaxZone->id,
             'priority' => 1,
         ]);
 
-        $ukRate->taxRateAmounts()->createMany([
+        $ivaRate->taxRateAmounts()->createMany([
             [
-                'percentage' => 20,
+                'percentage' => 21,
                 'tax_class_id' => $taxClass->id,
             ],
         ]);

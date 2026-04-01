@@ -40,5 +40,19 @@
         "type": "Lunar\\FieldTypes\\Text",
         "attribute_type": "Lunar\\Models\\Product",
         "configuration": {}
+    },
+    {
+        "name": "Description",
+        "handle": "description",
+        "type": "Lunar\\FieldTypes\\TranslatedText",
+        "attribute_type": "Lunar\\Models\\Product",
+        "configuration": {}
+    },
+    {
+        "name": "Name",
+        "handle": "name",
+        "type": "Lunar\\FieldTypes\\TranslatedText",
+        "attribute_type": "Lunar\\Models\\Product",
+        "configuration": {}
     }
 ]
