@@ -7,7 +7,6 @@ namespace Database\Seeders;
 use App\Models\User;
 use Faker\Factory;
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\Address;
 use Lunar\Models\Customer;
 
 class CustomerSeeder extends AbstractSeeder
@@ -58,15 +57,13 @@ class CustomerSeeder extends AbstractSeeder
 
                 $customer->users()->attach($user->id);
 
-                Address::create([
+                $customer->addresses()->create([
                     'first_name' => $data['first_name'],
                     'last_name' => $data['last_name'],
-                    'company' => null,
-                    'addressable_type' => (new Customer)->getMorphClass(),
-                    'addressable_id' => $customer->id,
-                    'address_line_one' => $faker->streetAddress(),
-                    'address_line_two' => null,
-                    'address_line_three' => null,
+                    'company_name' => null,
+                    'line_one' => $faker->streetAddress(),
+                    'line_two' => null,
+                    'line_three' => null,
                     'city' => $faker->city(),
                     'state' => $faker->state(),
                     'postcode' => $faker->postcode(),
