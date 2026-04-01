@@ -76,4 +76,4 @@ docker-compose exec app php artisan migrate
 
 ---
 
-*Este es un proyecto en construcción. Las funcionalidades listadasabove están en fase de planificación.*
+*Este es un proyecto en construcción. Las funcionalidades listadas están en fase de planificación.*
