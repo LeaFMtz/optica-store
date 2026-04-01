@@ -71,7 +71,4 @@ docker-compose logs -f app
 # Ejecutar comandos artisan
 docker-compose exec app php artisan [comando]
 
-# Instalar dependencias manualmente
-docker-compose exec app composer install
-docker-compose exec app pnpm install
-```
+*Este es un proyecto en construcción. Las funcionalidades listadas están en fase de planificación.*
