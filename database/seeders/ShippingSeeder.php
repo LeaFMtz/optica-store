@@ -14,147 +14,105 @@ use Lunar\Shipping\Models\ShippingZone;
 
 class ShippingSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $currency = Currency::getDefault();
 
-        $standardShipping = ShippingMethod::create([
-            'name' => 'Standard Shipping',
-            'code' => 'STNDRD',
+        $argentina = Country::where('iso3', '=', 'ARG')->first();
+        $argentinaId = $argentina?->id ?? 235;
+
+        $andreaniMethod = ShippingMethod::create([
+            'name' => 'Andreani Envío a Domicilio',
+            'code' => 'ANDREANI_DOMICILIO',
             'enabled' => true,
             'driver' => 'ship-by',
             'data' => [
-                'charge_by' => 'cart_total',
+                'charge_by' => 'weight',
             ],
         ]);
 
-        $ukShippingZone = ShippingZone::create([
-            'name' => 'UK',
+        $andreaniZone = ShippingZone::create([
+            'name' => 'Argentina',
             'type' => 'countries',
         ]);
 
-        $ukShippingRate = ShippingRate::create([
-            'shipping_zone_id' => $ukShippingZone->id,
-            'shipping_method_id' => $standardShipping->id,
+        $andreaniZone->countries()->sync([$argentinaId]);
+
+        $andreaniRate = ShippingRate::create([
+            'shipping_zone_id' => $andreaniZone->id,
+            'shipping_method_id' => $andreaniMethod->id,
             'enabled' => true,
         ]);
 
-        $ukShippingZone->countries()->sync(
-            Country::where('iso3', '=', 'GBR')->first()->id,
-        );
-
         Price::create([
             'priceable_type' => (new ShippingRate)->getMorphClass(),
-            'priceable_id' => $ukShippingRate->id,
-            'price' => 1000,
+            'priceable_id' => $andreaniRate->id,
+            'price' => 2500,
             'min_quantity' => 1,
             'currency_id' => $currency->id,
         ]);
 
-        // Free shipping on £100 or over orders
         Price::create([
             'priceable_type' => (new ShippingRate)->getMorphClass(),
-            'priceable_id' => $ukShippingRate->id,
+            'priceable_id' => $andreaniRate->id,
+            'price' => 1800,
+            'min_quantity' => 5000,
+            'currency_id' => $currency->id,
+        ]);
+
+        $andreaniPickup = ShippingMethod::create([
+            'name' => 'Andreani Pickup (Sucursal)',
+            'code' => 'ANDREANI_PICKUP',
+            'enabled' => true,
+            'driver' => 'ship-by',
+            'data' => [
+                'charge_by' => 'weight',
+            ],
+        ]);
+
+        $pickupRate = ShippingRate::create([
+            'shipping_zone_id' => $andreaniZone->id,
+            'shipping_method_id' => $andreaniPickup->id,
+            'enabled' => true,
+        ]);
+
+        Price::create([
+            'priceable_type' => (new ShippingRate)->getMorphClass(),
+            'priceable_id' => $pickupRate->id,
+            'price' => 1500,
+            'min_quantity' => 1,
+            'currency_id' => $currency->id,
+        ]);
+
+        $localPickup = ShippingMethod::create([
+            'name' => 'Retiro en Local',
+            'code' => 'RETIRO_LOCAL',
+            'enabled' => true,
+            'driver' => 'pickup',
+            'data' => [
+                'collection' => true,
+            ],
+        ]);
+
+        $localZone = ShippingZone::create([
+            'name' => 'Local Pickup',
+            'type' => 'countries',
+        ]);
+
+        $localZone->countries()->sync([$argentinaId]);
+
+        $localRate = ShippingRate::create([
+            'shipping_zone_id' => $localZone->id,
+            'shipping_method_id' => $localPickup->id,
+            'enabled' => true,
+        ]);
+
+        Price::create([
+            'priceable_type' => (new ShippingRate)->getMorphClass(),
+            'priceable_id' => $localRate->id,
             'price' => 0,
-            'min_quantity' => 10000,
-            'currency_id' => $currency->id,
-        ]);
-
-        // US Shipping
-
-        $usShipping = ShippingMethod::create([
-            'name' => 'US Shipping',
-            'code' => 'USA',
-            'enabled' => true,
-            'driver' => 'ship-by',
-            'data' => [
-                'charge_by' => 'cart_total',
-            ],
-        ]);
-
-        $usShippingZone = ShippingZone::create([
-            'name' => 'America',
-            'type' => 'countries',
-        ]);
-
-        $usShippingRate = ShippingRate::create([
-            'shipping_zone_id' => $usShippingZone->id,
-            'shipping_method_id' => $usShipping->id,
-            'enabled' => true,
-        ]);
-
-        $usShippingZone->countries()->sync(
-            Country::where('iso3', '=', 'USA')->first()->id,
-        );
-
-        Price::create([
-            'priceable_type' => (new ShippingRate)->getMorphClass(),
-            'priceable_id' => $usShippingRate->id,
-            'price' => 5000,
             'min_quantity' => 1,
             'currency_id' => $currency->id,
         ]);
-
-        // European shipping
-
-        $euroShipping = ShippingMethod::create([
-            'name' => 'Europe Delivery',
-            'code' => 'EURO',
-            'enabled' => true,
-            'driver' => 'ship-by',
-        ]);
-
-        $euroShippingZone = ShippingZone::create([
-            'name' => 'Europe',
-            'type' => 'countries',
-        ]);
-
-        $euroShippingRate = ShippingRate::create([
-            'shipping_zone_id' => $euroShippingZone->id,
-            'shipping_method_id' => $euroShipping->id,
-            'enabled' => true,
-        ]);
-
-        $euroShippingZone->countries()->sync(
-            Country::whereIn('iso3', [
-                'AUT',
-                'BEL',
-                'BGR',
-                'HRV',
-                'CYP',
-                'CZE',
-                'DNK',
-                'EST',
-                'FIN',
-                'FRA',
-                'DEU',
-                'GRC',
-                'HUN',
-                'IRL',
-                'ITA',
-                'LVA',
-                'LTU',
-                'LUX',
-                'MLT',
-                'NLD',
-                'POL',
-                'ROU',
-                'SVK',
-                'ESP',
-                'SWE',
-            ])->pluck('id'),
-        );
-
-        Price::create([
-            'priceable_type' => (new ShippingRate)->getMorphClass(),
-            'priceable_id' => $euroShippingRate->id,
-            'price' => 2000,
-            'min_quantity' => 1,
-            'currency_id' => $currency->id,
-        ]);
-
     }
 }
