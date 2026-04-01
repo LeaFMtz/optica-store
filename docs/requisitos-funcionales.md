@@ -92,9 +92,16 @@ El sistema debe permitir seleccionar método de envío.
 
 ### RF-032: Método de Pago
 El sistema debe permitir seleccionar método de pago.
-- **Efectivo Contra Entrega** (disponible en MVP)
+- **Efectivo Contra Entrega**: Solo disponible para modalidad de retiro en local físico
 - **Tarjeta de crédito/débito** (Stripe - disponible en starter kit)
 - **Mercado Pago** (a evaluar para Argentina)
+
+### RF-032.1: Retiro en Local
+El sistema debe permitir la opción de retirar el pedido en el local físico.
+- Mostrar dirección del local
+- Horarios de atención disponibles
+- Validar que el pedido esté listo antes de permitir retiro
+- Solo permitir pago en efectivo para esta modalidad
 
 ### RF-033: Confirmación de Orden
 El sistema debe confirmar la creación de la orden.

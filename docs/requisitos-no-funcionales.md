@@ -140,7 +140,27 @@
 
 ---
 
-## 10. Monitoreo
+## 10. Testing y Calidad
+
+### RNF-091: Tests End-to-End
+El sistema debe contar con tests E2E automatizados para cada feature del MVP.
+- Cada requisito funcional debe tener al menos un escenario de test E2E cubriendo el happy path.
+- Escenarios de error y edge cases deben ser cubiertos.
+- Tests deben ejecutarse en CI/CD antes de cada merge.
+- Herramienta recomendada: Playwright o Cypress.
+
+### RNF-092: Cobertura de Tests
+- El sistema debe mantener cobertura de tests unitarios para lógica de negocio crítica.
+- Los tests E2E deben ejecutarse en múltiples navegadores (Chrome, Firefox, Safari).
+- El tiempo de ejecución de tests E2E no debe exceder 10 minutos por suite.
+
+### RNF-093: Testing Mobile
+- Los tests E2E deben ejecutarse en viewport móvil (375x667) además de desktop.
+- Verificar funcionamiento de gestures táctiles si aplica.
+
+---
+
+## 11. Monitoreo
 
 ### RNF-090: Observabilidad
 - Logs de aplicación centralizados.
