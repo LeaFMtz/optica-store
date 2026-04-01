@@ -67,7 +67,7 @@ class CustomerSeeder extends AbstractSeeder
                     'city' => $faker->city(),
                     'state' => $faker->state(),
                     'postcode' => $faker->postcode(),
-                    'country_id' => 235,
+                    'country_id' => Country::firstWhere('iso3', 'ARG')->id,
                     'shipping_default' => true,
                     'billing_default' => true,
                 ]);
