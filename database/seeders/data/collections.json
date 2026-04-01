@@ -1,18 +1,18 @@
 [
     {
-        "name": "Shoes",
-        "description": "Collection of Shoes"
+        "name": "Lentes de Contacto",
+        "description": "Lentes de contacto blandos y rígidos para corrección visual"
     },
     {
-        "name": "Trousers",
-        "description": "Collection of Trousers"
+        "name": "Soluciones",
+        "description": "Soluciones de limpieza y mantenimiento para lentes de contacto"
     },
     {
-        "name": "Hoodies",
-        "description": "Collection of Hoodies"
+        "name": "Accesorios",
+        "description": "Estuches, goteros y accesorios para cuidado ocular"
     },
     {
-        "name": "Sale",
-        "description": "50% OFF Selected Items"
+        "name": "Lentes de Sol",
+        "description": "Lentes de sol con y sin graduación"
     }
 ]

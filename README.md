@@ -1,34 +1,79 @@
-<p align="center"><a href="https://lunarphp.com/" target="_blank"><img src="https://raw.githubusercontent.com/lunarphp/art/main/lunar-logo.svg" width="200" alt="Lunar"></a></p>
+# Optica Store - MVP
 
-# Starter Kit
+Tienda en línea de productos ópticos (lentes de contacto, marcos, cristales) construida con Laravel y Lunar PHP.
 
-This repository is provided as a reference to learn how to use Lunar Laravel E-Commerce package. This example is a classic e-commerce store.
+## Estado del Proyecto
 
-> **Warning**
-> This application is purely an example of how you can implement Lunar headless e-commerce for Laravel. It is not production ready or complete.
+Este proyecto se encuentra en fase de definición del **MVP (Minimum Viable Product)**.
 
-# Installation
+## Características del MVP
 
-For full installation instructions please visit [https://docs.lunarphp.com/](https://docs.lunarphp.com/)
+### Funcionalidades Planeadas
 
-## Installation with Docker
+1. **Variables de Lentes de Contacto**
+   - Configuración de ProductOptions de Lunar (Graduación/Power/SPH, Curva Base, Diámetro, Eje, Cilindro)
+   - Selectores para ojo izquierdo/derecho
 
-> Make sure you have Docker installed on your local machine.
+2. **Subida de Recetas Médicas**
+   - Modelo `Prescription` vinculado a líneas de orden
+   - Integración con Spatie Media Library para almacenamiento de archivos
+   - Interfaz de subida en el Carrito Livewire
 
-### Environment Demo store
+3. **Workflow de Aprobación**
+   - Estado "pendiente de revisión" para órdenes con recetas
+   - Panel de administración en Filament para aprobar/rechazar órdenes
 
-You can execute it via the `docker compose up` command in your favorite terminal. 
-Please note that the speed of building images and initializing containers depends on your local machine and internet connection - it may take some time. 
+4. **Notificaciones WhatsApp**
+   - Integración con API externa (Twilio/Meta)
+   - Notificaciones al cliente ante cambios de estado de orden
+
+5. **Frontend Mobile-First**
+   - Interfaz responsive con Tailwind CSS 3
+   - Basado en template anterior
+
+### Tech Stack
+
+- **Backend**: Laravel 12, Lunar PHP (e-commerce headless)
+- **Frontend**: Livewire, Tailwind CSS 3
+- **Admin**: Filament 3
+- **Medios**: Spatie Media Library
+- **Docker**: Docker Compose para desarrollo local
+
+## Instalación
 
 ```bash
+# Copiar configuración
 cp .env.docker.example .env
-docker-compose up
+
+# Iniciar contenedores
+docker-compose up -d
+
+# Instalar dependencias
+docker-compose exec app composer install
+docker-compose exec app npm install
+
+# Generar clave de aplicación
+docker-compose exec app php artisan key:generate
+
+# Ejecutar migraciones
+docker-compose exec app php artisan migrate
 ```
 
-The demo store will be available to `http://localhost` in your browser.
+## Acceso
 
-####  Log into Lunar panel
+- **Tienda**: http://localhost
+- **Panel Lunar**: http://localhost/lunar
+  - Usuario: admin@lunarphp.io
+  - Contraseña: password
 
-Once the project is prepared, the Lunar panel will start and available to `http://localhost/lunar`. 
+## Próximos Pasos
 
-Default admin user is username `admin@lunarphp.io` and password `password`
+- [ ] Implementar variables de lentes de contacto
+- [ ] Crear modelo y migración de Prescription
+- [ ] Implementar flujo de aprobación de recetas
+- [ ] Integrar notificaciones WhatsApp
+- [ ] Completar frontend mobile-first
+
+---
+
+*Este es un proyecto en construcción. Las funcionalidades listadasabove están en fase de planificación.*
