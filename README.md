@@ -1,79 +1,77 @@
-# Optica Store - MVP
+# Optica Store
 
-Tienda en línea de productos ópticos (lentes de contacto, marcos, cristales) construida con Laravel y Lunar PHP.
+Tienda en línea de productos ópticos construida con Laravel y Lunar PHP.
 
-## Estado del Proyecto
+## Requisitos
 
-Este proyecto se encuentra en fase de definición del **MVP (Minimum Viable Product)**.
+- PHP 8.4+
+- Docker y Docker Compose
+- Node.js 24.x (para desarrollo)
+- pnpm
 
-## Características del MVP
+## Instalación con Docker
 
-### Funcionalidades Planeadas
-
-1. **Variables de Lentes de Contacto**
-   - Configuración de ProductOptions de Lunar (Graduación/Power/SPH, Curva Base, Diámetro, Eje, Cilindro)
-   - Selectores para ojo izquierdo/derecho
-
-2. **Subida de Recetas Médicas**
-   - Modelo `Prescription` vinculado a líneas de orden
-   - Integración con Spatie Media Library para almacenamiento de archivos
-   - Interfaz de subida en el Carrito Livewire
-
-3. **Workflow de Aprobación**
-   - Estado "pendiente de revisión" para órdenes con recetas
-   - Panel de administración en Filament para aprobar/rechazar órdenes
-
-4. **Notificaciones WhatsApp**
-   - Integración con API externa (Twilio/Meta)
-   - Notificaciones al cliente ante cambios de estado de orden
-
-5. **Frontend Mobile-First**
-   - Interfaz responsive con Tailwind CSS 3
-   - Basado en template anterior
-
-### Tech Stack
-
-- **Backend**: Laravel 12, Lunar PHP (e-commerce headless)
-- **Frontend**: Livewire, Tailwind CSS 3
-- **Admin**: Filament 3
-- **Medios**: Spatie Media Library
-- **Docker**: Docker Compose para desarrollo local
-
-## Instalación
+### Configuración Inicial
 
 ```bash
-# Copiar configuración
-cp .env.docker.example .env
+# 1. Copiar archivo de entorno
+cp .env.example .env
 
-# Iniciar contenedores
-docker-compose up -d
+# 2. Iniciar contenedores
+docker-compose up -d --build
 
-# Instalar dependencias
-docker-compose exec app composer install
-docker-compose exec app npm install
+# 3. Acceder al contenedor
+docker-compose exec app bash
 
-# Generar clave de aplicación
-docker-compose exec app php artisan key:generate
+# 4. Generar clave de aplicación
+php artisan key:generate
 
-# Ejecutar migraciones
-docker-compose exec app php artisan migrate
+# 5. Ejecutar migraciones
+php artisan migrate
+
+# 6. Crear enlace simbólico para storage
+php artisan storage:link
 ```
 
-## Acceso
+### Variables de Entorno (docker-compose.yml)
 
-- **Tienda**: http://localhost
-- **Panel Lunar**: http://localhost/lunar
-  - Usuario: admin@lunarphp.io
-  - Contraseña: password
+| Variable | Descripción | Valor por defecto |
+|----------|-------------|-------------------|
+| `WITH_DEV_DEPS` | Instala dependencias de desarrollo (git, npm, pnpm) | `true` |
 
-## Próximos Pasos
+### Argumentos de Build (Dockerfile)
 
-- [ ] Implementar variables de lentes de contacto
-- [ ] Crear modelo y migración de Prescription
-- [ ] Implementar flujo de aprobación de recetas
-- [ ] Integrar notificaciones WhatsApp
-- [ ] Completar frontend mobile-first
+| Argumento | Descripción | Valores |
+|-----------|-------------|---------|
+| `WITH_DEV_DEPS` | Instala herramientas de desarrollo en el contenedor | `true` (desarrollo), `false` (producción) |
 
----
+### Puertos Expuestos
 
-*Este es un proyecto en construcción. Las funcionalidades listadasabove están en fase de planificación.*
+| Servicio | Puerto | Descripción |
+|----------|--------|-------------|
+| App | 8000 | Servidor PHP-FPM + Nginx |
+| Vite | 5173 | Hot reload para desarrollo |
+
+### Acceso
+
+- **Tienda**: http://localhost:8000
+- **Panel Lunar**: http://localhost:8000/lunar
+  - Usuario: `admin@lunarphp.io`
+  - Contraseña: `password`
+
+### Comandos Útiles
+
+```bash
+# Reiniciar contenedores
+docker-compose restart
+
+# Ver logs
+docker-compose logs -f app
+
+# Ejecutar comandos artisan
+docker-compose exec app php artisan [comando]
+
+# Instalar dependencias manualmente
+docker-compose exec app composer install
+docker-compose exec app pnpm install
+```
