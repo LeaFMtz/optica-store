@@ -49,7 +49,6 @@ class CustomerSeeder extends AbstractSeeder
                 $customer = Customer::create([
                     'first_name' => $data['first_name'],
                     'last_name' => $data['last_name'],
-                    'email' => $data['email'],
                 ]);
 
                 $user = User::factory()->create([
@@ -71,7 +70,7 @@ class CustomerSeeder extends AbstractSeeder
                     'city' => $faker->city(),
                     'state' => $faker->state(),
                     'postcode' => $faker->postcode(),
-                    'country_id' => $argentinaId = 235,
+                    'country_id' => 235,
                     'shipping_default' => true,
                     'billing_default' => true,
                 ]);

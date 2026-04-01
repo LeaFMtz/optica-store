@@ -5,5 +5,40 @@
         "type": "Lunar\\FieldTypes\\ListField",
         "attribute_type": "Lunar\\Models\\Product",
         "configuration": {}
+    },
+    {
+        "name": "Marca",
+        "handle": "marca",
+        "type": "Lunar\\FieldTypes\\Text",
+        "attribute_type": "Lunar\\Models\\Product",
+        "configuration": {}
+    },
+    {
+        "name": "Tipo de Producto",
+        "handle": "tipo_producto",
+        "type": "Lunar\\FieldTypes\\Text",
+        "attribute_type": "Lunar\\Models\\Product",
+        "configuration": {}
+    },
+    {
+        "name": "Uso",
+        "handle": "uso",
+        "type": "Lunar\\FieldTypes\\Text",
+        "attribute_type": "Lunar\\Models\\Product",
+        "configuration": {}
+    },
+    {
+        "name": "Graduación Disponible",
+        "handle": "graduacion_disponible",
+        "type": "Lunar\\FieldTypes\\Text",
+        "attribute_type": "Lunar\\Models\\Product",
+        "configuration": {}
+    },
+    {
+        "name": "Requiere Receta",
+        "handle": "requiere_receta",
+        "type": "Lunar\\FieldTypes\\Text",
+        "attribute_type": "Lunar\\Models\\Product",
+        "configuration": {}
     }
 ]
