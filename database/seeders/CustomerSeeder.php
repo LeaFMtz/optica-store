@@ -19,49 +19,49 @@ class CustomerSeeder extends AbstractSeeder
 
             $customerData = [
                 [
-                    'firstname' => 'Juan',
-                    'lastname' => 'Pérez',
+                    'first_name' => 'Juan',
+                    'last_name' => 'Pérez',
                     'email' => 'juan.perez@example.com',
                 ],
                 [
-                    'firstname' => 'María',
-                    'lastname' => 'González',
+                    'first_name' => 'María',
+                    'last_name' => 'González',
                     'email' => 'maria.gonzalez@example.com',
                 ],
                 [
-                    'firstname' => 'Carlos',
-                    'lastname' => 'Rodríguez',
+                    'first_name' => 'Carlos',
+                    'last_name' => 'Rodríguez',
                     'email' => 'carlos.rodriguez@example.com',
                 ],
                 [
-                    'firstname' => 'Ana',
-                    'lastname' => 'López',
+                    'first_name' => 'Ana',
+                    'last_name' => 'López',
                     'email' => 'ana.lopez@example.com',
                 ],
                 [
-                    'firstname' => 'Pedro',
-                    'lastname' => 'Fernández',
+                    'first_name' => 'Pedro',
+                    'last_name' => 'Fernández',
                     'email' => 'pedro.fernandez@example.com',
                 ],
             ];
 
             foreach ($customerData as $data) {
                 $customer = Customer::create([
-                    'firstname' => $data['firstname'],
-                    'lastname' => $data['lastname'],
+                    'first_name' => $data['first_name'],
+                    'last_name' => $data['last_name'],
                     'email' => $data['email'],
                 ]);
 
                 $user = User::factory()->create([
-                    'name' => "{$data['firstname']} {$data['lastname']}",
+                    'name' => "{$data['first_name']} {$data['last_name']}",
                     'email' => $data['email'],
                 ]);
 
                 $customer->users()->attach($user->id);
 
                 Address::create([
-                    'firstname' => $data['firstname'],
-                    'lastname' => $data['lastname'],
+                    'first_name' => $data['first_name'],
+                    'last_name' => $data['last_name'],
                     'company' => null,
                     'addressable_type' => (new Customer)->getMorphClass(),
                     'addressable_id' => $customer->id,
