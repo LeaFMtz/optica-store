@@ -2,17 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Webhooks\MercadoPagoController;
+use App\Livewire\Auth\Login;
+use App\Livewire\Auth\Register;
 use App\Livewire\CheckoutPage;
 use App\Livewire\CheckoutSuccessPage;
 use App\Livewire\CollectionPage;
 use App\Livewire\ContactPage;
 use App\Livewire\FaqPage;
-use App\Livewire\RefundPolicyPage;
 use App\Livewire\Home;
 use App\Livewire\ProductPage;
+use App\Livewire\RefundPolicyPage;
 use App\Livewire\SearchPage;
-use App\Livewire\Auth\Login;
-use App\Livewire\Auth\Register;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -35,10 +36,12 @@ Route::post('/logout', function () {
     Auth::logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
+
     return redirect('/');
 })->name('logout');
 
 use App\Livewire\CatalogPage;
+
 Route::get('/collections/{slug}', CollectionPage::class)->name('collection.view');
 
 Route::get('/productos', CatalogPage::class)->name('catalog.view');
@@ -56,3 +59,5 @@ Route::get('contacto', ContactPage::class)->name('contact.view');
 Route::get('preguntas-frecuentes', FaqPage::class)->name('faq.view');
 
 Route::get('politica-de-devolucion', RefundPolicyPage::class)->name('refund-policy.view');
+
+Route::post('webhooks/mercadopago', [MercadoPagoController::class, 'handle']);

@@ -22,6 +22,7 @@
         "lunarphp/stripe": "^1.0@beta",
         "lunarphp/table-rate-shipping": "^1.0@beta",
         "meilisearch/meilisearch-php": "^1.6",
+        "mercadopago/dx-php": "^3.8",
         "predis/predis": "^2.2"
     },
     "require-dev": {
