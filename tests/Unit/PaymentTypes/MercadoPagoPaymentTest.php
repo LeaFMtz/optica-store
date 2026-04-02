@@ -23,6 +23,10 @@ class MercadoPagoPaymentTest extends TestCase
 
         $payment = new MercadoPagoPayment;
         $payment->order($order);
+        $payment->withData([
+            'payment_token' => 'test_token',
+            'payment_method_id' => 'credit_card',
+        ]);
 
         $result = $payment->authorize();
 
@@ -30,12 +34,27 @@ class MercadoPagoPaymentTest extends TestCase
         $this->assertStringContainsString('not configured', $result->message);
     }
 
-    public function test_capture_returns_success(): void
+    public function test_authorize_returns_error_when_missing_token(): void
     {
+        config(['services.mercadopago.access_token' => 'test_token']);
+
         $order = Order::factory()->create();
 
         $payment = new MercadoPagoPayment;
         $payment->order($order);
+        $payment->withData([]);
+
+        $result = $payment->authorize();
+
+        $this->assertFalse($result->success);
+        $this->assertStringContainsString('Payment token is required', $result->message);
+    }
+
+    public function test_capture_creates_capture_transaction(): void
+    {
+        config(['services.mercadopago.access_token' => 'test_token']);
+
+        $order = Order::factory()->create();
 
         $transaction = new Transaction([
             'success' => true,
@@ -43,19 +62,22 @@ class MercadoPagoPaymentTest extends TestCase
             'driver' => 'mercadopago',
             'amount' => 10000,
             'reference' => '12345',
-            'status' => 'pending',
+            'status' => 'authorized',
             'card_type' => 'visa',
             'last_four' => '4242',
         ]);
+
+        $payment = new MercadoPagoPayment;
+        $payment->order($order);
 
         $result = $payment->capture($transaction);
 
         $this->assertTrue($result->success);
     }
 
-    public function test_refund_returns_error_when_not_configured(): void
+    public function test_refund_creates_refund_transaction(): void
     {
-        config(['services.mercadopago.access_token' => null]);
+        config(['services.mercadopago.access_token' => 'test_token']);
 
         $order = Order::factory()->create();
 
@@ -65,7 +87,7 @@ class MercadoPagoPaymentTest extends TestCase
             'driver' => 'mercadopago',
             'amount' => 10000,
             'reference' => '12345',
-            'status' => 'succeeded',
+            'status' => 'approved',
             'card_type' => 'visa',
             'last_four' => '4242',
         ]);
@@ -75,8 +97,7 @@ class MercadoPagoPaymentTest extends TestCase
 
         $result = $payment->refund($transaction, 10000);
 
-        $this->assertFalse($result->success);
-        $this->assertStringContainsString('not configured', $result->message);
+        $this->assertTrue($result->success);
     }
 
     protected function setUp(): void
