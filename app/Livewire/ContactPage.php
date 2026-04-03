@@ -21,19 +21,6 @@ class ContactPage extends Component
 
     public bool $success = false;
 
-    /**
-     * @return array<string, string>
-     */
-    protected function rules(): array
-    {
-        return [
-            'name' => 'required|string|min:3',
-            'email' => 'required|email',
-            'phone' => 'nullable|string',
-            'message' => 'required|string|min:10',
-        ];
-    }
-
     public function sendMessage(): void
     {
         $this->validate();
@@ -50,5 +37,18 @@ class ContactPage extends Component
     public function render(): View
     {
         return view('livewire.contact-page');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function rules(): array
+    {
+        return [
+            'name' => 'required|string|min:3',
+            'email' => 'required|email',
+            'phone' => 'nullable|string',
+            'message' => 'required|string|min:10',
+        ];
     }
 }

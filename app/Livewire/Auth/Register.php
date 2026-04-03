@@ -22,18 +22,6 @@ class Register extends Component
 
     public string $password_confirmation = '';
 
-    /**
-     * @return array<string, string>
-     */
-    protected function rules(): array
-    {
-        return [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users',
-            'password' => 'required|min:8|confirmed',
-        ];
-    }
-
     public function register(): void
     {
         $this->validate();
@@ -52,5 +40,17 @@ class Register extends Component
     public function render(): View
     {
         return view('livewire.auth.register');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function rules(): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users',
+            'password' => 'required|min:8|confirmed',
+        ];
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Filament\Resources\BannerResource;
 use App\Models\Product;
 use App\Modifiers\ShippingModifier;
 use Illuminate\Support\ServiceProvider;
@@ -21,9 +22,13 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         LunarPanel::panel(
-            fn ($panel) => $panel->plugins([
-                new ShippingPlugin,
-            ]),
+            fn ($panel) => $panel
+                ->plugins([
+                    new ShippingPlugin,
+                ])
+                ->resources([
+                    BannerResource::class,
+                ]),
         )
             ->register();
     }
