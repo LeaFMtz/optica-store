@@ -27,4 +27,21 @@ class TrustProxies extends Middleware
         Request::HEADER_X_FORWARDED_PORT |
         Request::HEADER_X_FORWARDED_PROTO |
         Request::HEADER_X_FORWARDED_AWS_ELB;
+
+    public function __construct()
+    {
+        $config = config('app.trusted_proxies');
+
+        if (empty($config) && !app()->environment('local')) {
+            throw new \Error('Trusted proxies must be configured for non-local environments.');
+        }
+
+        if (empty($config)) {
+            $this->proxies = '*';
+        } elseif (!empty($config)) {
+            $this->proxies = explode(',', $config);
+        } else {
+            $this->proxies = '*';
+        }
+    }
 }
