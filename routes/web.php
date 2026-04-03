@@ -13,6 +13,7 @@ use App\Livewire\Home;
 use App\Livewire\ProductPage;
 use App\Livewire\RefundPolicyPage;
 use App\Livewire\SearchPage;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +27,16 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+Route::get('/debug-proxy', function (Request $request) {
+    return [
+        'ip_real_usuario' => $request->ip(),
+        'es_segura' => $request->secure() ? 'SÍ (HTTPS)' : 'NO (HTTP)',
+        'url_generada' => url('/test'),
+        'header_proto' => $request->header('X-Forwarded-Proto'),
+        'all_headers' => $request->headers->all(),
+    ];
+});
 
 Route::get('/', Home::class);
 
