@@ -282,8 +282,7 @@ class CheckoutPage extends Component
 
     public function render(): View
     {
-        return view('livewire.checkout-page')
-            ->layout('layouts.checkout');
+        return view('livewire.checkout-page');
     }
 
     /**

@@ -14,6 +14,8 @@ class ProductPrice extends Component
 {
     public ?Price $price = null;
 
+    public ?Price $basePrice = null;
+
     public ?ProductVariant $variant = null;
 
     /**
@@ -23,9 +25,12 @@ class ProductPrice extends Component
      */
     public function __construct($product = null, $variant = null)
     {
-        $this->price = Pricing::for(
+        $pricing = Pricing::for(
             $variant ?: $product->variants->first(),
-        )->get()->matched;
+        )->get();
+
+        $this->price = $pricing->matched;
+        $this->basePrice = $pricing->base;
     }
 
     /**

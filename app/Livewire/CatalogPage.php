@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Traits\HandlesCart;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -11,6 +12,7 @@ use Lunar\Models\Product;
 
 class CatalogPage extends Component
 {
+    use HandlesCart;
     use WithPagination;
 
     /**

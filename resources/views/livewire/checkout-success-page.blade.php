@@ -1,32 +1,34 @@
-<section class="bg-white">
-    <div class="max-w-screen-xl px-4 py-32 mx-auto sm:px-6 lg:px-8 lg:py-48">
+<section class="bg-white min-h-[70vh] flex items-center">
+    <div class="max-w-screen-xl px-4 py-24 mx-auto sm:px-6 lg:px-8 lg:py-32">
         <div class="max-w-xl mx-auto text-center">
-            <span class="text-xs font-medium text-center bg-orange-100 text-orange-700 px-3 py-1.5 rounded-lg">
-                This was a test order
+            <span class="text-[10px] font-black uppercase tracking-widest text-center bg-[#71C229]/10 text-[#71C229] px-4 py-2 rounded-xl border border-[#71C229]/20">
+                Pedido de prueba finalizado
             </span>
 
-            <h1 class="mt-8 text-3xl font-extrabold sm:text-5xl">
-                <span class="block"
-                      role="img">
-                    🥳
-                </span>
-
-                <span class="block mt-1 text-blue-500">
-                    Order Successful!
-                </span>
+            <h1 class="mt-12 text-4xl font-black sm:text-6xl text-black uppercase tracking-tighter italic">
+                <span class="block text-[#71C229]">¡Éxito!</span>
+                Pedido Recibido
             </h1>
 
-            <p class="mt-4 font-medium sm:text-lg">
-                Your order reference number is
-
-                <strong>
-                    {{ $order->reference }}
+            <div class="mt-8 p-8 bg-gray-50 rounded-2xl border border-gray-100 shadow-sm inline-block w-full max-w-sm">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
+                    Referencia del pedido
+                </p>
+                <strong class="text-2xl font-black text-black">
+                    #{{ $order->reference }}
                 </strong>
+            </div>
+
+            <p class="mt-8 text-sm font-bold text-gray-600 max-w-md mx-auto leading-relaxed uppercase tracking-tight">
+                Gracias por confiar en Óptica Guzmán. Nos pondremos en contacto con vos a la brevedad para coordinar la entrega.
             </p>
 
-            <a class="inline-block px-8 py-3 mt-8 text-sm font-medium text-center text-white bg-blue-600 rounded-lg hover:ring-1 hover:ring-blue-600"
+            <a class="inline-flex items-center gap-2 px-10 py-4 mt-12 text-[10px] font-black uppercase tracking-widest text-center text-white bg-black rounded-xl hover:bg-[#71C229] transition-all duration-300 shadow-lg shadow-black/10 group"
                href="{{ url('/') }}">
-                Back Home
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Volver al inicio
             </a>
         </div>
     </div>

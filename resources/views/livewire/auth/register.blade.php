@@ -33,8 +33,8 @@
         </div>
 
         <button type="submit"
-            class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold text-white bg-[#71C229] hover:bg-[#5ea322] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#71C229] transition duration-150">
-            REGISTRARSE
+                class="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-xl text-[10px] font-bold uppercase tracking-[0.3em] text-white bg-black hover:bg-[#71C229] hover:text-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#71C229] transition-all duration-500 active:scale-[0.98]">
+            Crear cuenta
         </button>
     </form>
 

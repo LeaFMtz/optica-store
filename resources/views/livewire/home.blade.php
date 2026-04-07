@@ -110,56 +110,112 @@
         </script>
     @endif
 
-    <div class="max-w-screen-xl px-4 py-12 mx-auto space-y-12 sm:px-6 lg:px-8">
+    <div class="max-w-screen-xl px-4 py-12 mx-auto space-y-16 sm:px-6 lg:px-8">
         
-        {{-- Middle Banners --}}
+        {{-- Middle Banners - Dynamic Bento Grid --}}
         @if ($this->middleBanners->count())
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                @foreach ($this->middleBanners as $banner)
-                    <a href="{{ $banner->url ?? '#' }}" class="block">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                @foreach ($this->middleBanners as $index => $banner)
+                    @php
+                        $count = $this->middleBanners->count();
+                        $colSpan = 'md:col-span-1';
+                        $aspect = 'aspect-[4/3]'; // Aspecto base
+
+                        if ($count === 1) {
+                            $colSpan = 'md:col-span-3';
+                            $aspect = 'aspect-[3/1] lg:aspect-[4/1]'; // Panorámico
+                        } elseif ($count === 2) {
+                            if ($index === 0) {
+                                $colSpan = 'md:col-span-2';
+                                $aspect = 'aspect-[2/1] lg:aspect-[2.5/1]'; // El grande
+                            } else {
+                                $colSpan = 'md:col-span-1';
+                                $aspect = 'aspect-[4/3] lg:aspect-[5/4]'; // El de apoyo
+                            }
+                        }
+                    @endphp
+
+                    <a href="{{ $banner->url ?? '#' }}" 
+                       class="block group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 bg-gray-50 border border-gray-100 {{ $colSpan }} {{ $aspect }}">
                         <img 
                             src="{{ asset('storage/' . $banner->image_path) }}" 
                             alt="{{ $banner->title }}"
-                            class="w-full h-48 object-cover rounded-lg"
+                            class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-500"></div>
                     </a>
                 @endforeach
             </div>
         @endif
 
+        {{-- Offers Carousel Section --}}
         @if ($this->saleCollection)
-            <x-collection-sale />
+            <div class="border-t border-gray-50">
+                <x-collection-sale />
+            </div>
         @endif
 
+        {{-- Random Collection Section --}}
         @if ($this->randomCollection)
-            <section>
-                <h2 class="text-3xl font-bold">
-                    {{ $this->randomCollection->translateAttribute('name') }}
-                </h2>
+            <section class="pt-8 border-t border-gray-50">
+                <div class="flex items-end justify-between mb-10">
+                    <h2 class="text-3xl font-black tracking-tighter uppercase text-black italic">
+                        {{ $this->randomCollection->translateAttribute('name') }}
+                        <span class="block text-[10px] font-black text-[#71C229] uppercase tracking-[0.3em] mt-2 italic not-italic">Selección exclusiva para vos</span>
+                    </h2>
+                </div>
 
-                <div class="grid grid-cols-2 mt-8 lg:grid-cols-4 gap-x-4 gap-y-8">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
                     @foreach ($this->randomCollection->products as $product)
                         <x-product-card :product="$product" />
                     @endforeach
                 </div>
             </section>
         @endif
-    </div>
 
-    {{-- Bottom Banners --}}
-    @if ($this->bottomBanners->count())
-        <div class="max-w-screen-xl px-4 pb-12 mx-auto sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                @foreach ($this->bottomBanners as $banner)
-                    <a href="{{ $banner->url ?? '#' }}" class="block">
+        {{-- Bottom Banners - Dynamic Bento Grid --}}
+        @if ($this->bottomBanners->count())
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12 border-t border-gray-50">
+                @foreach ($this->bottomBanners as $index => $banner)
+                    @php
+                        $count = $this->bottomBanners->count();
+                        $colSpan = 'md:col-span-1';
+                        $aspect = 'aspect-[4/3]'; // Aspecto base
+
+                        if ($count === 1) {
+                            $colSpan = 'md:col-span-3';
+                            $aspect = 'aspect-[3/1] lg:aspect-[4/1]'; // Panorámico
+                        } elseif ($count === 2) {
+                            // Si son 2, partimos al medio pero más apaisados
+                            $colSpan = 'md:col-span-1.5'; // No existe, usamos md:grid-cols-2 para este caso especial
+                            $aspect = 'aspect-[2/1] lg:aspect-[2.5/1]';
+                        } elseif ($count >= 3) {
+                            if ($index === 0) {
+                                $colSpan = 'md:col-span-2'; // El destacado
+                                $aspect = 'aspect-[2/1] lg:aspect-[2.5/1]'; 
+                            } else {
+                                $colSpan = 'md:col-span-1'; // Los secundarios
+                                $aspect = 'aspect-[4/3] lg:aspect-[5/4]';
+                            }
+                        }
+                    @endphp
+
+                    {{-- Ajuste de grid dinámico para 2 banners exactos --}}
+                    @if($count === 2 && $index === 0)
+                        </div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-12 border-t border-gray-50">
+                    @endif
+
+                    <a href="{{ $banner->url ?? '#' }}" 
+                       class="block group relative rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 bg-gray-50 border border-gray-100 {{ $count !== 2 ? $colSpan : '' }} {{ $aspect }}">
                         <img 
                             src="{{ asset('storage/' . $banner->image_path) }}" 
                             alt="{{ $banner->title }}"
-                            class="w-full h-40 object-cover rounded-lg"
+                            class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-500"></div>
                     </a>
                 @endforeach
             </div>
-        </div>
-    @endif
+        @endif
+    </div>
 </div>

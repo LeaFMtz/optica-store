@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Traits\FetchesUrls;
+use App\Traits\HandlesCart;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Component;
@@ -13,6 +14,7 @@ use Lunar\Models\Collection as CollectionModel;
 class CollectionPage extends Component
 {
     use FetchesUrls;
+    use HandlesCart;
 
     public function mount(string $slug): void
     {

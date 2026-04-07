@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire;
 
 use App\Models\Banner;
+use App\Traits\HandlesCart;
 use Illuminate\View\View;
 use Livewire\Component;
 use Lunar\Models\Collection;
@@ -12,6 +13,8 @@ use Lunar\Models\Url;
 
 class Home extends Component
 {
+    use HandlesCart;
+
     /**
      * Return active banners for hero section.
      */
@@ -54,22 +57,18 @@ class Home extends Component
     }
 
     /**
-     * Return all images in sale collection.
+     * Return all products in sale collection.
      */
-    public function getSaleCollectionImagesProperty()
+    public function getSaleProductsProperty()
     {
         if (!$this->getSaleCollectionProperty()) {
-            return null;
+            return collect();
         }
 
-        $collectionProducts = $this->getSaleCollectionProperty()
-            ->products()->inRandomOrder()->limit(4)->get();
-
-        $saleImages = $collectionProducts->map(function ($product) {
-            return $product->thumbnail;
-        });
-
-        return $saleImages->chunk(2);
+        return $this->getSaleCollectionProperty()
+            ->products()
+            ->with(['thumbnail', 'variants', 'variants.prices', 'defaultUrl'])
+            ->get();
     }
 
     /**

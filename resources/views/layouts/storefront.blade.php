@@ -8,9 +8,10 @@
     <meta name="description" content="Tus lentes hechos a tu medida.">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="icon" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" href="{{ asset('favicon.png') }}">
 
     @livewireStyles
+    @stripeScripts
 </head>
 
 <body class="antialiased bg-gray-50 text-gray-900 flex flex-col min-h-screen">

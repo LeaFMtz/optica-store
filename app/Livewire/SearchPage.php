@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Livewire;
 
+use App\Traits\HandlesCart;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\View\View;
 use Livewire\Component;
@@ -12,6 +13,7 @@ use Lunar\Models\Product;
 
 class SearchPage extends Component
 {
+    use HandlesCart;
     use WithPagination;
 
     /**

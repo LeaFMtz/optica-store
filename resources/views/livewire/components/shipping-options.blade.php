@@ -23,12 +23,15 @@
     @if ($errors->has('chosenOption'))
         <p class="p-4 text-sm text-red-500">{{ $errors->first('chosenOption') }}</p>
     @endif
-    <div class="flex justify-end w-full p-4 bg-gray-100">
+    <div class="flex justify-end w-full p-8 bg-gray-50/50 border-t border-gray-50">
         <div>
             <button type="submit"
                     wire:key="submit_btn"
-                    class="px-5 py-3 font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-500">
-                Continue
+                    class="px-10 py-4 text-[10px] font-black uppercase tracking-widest text-white bg-black rounded-xl hover:bg-[#71C229] transition-all duration-300 shadow-lg shadow-black/10 flex items-center gap-2 group">
+                Continuar
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
             </button>
         </div>
     </div>

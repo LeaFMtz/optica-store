@@ -11,7 +11,7 @@
             <p class="text-sm text-gray-400 mb-6 max-w-md">¡Suscribite al Newsletter para acceder a beneficios y lanzamientos exclusivos!</p>
             <div class="flex flex-col sm:flex-row gap-0 w-full max-w-lg group">
                 <input type="email" placeholder="Email" class="flex-1 bg-transparent border border-gray-700 rounded-l-md py-3 px-4 focus:outline-none focus:border-[#71C229] text-white transition-colors">
-                <button type="button" class="bg-white text-[#71C229] font-black py-3 px-8 rounded-r-md hover:bg-[#71C229] hover:text-white transition-all uppercase text-sm">Enviar</button>
+                <button type="button" class="bg-black text-white font-bold py-3 px-8 rounded-r-xl hover:bg-[#71C229] hover:text-black transition-all duration-500 uppercase text-[10px] tracking-[0.2em]">Enviar</button>
             </div>
         </div>
 
