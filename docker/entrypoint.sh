@@ -40,7 +40,12 @@ fi
 # LIMPIEZA PARA MANTENER SIN CACHE Y AL DIA EL ENTORNO DE DEV
 php artisan optimize:clear
 php artisan migrate
-php artisan storage:link
+
+if [ ! -L public/storage ] && [ ! -d public/storage ]; then
+    if command -v php >/dev/null 2>&1 && [ -f artisan ]; then
+        php artisan storage:link
+    fi
+fi
 
 # Ejecutar el comando principal (supervisord)
 exec "$@"

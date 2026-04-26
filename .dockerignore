@@ -2,6 +2,12 @@
 .github
 .agents
 .gemini
+.atl
+.engram
+.agents
+.phpunit.cache
+.pnpm-store
+infrastructure
 node_modules
 vendor
 storage/*.key
@@ -17,3 +23,6 @@ _ide_helper.php
 .phpstorm.meta.php
 Dockerfile
 README.md
+public/hot
+public/storage
+public/build
