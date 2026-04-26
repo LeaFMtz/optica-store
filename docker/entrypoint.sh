@@ -7,6 +7,24 @@ cd /var/www/html
 echo "Entrypoint: Seteando permisos 777 en storage y bootstrap/cache..."
 chmod -R 777 storage bootstrap/cache
 
+# --- NUEVA SECCIÓN: ESPERA A LA DB ---
+echo "Entrypoint: Esperando a que la base de datos esté lista en ${DB_HOST:-db}:3306..."
+
+# --- ESPERA A LA DB USANDO PHP ---
+echo "Entrypoint: Esperando a la DB en ${DB_HOST:-db}:3306..."
+
+php -r "
+    \$host = '${DB_HOST:-db}';
+    \$port = 3306;
+    while (!@fsockopen(\$host, \$port)) {
+        echo 'Entrypoint: DB no lista, esperando 2s...\n';
+        sleep(2);
+    }
+"
+
+echo "Entrypoint: ¡Base de datos conectada!"
+echo "Entrypoint: ¡Conexión establecida con la base de datos!"
+
 # Dependencias PHP
 if [ ! -d vendor ] && command -v composer >/dev/null 2>&1; then
     echo "Entrypoint: Directorio vendor no encontrado. Ejecutando composer install..."
