@@ -101,33 +101,19 @@
                 <x-header.search class="w-full" />
             </div>
 
-            <nav class="mt-4 hidden lg:flex justify-center gap-6 text-xs font-bold text-white/80 border-t border-gray-800 pt-4 pb-2 relative"
-                x-data="{ showProducts: false }">
-                <a href="{{ url('/') }}" wire:navigate class="hover:text-[#71C229] transition py-2">Inicio</a>
-
+            <nav
+                class="mt-4 hidden lg:flex justify-center gap-6 text-xs font-bold text-white/80 border-t border-gray-800 pt-4 pb-2 relative">
                 <div @mouseenter="showProducts = true" @mouseleave="showProducts = false">
                     <a href="{{ route('catalog.view') }}" wire:navigate
-                        class="hover:text-[#71C229] transition py-2 inline-block">Productos</a>
+                        class="hover:text-[#71C229] transition py-2 inline-block">Todos</a>
 
-                    <div x-show="showProducts" x-transition x-cloak
-                        class="absolute top-[48px] left-0 w-full bg-black border-t-2 border-[#71C229] p-8 shadow-2xl z-50">
-                        <div class="max-w-screen-2xl mx-auto flex flex-wrap gap-x-12 gap-y-6">
-                            @foreach ($this->collections as $collection)
-                            <a href="{{ route('collection.view', $collection->defaultUrl->slug) }}" wire:navigate
-                                class="text-white hover:text-[#71C229] text-sm font-medium transition min-w-[150px]">
-                                {{ $collection->translateAttribute('name') }}
-                            </a>
-                            @endforeach
-                        </div>
-                    </div>
+                    @foreach ($this->collections as $collection)
+                    <a href="{{ route('collection.view', $collection->defaultUrl->slug) }}" wire:navigate
+                        class="text-white hover:text-[#71C229] text-sm font-medium transition min-w-[150px]">
+                        {{ $collection->translateAttribute('name') }}
+                    </a>
+                    @endforeach
                 </div>
-
-                <a href="{{ route('contact.view') }}" wire:navigate
-                    class="hover:text-[#71C229] transition py-2">Contacto</a>
-                <a href="{{ route('refund-policy.view') }}" wire:navigate
-                    class="hover:text-[#71C229] transition py-2">Política de Devolución</a>
-                <a href="{{ route('faq.view') }}" wire:navigate class="hover:text-[#71C229] transition py-2">Preguntas
-                    Frecuentes</a>
             </nav>
         </div>
     </header>

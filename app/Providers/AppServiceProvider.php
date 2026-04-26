@@ -28,7 +28,8 @@ class AppServiceProvider extends ServiceProvider
                 ])
                 ->resources([
                     BannerResource::class,
-                ]),
+                ])
+                ->path('panel'),
         )
             ->register();
     }
