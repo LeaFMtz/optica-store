@@ -6,7 +6,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Lunar\Models\Channel;
-use Lunar\Models\CollectionGroup;
 use Lunar\Models\Currency;
 use Lunar\Models\Language;
 use Lunar\Models\TaxClass;
@@ -48,7 +47,6 @@ class BasicConfig extends Seeder
 
         $taxClassIva10 = TaxClass::create([
             'name' => 'IVA 10.5%',
-            'default' => true,
         ]);
 
         $taxZone = TaxZone::create([
@@ -76,11 +74,6 @@ class BasicConfig extends Seeder
         $taxRates->taxRateAmounts()->create([
             'percentage' => 10.5,
             'tax_class_id' => $taxClassIva10->id,
-        ]);
-
-        CollectionGroup::create([
-            'name' => 'Catalogo',
-            'catalogo',
         ]);
     }
 }
