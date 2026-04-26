@@ -14,10 +14,6 @@ class HierarchicalProductOptionsWidgetTest extends TestCase
 {
     use RefreshDatabase;
 
-    // -------------------------------------------------------------------------
-    // Task 5.1 — buildHierarchicalPermutations: only selected combos generated
-    // -------------------------------------------------------------------------
-
     #[Test]
     public function it_generates_only_selected_parent_child_combinations(): void
     {
@@ -35,7 +31,7 @@ class HierarchicalProductOptionsWidgetTest extends TestCase
             'value' => 'Graduación',
             'parent_value_selections' => [
                 'Monofocal' => ['Baja', 'Alta'],
-                'Bifocal'   => ['Baja'],
+                'Bifocal' => ['Baja'],
             ],
             'option_values' => [],
         ];
@@ -67,7 +63,7 @@ class HierarchicalProductOptionsWidgetTest extends TestCase
             'value' => 'Graduación',
             'parent_value_selections' => [
                 'Monofocal' => ['Baja', 'Alta'],
-                'Bifocal'   => ['Baja'],
+                'Bifocal' => ['Baja'],
             ],
             'option_values' => [],
         ];
@@ -77,10 +73,6 @@ class HierarchicalProductOptionsWidgetTest extends TestCase
         $this->assertCount(2, $result);
         $this->assertNotContains(['Tipo de Lente' => 'Bifocal', 'Graduación' => 'Baja'], $result);
     }
-
-    // -------------------------------------------------------------------------
-    // Task 5.2 — hierarchical + independent options mixed (cartesian)
-    // -------------------------------------------------------------------------
 
     #[Test]
     public function it_combines_hierarchical_permutations_with_independent_options(): void
@@ -109,11 +101,6 @@ class HierarchicalProductOptionsWidgetTest extends TestCase
         ], $result);
     }
 
-    // -------------------------------------------------------------------------
-    // Task 5.3 — inferParentValueSelections from existing variants
-    //   Requires Lunar model factories — skipped until factories are available
-    // -------------------------------------------------------------------------
-
     #[Test]
     public function it_infers_parent_value_selections_from_existing_variants(): void
     {
@@ -122,13 +109,9 @@ class HierarchicalProductOptionsWidgetTest extends TestCase
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
     private function makeWidget(): HierarchicalProductOptionsWidget
     {
-        return new HierarchicalProductOptionsWidget();
+        return new HierarchicalProductOptionsWidget;
     }
 
     private function callPrivate(object $object, string $method, mixed ...$args): mixed

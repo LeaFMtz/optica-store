@@ -21,10 +21,6 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
 {
     protected string $view = 'vendor.lunarpanel.resources.product-resource.widgets.product-options';
 
-    // -------------------------------------------------------------------------
-    // Task 2.2 + 2.3 + 2.4 — addSharedOptionAction override
-    // -------------------------------------------------------------------------
-
     public function addSharedOptionAction(): Action
     {
         $existing = collect($this->configuredOptions)->pluck('id');
@@ -71,7 +67,7 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
                     ->label('Combinaciones de variantes')
                     ->options(fn (Get $get) => $this->buildCompositeOptions((int) $get('product_option')))
                     ->columns(2)
-                    ->hidden(fn (Get $get) => !$this->selectedOptionIsHierarchical($get('product_option'), $parentOptionIds)),
+                    ->hidden(fn (Get $get) => ! $this->selectedOptionIsHierarchical($get('product_option'), $parentOptionIds)),
             ])
             ->action(function (array $data) use ($parentOptionIds) {
                 $optionId = (int) $data['product_option'];
@@ -93,10 +89,6 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
             );
     }
 
-    // -------------------------------------------------------------------------
-    // Task 3.2 — configureBaseOptions override
-    // -------------------------------------------------------------------------
-
     public function configureBaseOptions(): void
     {
         parent::configureBaseOptions();
@@ -114,7 +106,7 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
 
             $dbOption = ProductOption::find($entry['id']);
 
-            if (!$dbOption || !$dbOption->parent_id) {
+            if (! $dbOption || ! $dbOption->parent_id) {
                 continue;
             }
 
@@ -154,10 +146,6 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Task 3.5 — mapVariantPermutations override
-    // -------------------------------------------------------------------------
-
     public function mapVariantPermutations($fillMissing = true): void
     {
         $existingVariants = $this->record->variants
@@ -174,7 +162,7 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
 
         // Collect keys that are children
         $childKeys = collect($this->configuredOptions)
-            ->filter(fn ($opt) => !empty($opt['parent_key']))
+            ->filter(fn ($opt) => ! empty($opt['parent_key']))
             ->pluck('parent_key')
             ->flip();
 
@@ -182,7 +170,7 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
         $independentOptions = [];
 
         foreach ($this->configuredOptions as $option) {
-            if (!empty($option['parent_key'])) {
+            if (! empty($option['parent_key'])) {
                 // Find parent by key
                 $parent = collect($this->configuredOptions)->firstWhere('key', $option['parent_key']);
                 if ($parent) {
@@ -225,16 +213,12 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
         }
 
         // Combine with independent options
-        if (!empty($independentOptions)) {
+        if (! empty($independentOptions)) {
             $allPermutations = $this->combineWithIndependent($allPermutations, $independentOptions);
         }
 
         $this->variants = $this->matchPermutationsToVariants($allPermutations, $existingVariants, $fillMissing);
     }
-
-    // -------------------------------------------------------------------------
-    // Task 3.1 — inferParentValueSelections
-    // -------------------------------------------------------------------------
 
     private function inferParentValueSelections(int $parentOptionId, int $childOptionId): array
     {
@@ -248,28 +232,24 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
             $parentValue = $variant->values->firstWhere('product_option_id', $parentOptionId);
             $childValue = $variant->values->firstWhere('product_option_id', $childOptionId);
 
-            if (!$parentValue || !$childValue) {
+            if (! $parentValue || ! $childValue) {
                 continue;
             }
 
             $parentName = $parentValue->translate('name');
             $childName = $childValue->translate('name');
 
-            if (!isset($selections[$parentName])) {
+            if (! isset($selections[$parentName])) {
                 $selections[$parentName] = [];
             }
 
-            if (!in_array($childName, $selections[$parentName])) {
+            if (! in_array($childName, $selections[$parentName])) {
                 $selections[$parentName][] = $childName;
             }
         }
 
         return $selections;
     }
-
-    // -------------------------------------------------------------------------
-    // Task 3.3 — buildHierarchicalPermutations
-    // -------------------------------------------------------------------------
 
     private function buildHierarchicalPermutations(array $parentEntry, array $childEntry): array
     {
@@ -279,7 +259,7 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
         $selections = $childEntry['parent_value_selections'] ?? [];
 
         foreach ($parentEntry['option_values'] as $parentValue) {
-            if (!$parentValue['enabled']) {
+            if (! $parentValue['enabled']) {
                 continue;
             }
 
@@ -297,10 +277,6 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
         return $permutations;
     }
 
-    // -------------------------------------------------------------------------
-    // Task 3.4 — matchPermutationsToVariants (replicates Lunar's matching logic)
-    // -------------------------------------------------------------------------
-
     private function matchPermutationsToVariants(array $permutations, array $existingVariants, bool $fillMissing): array
     {
         $variantPermutations = [];
@@ -309,7 +285,7 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
             $variantIndex = collect($existingVariants)->search(function ($variant) use ($permutation) {
                 $valueDifference = array_diff_assoc($permutation, $variant['values']);
 
-                if (!count($valueDifference)) {
+                if (! count($valueDifference)) {
                     return $variant;
                 }
 
@@ -336,7 +312,7 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
                     $copiedFrom = $variant['id'];
                 }
 
-                if ($existing && !$fillMissing) {
+                if ($existing && ! $fillMissing) {
                     $shouldFill = false;
                 }
             }
@@ -357,13 +333,9 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
         return $variantPermutations;
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
     private function selectedOptionIsHierarchical(mixed $optionId, Collection $parentOptionIds): bool
     {
-        if (!$optionId) {
+        if (! $optionId) {
             return false;
         }
 
@@ -372,13 +344,13 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
 
     private function buildCompositeOptions(int $optionId): array
     {
-        if (!$optionId) {
+        if (! $optionId) {
             return [];
         }
 
         $parentOption = ProductOption::with(['values', 'children.values'])->find($optionId);
 
-        if (!$parentOption || $parentOption->children->isEmpty()) {
+        if (! $parentOption || $parentOption->children->isEmpty()) {
             return [];
         }
 
@@ -418,18 +390,18 @@ class HierarchicalProductOptionsWidget extends ProductOptionsWidget
                 }
             }
 
-            if (!$parentValue || !$childValue) {
+            if (! $parentValue || ! $childValue) {
                 continue;
             }
 
             $parentValueName = $parentValue->translate('name');
             $childValueName = $childValue->translate('name');
 
-            if (!isset($parentValueSelections[$parentValueName])) {
+            if (! isset($parentValueSelections[$parentValueName])) {
                 $parentValueSelections[$parentValueName] = [];
             }
 
-            if (!in_array($childValueName, $parentValueSelections[$parentValueName])) {
+            if (! in_array($childValueName, $parentValueSelections[$parentValueName])) {
                 $parentValueSelections[$parentValueName][] = $childValueName;
             }
         }

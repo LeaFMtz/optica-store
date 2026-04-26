@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Filament\Extensions\ManageProductVariantsPageExtension;
-use App\Filament\Extensions\ManageProductVariantsResourceExtension;
 use App\Filament\Extensions\ProductOptionResourceExtension;
 use App\Filament\Resources\BannerResource;
 use App\Filament\Widgets\HierarchicalProductOptionsWidget;
@@ -16,7 +15,6 @@ use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Lunar\Admin\Filament\Resources\ProductOptionResource;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\ManageProductVariants;
-use Lunar\Admin\Filament\Resources\ProductVariantResource;
 use Lunar\Admin\Support\Facades\LunarPanel;
 use Lunar\Base\ShippingModifiers;
 use Lunar\Facades\ModelManifest;
@@ -44,7 +42,6 @@ class AppServiceProvider extends ServiceProvider
 
         LunarPanel::extensions([
             ProductOptionResource::class => ProductOptionResourceExtension::class,
-            ProductVariantResource::class => ManageProductVariantsResourceExtension::class,
             ManageProductVariants::class => ManageProductVariantsPageExtension::class,
         ]);
     }
