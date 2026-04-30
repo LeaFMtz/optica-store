@@ -33,25 +33,22 @@ services:
   app:
     build:
       context: .
-      target: prod
+      target: dev
     container_name: optica_app
     restart: unless-stopped
-    env_file:
-      - .env
+    entrypoint: ["/var/www/html/docker/entrypoint.sh"]
+    command:
+      ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+    ports:
+      - "5173:5173"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 5s
       timeout: 3s
       retries: 5
       start_period: 10s
-    deploy:
-      resources:
-        limits:
-          cpus: "2"
-          memory: 250M
-        reservations:
-          cpus: "1"
-          memory: 512M
+    volumes:
+      - .:/var/www/html:z
     networks:
       - optica_network
     depends_on:
