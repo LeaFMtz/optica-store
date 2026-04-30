@@ -25,13 +25,50 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v2    
 
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        run_install: false
+
+    - name: Install JS dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build assets
+      run: pnpm run build
+
+    - name: Verify manifest exists
+      run: test -f public/build/manifest.json
+
+    - name: Sync assets to R2
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      run: |
+        aws s3 sync public/build/ s3://${{ secrets.R2_BUCKET }}/build/ \
+          --endpoint-url https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com \
+          --cache-control "public,max-age=31536000,immutable" \
+          --delete
+
+    - name: Verify ASSET_URL is set
+      run: |
+        if [ -z "${{ secrets.ASSET_URL }}" ]; then
+          echo "ERROR: ASSET_URL secret is not set. Cannot proceed with Docker build."
+          exit 1
+        fi
+
     - name: Build, tag y push a ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         ECR_REPOSITORY: optica-store
         IMAGE_TAG: ${{ github.sha }}
+        ASSET_URL: ${{ secrets.ASSET_URL }}
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-        
+
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest

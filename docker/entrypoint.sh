@@ -20,17 +20,6 @@ php -r "
     }
 "
 
-CACHE_PATH="./bootstrap/cache"
-
-if [ ! -d "$CACHE_PATH" ]; then
-    echo "Directorio no encontrado. Creando $CACHE_PATH..."
-    mkdir -p "$CACHE_PATH"
-else
-    echo "Limpiando contenido de $CACHE_PATH (preservando .gitignore)..."
-    # Borra todo lo que NO sea el archivo .gitignore
-    find "$CACHE_PATH" -mindepth 1 ! -name '.gitignore' -delete
-fi
-
 # Aseguramos que el directorio tenga permisos de escritura para el worker
 echo "Entrypoint: Seteando permisos 777 en storage y bootstrap/cache..."
 chmod -R 777 storage bootstrap/cache

@@ -31,29 +31,12 @@ COPY . .
 RUN mkdir -p storage/app storage/framework/cache storage/framework/sessions storage/framework/views logs
 
 # ----------------------------------------------------
-# ETAPA: NODE_BUILDER
-# ----------------------------------------------------
-FROM node:24-slim AS node_builder
-
-RUN corepack enable && corepack prepare pnpm@latest --activate
-WORKDIR /app
-
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-
-COPY vite.config.js tailwind.config.js postcss.config.js ./
-COPY resources/ ./resources/
-
-RUN pnpm run build
-
-# ----------------------------------------------------
 # BUILD PROD
 # ----------------------------------------------------
 FROM base AS prod
 WORKDIR /var/www/html
 
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
-COPY --from=node_builder --chown=www-data:www-data /app/public/build ./public/build
 
 COPY docker/php.ini /etc/php/8.4/fpm/conf.d/99-app.ini
 
@@ -78,7 +61,6 @@ FROM base AS worker
 WORKDIR /var/www/html
 
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
-COPY --from=node_builder --chown=www-data:www-data /app/public/build ./public/build
 
 COPY docker/php-worker.ini /etc/php/8.4/cli/conf.d/99-app.ini
 
@@ -106,7 +88,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
-COPY --from=node_builder --chown=www-data:www-data /app/public/build ./public/build
 
 COPY docker/php-dev.ini /etc/php/8.4/fpm/conf.d/99-app.ini
 COPY docker/xdebug.ini /etc/php/8.4/fpm/conf.d/99-xdebug.ini
