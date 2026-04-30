@@ -44,6 +44,14 @@ services:
       timeout: 3s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 380M
+        reservations:
+          cpus: "1"
+          memory: 512M
     networks:
       - optica_network
     depends_on:
