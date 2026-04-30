@@ -12,7 +12,7 @@ RUN mkdir -p /etc/apt/keyrings /run/php \
     && echo "deb [signed-by=/etc/apt/keyrings/sury.gpg] https://packages.sury.org/php bookworm main" \
        > /etc/apt/sources.list.d/sury-php.list \
     && apt-get update && apt-get install -y --no-install-recommends \
-       php8.4-fpm php8.4-curl php8.4-gd php8.4-mysql php8.4-xml php8.4-zip \
+       php8.4-fpm php8.4-curl php8.4-gd php8.4-mbstring php8.4-mysql php8.4-xml php8.4-zip \
        php8.4-intl php8.4-opcache php8.4-bcmath php8.4-exif \
        php8.4-sockets php8.4-redis \
        nginx supervisor unzip \

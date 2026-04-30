@@ -36,6 +36,8 @@ services:
       target: prod
     container_name: optica_app
     restart: unless-stopped
+    env_file:
+      - .env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 5s
