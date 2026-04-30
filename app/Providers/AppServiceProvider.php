@@ -4,10 +4,17 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Filament\Extensions\ManageProductVariantsPageExtension;
+use App\Filament\Extensions\ProductOptionResourceExtension;
 use App\Filament\Resources\BannerResource;
+use App\Filament\Widgets\HierarchicalProductOptionsWidget;
 use App\Models\Product;
+use App\Models\ProductOption;
 use App\Modifiers\ShippingModifier;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
+use Lunar\Admin\Filament\Resources\ProductOptionResource;
+use Lunar\Admin\Filament\Resources\ProductResource\Pages\ManageProductVariants;
 use Lunar\Admin\Support\Facades\LunarPanel;
 use Lunar\Base\ShippingModifiers;
 use Lunar\Facades\ModelManifest;
@@ -32,6 +39,11 @@ class AppServiceProvider extends ServiceProvider
                 ->path('panel'),
         )
             ->register();
+
+        LunarPanel::extensions([
+            ProductOptionResource::class => ProductOptionResourceExtension::class,
+            ManageProductVariants::class => ManageProductVariantsPageExtension::class,
+        ]);
     }
 
     /**
@@ -46,7 +58,16 @@ class AppServiceProvider extends ServiceProvider
         ModelManifest::replace(
             \Lunar\Models\Contracts\Product::class,
             Product::class,
-            // \App\Models\CustomProduct::class,
+        );
+
+        ModelManifest::replace(
+            \Lunar\Models\Contracts\ProductOption::class,
+            ProductOption::class,
+        );
+
+        Livewire::component(
+            'app.filament.widgets.hierarchical-product-options-widget',
+            HierarchicalProductOptionsWidget::class,
         );
 
         Telemetry::optOut();

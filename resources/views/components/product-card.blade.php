@@ -2,10 +2,12 @@
 
 @php
     $variant = $product->variants->first();
-    $pricing = Lunar\Facades\Pricing::for($variant)->get();
     $discountPercentage = 0;
-    if ($pricing->base && $pricing->base->price->value > $pricing->matched->price->value) {
-        $discountPercentage = round((($pricing->base->price->value - $pricing->matched->price->value) / $pricing->base->price->value) * 100);
+    if ($variant) {
+        $pricing = Lunar\Facades\Pricing::for($variant)->get();
+        if ($pricing->base && $pricing->base->price->value > $pricing->matched->price->value) {
+            $discountPercentage = round((($pricing->base->price->value - $pricing->matched->price->value) / $pricing->base->price->value) * 100);
+        }
     }
 @endphp
 
@@ -63,6 +65,7 @@
     </a>
 
     {{-- Botón de Añadido Rápido Separado --}}
+    @if($variant)
     <div class="px-6 pb-6">
         <button wire:click.prevent="quickAdd({{ $variant->id }})"
                 class="w-full bg-black text-white px-4 py-3.5 rounded-xl hover:bg-[#71C229] transition-all duration-300 shadow-sm flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest group/btn active:scale-95"
@@ -73,4 +76,5 @@
             </svg>
         </button>
     </div>
+    @endif
 </article>

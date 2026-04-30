@@ -61,7 +61,7 @@ class Home extends Component
      */
     public function getSaleProductsProperty()
     {
-        if (!$this->getSaleCollectionProperty()) {
+        if (! $this->getSaleCollectionProperty()) {
             return collect();
         }
 
