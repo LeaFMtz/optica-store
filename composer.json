@@ -16,16 +16,15 @@
     "http-interop/http-factory-guzzle": "^1.2",
     "laravel/framework": "^13.0",
     "laravel/sanctum": "^3.3|^4.0",
-    "laravel/tinker": "^3.0",
     "league/flysystem-aws-s3-v3": "^3.0",
     "lunarphp/lunar": "^1.0",
-    "lunarphp/stripe": "^1.0",
     "lunarphp/table-rate-shipping": "^1.0",
     "meilisearch/meilisearch-php": "^1.6",
     "predis/predis": "^2.2"
   },
   "require-dev": {
     "barryvdh/laravel-ide-helper": "^3.6",
+    "laravel/tinker": "^3.0",
     "fakerphp/faker": "^1.23",
     "laravel/boost": "^2.4",
     "laravel/pint": "^1.29",

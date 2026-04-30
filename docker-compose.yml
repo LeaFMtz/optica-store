@@ -14,31 +14,7 @@ services:
       - optica_network
     depends_on:
       app:
-        condition: service_healthy
-
-  app:
-    build:
-      context: .
-      target: dev
-    container_name: optica_app
-    restart: unless-stopped
-    entrypoint: ["/var/www/html/docker/entrypoint.sh"]
-    command:
-      ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
-    ports:
-      - "5173:5173"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 10s
-    volumes:
-      - .:/var/www/html:z
-    networks:
-      - optica_network
-    depends_on:
-      - db
+        condition: service_started
 
   db:
     image: mysql:8.4.8
@@ -53,6 +29,24 @@ services:
       - mysql_data:/var/lib/mysql
     networks:
       - optica_network
+
+  app:
+    build:
+      context: .
+      target: prod
+    container_name: optica_app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - optica_network
+    depends_on:
+      db:
+        condition: service_started
 
 networks:
   optica_network:

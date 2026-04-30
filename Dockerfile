@@ -1,21 +1,26 @@
 # ----------------------------------------------------
-# ETAPA 1: BASE (Debian Slim con PHP 8.4)
+# ETAPA 1: BASE (Debian Bookworm Slim + PHP 8.4 via Sury)
 # ----------------------------------------------------
-FROM docker.io/library/php:8.4-fpm AS base
+FROM debian:bookworm-slim AS base
 
-ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpng-dev libjpeg-dev libfreetype6-dev libzip-dev \
-    curl nginx supervisor unzip libicu-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install sockets pdo pdo_mysql pcntl zip intl gd opcache bcmath exif \
-    && pecl install redis && docker-php-ext-enable redis \
+RUN mkdir -p /etc/apt/keyrings /run/php \
+    && apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
+    && curl -sSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /etc/apt/keyrings/sury.gpg \
+    && echo "deb [signed-by=/etc/apt/keyrings/sury.gpg] https://packages.sury.org/php bookworm main" \
+       > /etc/apt/sources.list.d/sury-php.list \
+    && apt-get update && apt-get install -y --no-install-recommends \
+       php8.4-fpm php8.4-curl php8.4-gd php8.4-mysql php8.4-xml php8.4-zip \
+       php8.4-intl php8.4-opcache php8.4-bcmath php8.4-exif \
+       php8.4-sockets php8.4-redis \
+       nginx supervisor unzip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY --from=docker.io/library/composer:2.8.5 /usr/bin/composer /usr/local/bin/composer
+COPY --from=docker.io/library/composer:2.9.5 /usr/bin/composer /usr/local/bin/composer
 
-# ---------------------------------------------------p
+# ----------------------------------------------------
 # ETAPA 2: BUILD (PHP PROD)
 # ----------------------------------------------------
 FROM base AS build
@@ -26,27 +31,33 @@ COPY . .
 RUN mkdir -p storage/app storage/framework/cache storage/framework/sessions storage/framework/views logs
 
 # ----------------------------------------------------
-# ETAPA: NODE_BUILDER (Compila React/Vite - Seguimos usando Alpine aquí porque es solo para compilar JS)
+# ETAPA: NODE_BUILDER
 # ----------------------------------------------------
 FROM node:24-slim AS node_builder
+
 RUN corepack enable && corepack prepare pnpm@latest --activate
-WORKDIR /var/www/html
-COPY --from=build /var/www/html ./
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
+
+COPY vite.config.js tailwind.config.js postcss.config.js ./
+COPY resources/ ./resources/
+
 RUN pnpm run build
 
 # ----------------------------------------------------
-# ETAPA FINAL UNIFICADA
+# BUILD PROD
 # ----------------------------------------------------
 FROM base AS prod
 WORKDIR /var/www/html
 
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
-COPY --from=node_builder --chown=www-data:www-data /var/www/html/public/build ./public/build
+COPY --from=node_builder --chown=www-data:www-data /app/public/build ./public/build
 
-COPY docker/php.ini /usr/local/etc/php/conf.d/app.ini
+COPY docker/php.ini /etc/php/8.4/fpm/conf.d/99-app.ini
 
-COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
+COPY docker/php-fpm.conf /etc/php/8.4/fpm/pool.d/www.conf
 
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
 COPY docker/nginx.conf /etc/nginx/sites-available/optica.conf
@@ -67,9 +78,9 @@ FROM base AS worker
 WORKDIR /var/www/html
 
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
-COPY --from=node_builder --chown=www-data:www-data /var/www/html/public/build ./public/build
+COPY --from=node_builder --chown=www-data:www-data /app/public/build ./public/build
 
-COPY docker/php.ini /usr/local/etc/php/conf.d/app.ini
+COPY docker/php.ini /etc/php/8.4/cli/conf.d/99-app.ini
 
 COPY docker/supervisord-worker.conf /etc/supervisor/conf.d/supervisord.conf
 
@@ -85,7 +96,6 @@ WORKDIR /var/www/html
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs npm mariadb-client bash openssh-client \
-    # Librerías de Chromium que sacamos de la base:
     libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
     libxkbcommon0 libxcomposite1 libxdamage1 libxext6 libxfixes3 \
     libxrandr2 libgbm1 libasound2 libpango-1.0-0 libcairo2 \
@@ -96,11 +106,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
-COPY --from=node_builder --chown=www-data:www-data /var/www/html/public/build ./public/build
+COPY --from=node_builder --chown=www-data:www-data /app/public/build ./public/build
 
-COPY docker/php-dev.ini /usr/local/etc/php/conf.d/app.ini
+COPY docker/php-dev.ini /etc/php/8.4/fpm/conf.d/99-app.ini
 
-COPY docker/php-fpm-dev.conf /usr/local/etc/php-fpm.d/www.conf
+COPY docker/php-fpm-dev.conf /etc/php/8.4/fpm/pool.d/www.conf
 
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
 COPY docker/nginx.conf /etc/nginx/sites-available/optica.conf
