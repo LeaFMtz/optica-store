@@ -4,8 +4,6 @@ set -e
 # Ir al directorio de trabajo
 cd /var/www/html
 # Permisos 777 recursivos
-echo "Entrypoint: Seteando permisos 777 en storage y bootstrap/cache..."
-chmod -R 777 storage bootstrap/cache
 
 # --- NUEVA SECCIÓN: ESPERA A LA DB ---
 echo "Entrypoint: Esperando a que la base de datos esté lista en ${DB_HOST:-db}:3306..."
@@ -21,6 +19,21 @@ php -r "
         sleep(2);
     }
 "
+
+CACHE_PATH="./bootstrap/cache"
+
+if [ ! -d "$CACHE_PATH" ]; then
+    echo "Directorio no encontrado. Creando $CACHE_PATH..."
+    mkdir -p "$CACHE_PATH"
+else
+    echo "Limpiando contenido de $CACHE_PATH (preservando .gitignore)..."
+    # Borra todo lo que NO sea el archivo .gitignore
+    find "$CACHE_PATH" -mindepth 1 ! -name '.gitignore' -delete
+fi
+
+# Aseguramos que el directorio tenga permisos de escritura para el worker
+echo "Entrypoint: Seteando permisos 777 en storage y bootstrap/cache..."
+chmod -R 777 storage bootstrap/cache
 
 echo "Entrypoint: ¡Base de datos conectada!"
 echo "Entrypoint: ¡Conexión establecida con la base de datos!"
