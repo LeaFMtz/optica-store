@@ -80,7 +80,7 @@ WORKDIR /var/www/html
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
 COPY --from=node_builder --chown=www-data:www-data /app/public/build ./public/build
 
-COPY docker/php.ini /etc/php/8.4/cli/conf.d/99-app.ini
+COPY docker/php-worker.ini /etc/php/8.4/cli/conf.d/99-app.ini
 
 COPY docker/supervisord-worker.conf /etc/supervisor/conf.d/supervisord.conf
 
@@ -95,7 +95,7 @@ FROM base AS dev
 WORKDIR /var/www/html
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    nodejs npm mariadb-client bash openssh-client \
+    nodejs npm mariadb-client bash openssh-client php8.4-xdebug \
     libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
     libxkbcommon0 libxcomposite1 libxdamage1 libxext6 libxfixes3 \
     libxrandr2 libgbm1 libasound2 libpango-1.0-0 libcairo2 \
@@ -109,6 +109,8 @@ COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
 COPY --from=node_builder --chown=www-data:www-data /app/public/build ./public/build
 
 COPY docker/php-dev.ini /etc/php/8.4/fpm/conf.d/99-app.ini
+COPY docker/xdebug.ini /etc/php/8.4/fpm/conf.d/99-xdebug.ini
+COPY docker/xdebug.ini /etc/php/8.4/cli/conf.d/99-xdebug.ini
 
 COPY docker/php-fpm-dev.conf /etc/php/8.4/fpm/pool.d/www.conf
 
