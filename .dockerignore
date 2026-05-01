@@ -42,7 +42,7 @@ phpunit.xml
 
 # --- Build Assets & Infrastructure ---
 infrastructure/
-docker/
+docker/ssl
 Dockerfile
 docker-compose.yml
 dev-env.sh
