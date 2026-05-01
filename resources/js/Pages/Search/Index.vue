@@ -25,14 +25,14 @@ function submitSearch() {
       <!-- Header -->
       <div class="mb-10">
         <nav class="text-[10px] text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-4">
-          <a :href="route('home')" class="hover:text-[#71C229]">Inicio</a>
+          <a :href="route('home')" class="hover:text-primary-500">Inicio</a>
           <span>/</span>
           <span class="text-gray-900 font-bold">Búsqueda</span>
         </nav>
 
         <h1 class="text-3xl font-black text-gray-900 uppercase tracking-tight mb-6">
           Resultados de búsqueda
-          <span v-if="query" class="text-[#71C229]">"{{ query }}"</span>
+          <span v-if="query" class="text-primary-500">"{{ query }}"</span>
         </h1>
 
         <!-- Search bar -->
@@ -41,11 +41,11 @@ function submitSearch() {
             v-model="searchInput"
             type="search"
             placeholder="Buscar productos..."
-            class="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#71C229]/20 focus:border-[#71C229] outline-none transition bg-white"
+            class="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition bg-white"
           >
           <button
             type="submit"
-            class="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-[#71C229] transition"
+            class="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-primary-500 transition"
           >
             Buscar
           </button>
@@ -87,7 +87,7 @@ function submitSearch() {
         <p class="text-gray-500 font-medium italic">No hay productos que coincidan con tu búsqueda.</p>
         <a
           :href="route('catalog.view')"
-          class="mt-6 inline-block px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-full hover:bg-[#71C229] transition"
+          class="mt-6 inline-block px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-full hover:bg-primary-500 transition"
         >
           Ver todo el catálogo
         </a>

@@ -2,6 +2,7 @@
 import StorefrontLayout from '@/Layouts/StorefrontLayout.vue'
 import Banner from '@/Components/Banner.vue'
 import ProductCard from '@/Components/ProductCard.vue'
+import AppButton from '@/Components/AppButton.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
 
 defineOptions({ layout: StorefrontLayout })
@@ -194,16 +195,14 @@ function scrollSaleCarousel(direction) {
               <h2 class="text-3xl font-black tracking-tighter uppercase text-black">
                 ¡OFERTAS!
               </h2>
-              <a
+              <AppButton
                 v-if="saleCollectionSlug"
                 :href="`/collections/${saleCollectionSlug}`"
-                class="text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#71C229] transition-all flex items-center gap-1 group/link"
+                variant="outline"
+                size="sm"
               >
                 Ver todas
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 transition-transform group-hover/link:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
+              </AppButton>
             </div>
 
             <div class="flex gap-2">
@@ -258,7 +257,7 @@ function scrollSaleCarousel(direction) {
         <div class="flex items-end justify-between mb-10">
           <h2 class="text-3xl font-black tracking-tighter uppercase text-black italic">
             {{ randomCollectionName }}
-            <span class="block text-[10px] font-black text-[#71C229] uppercase tracking-[0.3em] mt-2 italic not-italic">
+            <span class="block text-[10px] font-black text-primary-500 uppercase tracking-[0.3em] mt-2 italic not-italic">
               Selección exclusiva para vos
             </span>
           </h2>

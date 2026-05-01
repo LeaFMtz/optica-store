@@ -18,7 +18,7 @@ defineProps({
       <div class="flex flex-col md:flex-row md:items-end md:justify-between mb-12 gap-6">
         <div class="space-y-2">
           <nav class="text-[10px] text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-4">
-            <a :href="route('home')" class="hover:text-[#71C229]">Inicio</a>
+            <a :href="route('home')" class="hover:text-primary-500">Inicio</a>
             <span>/</span>
             <span class="text-gray-900 font-bold">Colecciones</span>
           </nav>

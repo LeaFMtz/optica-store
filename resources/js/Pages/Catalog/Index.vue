@@ -27,13 +27,13 @@ function changeSort(event) {
     <header class="bg-white border-b border-gray-100 py-16">
       <div class="max-w-screen-xl px-4 mx-auto sm:px-6 lg:px-8 text-center">
         <nav class="flex justify-center mb-4 text-[10px] font-bold tracking-widest uppercase text-gray-400 space-x-2">
-          <a :href="route('home')" class="hover:text-[#71C229] transition">Inicio</a>
+          <a :href="route('home')" class="hover:text-primary-500 transition">Inicio</a>
           <span>/</span>
           <span class="text-gray-900">Catálogo</span>
         </nav>
 
         <h1 class="text-4xl font-black text-gray-900 sm:text-6xl tracking-tight uppercase">
-          Nuestros <span class="text-[#71C229]">Productos</span>
+          Nuestros <span class="text-primary-500">Productos</span>
         </h1>
         <p class="mt-4 max-w-xl mx-auto text-gray-500 text-lg font-medium">
           Calidad visual y las últimas tendencias en marcos y cristales.
@@ -63,7 +63,7 @@ function changeSort(event) {
           <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400">Ordenar por</span>
           <select
             :value="filters.sort"
-            class="bg-white text-gray-900 text-xs border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-[#71C229]/20 focus:border-[#71C229] outline-none transition"
+            class="bg-white text-gray-900 text-xs border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition"
             @change="changeSort"
           >
             <option value="newest">Novedades</option>
@@ -104,8 +104,8 @@ function changeSort(event) {
           :class="[
             'w-10 h-10 text-sm font-bold rounded-full transition-all',
             page === pagination.current_page
-              ? 'bg-[#71C229] text-white shadow'
-              : 'bg-white text-gray-600 border border-gray-200 hover:border-[#71C229] hover:text-[#71C229]',
+              ? 'bg-primary-500 text-white shadow'
+              : 'bg-white text-gray-600 border border-gray-200 hover:border-primary-500 hover:text-primary-500',
           ]"
           @click="changePage(page)"
         >

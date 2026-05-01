@@ -1,6 +1,9 @@
 <script setup>
 import { ref, computed, inject } from 'vue'
 import StorefrontLayout from '@/Layouts/StorefrontLayout.vue'
+import AppButton from '@/Components/AppButton.vue'
+import Breadcrumb from '@/Components/Breadcrumb.vue'
+import Badge from '@/Components/Badge.vue'
 
 defineOptions({ layout: StorefrontLayout })
 
@@ -177,11 +180,12 @@ function resolveVariantByLens(usoValueId, lensValueId) {
     <div class="max-w-screen-xl px-4 mx-auto sm:px-6 lg:px-8">
 
       <!-- Breadcrumb -->
-      <nav class="text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-2 mb-10">
-        <a :href="route('home')" class="text-gray-400 hover:text-[#71C229] transition-colors">Inicio</a>
-        <span class="text-gray-200">/</span>
-        <span class="text-gray-900" itemprop="name">{{ product.name }}</span>
-      </nav>
+      <div class="mb-10">
+        <Breadcrumb :items="[
+          { label: 'Inicio', href: route('home') },
+          { label: product.name },
+        ]" />
+      </div>
 
       <div class="grid items-start grid-cols-1 gap-12 lg:grid-cols-11">
 
@@ -205,7 +209,7 @@ function resolveVariantByLens(usoValueId, lensValueId) {
               :class="[
                 'aspect-square rounded-xl border-2 transition-all duration-300 overflow-hidden bg-gray-50',
                 activeImage?.id === img.id
-                  ? 'border-[#71C229] shadow-lg shadow-[#71C229]/10'
+                  ? 'border-primary-500 shadow-lg shadow-primary-500/10'
                   : 'border-transparent hover:border-gray-200',
               ]"
               type="button"
@@ -227,7 +231,7 @@ function resolveVariantByLens(usoValueId, lensValueId) {
 
             <!-- Title + brand -->
             <div class="space-y-3">
-              <span class="text-[9px] font-black text-[#71C229] uppercase tracking-[0.3em] block">Óptica Guzmán — Premium Eyewear</span>
+              <span class="text-[9px] font-black text-primary-500 uppercase tracking-[0.3em] block">Óptica Guzmán — Premium Eyewear</span>
               <h1 class="text-3xl sm:text-4xl font-black text-gray-900 leading-none uppercase tracking-tighter italic" itemprop="name">
                 {{ product.name }}
               </h1>
@@ -242,8 +246,8 @@ function resolveVariantByLens(usoValueId, lensValueId) {
               <div class="flex items-baseline gap-2">
                 <span class="text-3xl font-black text-gray-900" itemprop="price">{{ product.price_formatted }}</span>
                 <span v-if="product.base_price_formatted" class="text-lg text-gray-400 line-through">{{ product.base_price_formatted }}</span>
-                <span v-if="product.discount_percentage > 0" class="text-[9px] text-white bg-[#71C229] font-black uppercase tracking-widest rounded px-2 py-0.5">{{ product.discount_percentage }}% OFF</span>
-                <span class="text-[9px] text-[#71C229] font-black uppercase tracking-widest italic">Mejor precio</span>
+                <Badge v-if="product.discount_percentage > 0" variant="primary">{{ product.discount_percentage }}% OFF</Badge>
+                <span class="text-[9px] text-primary-500 font-black uppercase tracking-widest italic">Mejor precio</span>
               </div>
               <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">Contado / Transferencia / 1 Pago</p>
               <meta itemprop="priceCurrency" content="ARS">
@@ -253,7 +257,7 @@ function resolveVariantByLens(usoValueId, lensValueId) {
             <div class="space-y-6">
               <div v-for="opt in options" :key="opt.option_id" class="space-y-3">
                 <label class="text-[9px] font-black text-gray-900 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <span class="w-1 h-1 bg-[#71C229] rounded-full" />
+                  <span class="w-1 h-1 bg-primary-500 rounded-full" />
                   {{ opt.option_name }}
                 </label>
                 <div class="flex flex-wrap gap-2">
@@ -264,8 +268,8 @@ function resolveVariantByLens(usoValueId, lensValueId) {
                     :class="[
                       'px-5 py-2.5 text-[9px] font-black uppercase tracking-widest border-2 rounded-xl transition-all duration-300 shadow-sm active:scale-95',
                       selectedValues[opt.option_id] === val.id
-                        ? 'bg-[#71C229] border-[#71C229] text-white shadow-[#71C229]/20'
-                        : 'bg-white border-gray-100 text-gray-400 hover:border-[#71C229] hover:text-[#71C229]',
+                        ? 'bg-primary-500 border-primary-500 text-white shadow-primary-500/20'
+                        : 'bg-white border-gray-100 text-gray-400 hover:border-primary-500 hover:text-primary-500',
                     ]"
                     @click="selectedValues[opt.option_id] = val.id"
                   >
@@ -280,41 +284,44 @@ function resolveVariantByLens(usoValueId, lensValueId) {
                 <!-- Dual CTA for lens products -->
                 <template v-if="hasLens">
                   <div class="flex flex-col sm:flex-row gap-3">
-                    <button
-                      type="button"
+                    <AppButton
+                      variant="outline"
+                      size="lg"
                       :disabled="addingCart"
-                      class="flex-1 h-14 px-8 text-[10px] font-bold uppercase tracking-[0.3em] text-gray-700 bg-gray-50 border border-gray-200 rounded-xl hover:border-gray-400 transition-all duration-300 flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60"
+                      class="flex-1"
                       @click="addFrameOnly"
                     >
                       Solo Marco
-                    </button>
-                    <button
-                      type="button"
+                    </AppButton>
+                    <AppButton
+                      variant="secondary"
+                      size="lg"
                       :disabled="addingCart"
-                      class="flex-1 h-14 px-8 text-[10px] font-bold uppercase tracking-[0.3em] text-white bg-black rounded-xl hover:bg-[#71C229] hover:text-black transition-all duration-500 shadow-lg shadow-black/5 hover:shadow-[#71C229]/20 flex items-center justify-center gap-3 group/add active:scale-[0.98] disabled:opacity-60"
+                      class="flex-1"
                       @click="configuratorOpen = true"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
                       Agregar con Lente
-                    </button>
+                    </AppButton>
                   </div>
                 </template>
 
                 <!-- Standard add to cart -->
                 <template v-else>
-                  <button
-                    type="button"
+                  <AppButton
+                    variant="secondary"
+                    size="lg"
                     :disabled="addingCart"
-                    class="w-full h-14 px-8 text-[10px] font-bold uppercase tracking-[0.3em] text-white bg-black rounded-xl hover:bg-[#71C229] hover:text-black transition-all duration-500 shadow-lg shadow-black/5 flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-60"
+                    class="w-full"
                     @click="addFrameOnly"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                     Agregar al Carrito
-                  </button>
+                  </AppButton>
                 </template>
 
                 <!-- Error message -->
@@ -341,13 +348,13 @@ function resolveVariantByLens(usoValueId, lensValueId) {
             <!-- Trust badges -->
             <div class="grid grid-cols-2 gap-4 pt-8 border-t border-gray-100">
               <div class="flex flex-col gap-1.5">
-                <svg class="w-4 h-4 text-[#71C229]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Transacción Segura</span>
               </div>
               <div class="flex flex-col gap-1.5">
-                <svg class="w-4 h-4 text-[#71C229]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
                 <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Garantía de Óptica</span>
@@ -362,7 +369,7 @@ function resolveVariantByLens(usoValueId, lensValueId) {
         <div class="flex items-end justify-between mb-12">
           <h3 class="text-2xl font-black uppercase tracking-tighter italic text-black">
             Productos Similares
-            <span class="block text-[10px] font-black text-[#71C229] uppercase tracking-[0.3em] mt-2 italic not-italic">También te pueden gustar</span>
+            <span class="block text-[10px] font-black text-primary-500 uppercase tracking-[0.3em] mt-2 italic not-italic">También te pueden gustar</span>
           </h3>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-50 grayscale transition hover:grayscale-0">
@@ -387,9 +394,9 @@ function resolveVariantByLens(usoValueId, lensValueId) {
           <div class="flex items-center justify-between px-8 pt-8 pb-4">
             <div class="w-8" />
             <div class="flex items-center gap-3">
-              <div :class="configuratorStep >= 1 ? 'bg-[#71C229]' : 'bg-gray-200'" class="w-3 h-3 rounded-full transition-colors duration-300" />
+              <div :class="configuratorStep >= 1 ? 'bg-primary-500' : 'bg-gray-200'" class="w-3 h-3 rounded-full transition-colors duration-300" />
               <div class="w-8 h-px bg-gray-200" />
-              <div :class="configuratorStep >= 2 ? 'bg-[#71C229]' : 'bg-gray-200'" class="w-3 h-3 rounded-full transition-colors duration-300" />
+              <div :class="configuratorStep >= 2 ? 'bg-primary-500' : 'bg-gray-200'" class="w-3 h-3 rounded-full transition-colors duration-300" />
             </div>
             <button class="text-gray-400 hover:text-gray-700 transition-colors" @click="closeConfigurator">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -408,7 +415,7 @@ function resolveVariantByLens(usoValueId, lensValueId) {
                 <button
                   v-for="[usoId, data] in lensMapEntries"
                   :key="usoId"
-                  :class="String(selectedUso) === String(usoId) ? 'border-[#71C229] bg-[#71C229]/5' : 'border-gray-200 hover:border-gray-400'"
+                  :class="String(selectedUso) === String(usoId) ? 'border-primary-500 bg-primary-500/5' : 'border-gray-200 hover:border-gray-400'"
                   class="inline-flex flex-col items-center gap-3 p-6 border-2 rounded-2xl transition-all duration-200 text-left w-44"
                   @click="selectUso(usoId)"
                 >
@@ -431,7 +438,7 @@ function resolveVariantByLens(usoValueId, lensValueId) {
                 <button
                   v-for="lens in availableLensValues"
                   :key="lens.id"
-                  :class="selectedLens === lens.id ? 'border-[#71C229] bg-[#71C229]/5' : 'border-gray-200 hover:border-gray-400'"
+                  :class="selectedLens === lens.id ? 'border-primary-500 bg-primary-500/5' : 'border-gray-200 hover:border-gray-400'"
                   class="flex flex-col items-center gap-3 p-6 border-2 rounded-2xl transition-all duration-200 w-44"
                   @click="selectLens(lens.id)"
                 >
@@ -439,14 +446,14 @@ function resolveVariantByLens(usoValueId, lensValueId) {
                 </button>
               </div>
               <div class="flex justify-center mt-8">
-                <button
+                <AppButton
+                  variant="secondary"
+                  size="lg"
                   :disabled="!canConfirm || addingCart"
-                  :class="canConfirm ? 'bg-black hover:bg-[#71C229] hover:text-black' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
-                  class="px-12 h-14 text-[10px] font-bold uppercase tracking-[0.3em] text-white rounded-xl transition-all duration-300 disabled:opacity-60"
                   @click="confirmAddWithLens"
                 >
                   Agregar al carrito
-                </button>
+                </AppButton>
               </div>
             </div>
           </div>
@@ -461,7 +468,7 @@ function resolveVariantByLens(usoValueId, lensValueId) {
             >
             <div>
               <p class="text-xs font-black uppercase tracking-wider text-gray-900">{{ product.name }}</p>
-              <p class="text-sm font-bold text-[#71C229]">{{ product.price_formatted }}</p>
+              <p class="text-sm font-bold text-primary-500">{{ product.price_formatted }}</p>
             </div>
           </div>
         </div>

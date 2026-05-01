@@ -8,7 +8,7 @@ defineOptions({ layout: StorefrontLayout })
   <div class="max-w-2xl mx-auto my-8 px-4">
     <!-- Breadcrumb -->
     <nav class="text-[10px] text-gray-400 mb-2 flex justify-center items-center gap-2 uppercase tracking-widest">
-      <a href="/" class="hover:text-[#71C229]">Inicio</a>
+      <a href="/" class="hover:text-primary-500">Inicio</a>
       <span>/</span>
       <span class="text-gray-600 font-bold">Política de Devolución</span>
     </nav>
@@ -23,7 +23,7 @@ defineOptions({ layout: StorefrontLayout })
       <div class="p-8 space-y-8 text-sm text-gray-600 leading-relaxed">
 
         <section>
-          <h2 class="text-lg font-bold text-[#71C229] mb-3">Condiciones para Devoluciones y Cambios</h2>
+          <h2 class="text-lg font-bold text-primary-500 mb-3">Condiciones para Devoluciones y Cambios</h2>
           <p class="mb-3">Podrás solicitar la devolución o cambio de un producto en los siguientes casos:</p>
           <ul class="list-disc pl-5 space-y-2">
             <li><span class="font-bold text-gray-800">Producto defectuoso:</span> Si el artículo llegó con fallas de fabricación o daños.</li>
@@ -49,12 +49,12 @@ defineOptions({ layout: StorefrontLayout })
         </p>
 
         <section>
-          <h2 class="text-lg font-bold text-[#71C229] mb-2">Plazo para Solicitar una Devolución</h2>
+          <h2 class="text-lg font-bold text-primary-500 mb-2">Plazo para Solicitar una Devolución</h2>
           <p>Tendrás un plazo de <span class="font-bold text-gray-900">24 horas</span> una vez recibido el producto para solicitar la devolución o elegir una alternativa en caso de que el producto no esté disponible.</p>
         </section>
 
         <section>
-          <h2 class="text-lg font-bold text-[#71C229] mb-3">Procedimiento para Realizar un Cambio o Devolución</h2>
+          <h2 class="text-lg font-bold text-primary-500 mb-3">Procedimiento para Realizar un Cambio o Devolución</h2>
           <p class="mb-3 font-medium">Puedes gestionar tu devolución o cambio de dos maneras:</p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="p-3 bg-gray-50 rounded border border-gray-100 text-xs">
@@ -69,18 +69,18 @@ defineOptions({ layout: StorefrontLayout })
 
           <div class="mt-4 space-y-2">
             <p class="flex items-start gap-2">
-              <span class="text-[#71C229]">&bull;</span>
+              <span class="text-primary-500">&bull;</span>
               <span>Si el cambio se debe a un error nuestro (producto defectuoso, error en el pedido, etc.), cubrimos los costos de envío.</span>
             </p>
             <p class="flex items-start gap-2">
-              <span class="text-[#71C229]">&bull;</span>
+              <span class="text-primary-500">&bull;</span>
               <span>Si el cliente desea cambiar el producto por razones personales (por ejemplo, porque no le gustó), el cambio se realizará, pero los costos de envío correrán por cuenta del comprador.</span>
             </p>
           </div>
         </section>
 
         <section>
-          <h2 class="text-lg font-bold text-[#71C229] mb-2">Reembolso del Importe Abonado</h2>
+          <h2 class="text-lg font-bold text-primary-500 mb-2">Reembolso del Importe Abonado</h2>
           <p>La devolución del dinero se realizará a través del mismo método de pago utilizado en la compra. En caso de reembolso vía transferencia bancaria, la cuenta deberá estar a nombre del titular de la cuenta de compra. El proceso puede demorar hasta <span class="font-bold text-gray-900">10 días hábiles</span> por cuestiones administrativas.</p>
         </section>
 
@@ -91,8 +91,8 @@ defineOptions({ layout: StorefrontLayout })
       </div>
 
       <!-- Card footer -->
-      <div class="p-4 bg-[#71C229]/5 text-center">
-        <p class="text-[10px] text-[#71C229] font-bold uppercase tracking-widest">Comprometidos con tu visión</p>
+      <div class="p-4 bg-primary-500/5 text-center">
+        <p class="text-[10px] text-primary-500 font-bold uppercase tracking-widest">Comprometidos con tu visión</p>
       </div>
     </div>
   </div>

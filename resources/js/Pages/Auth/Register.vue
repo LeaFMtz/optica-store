@@ -23,7 +23,7 @@ function submit() {
     <h2 class="text-2xl font-bold text-gray-900 mb-1 text-center">Creá tu cuenta</h2>
     <p class="text-sm text-gray-500 text-center mb-8">
       ¿Ya tenés cuenta?
-      <a :href="route('login')" class="text-[#71C229] hover:underline font-medium">Iniciá sesión</a>
+      <a :href="route('login')" class="text-primary-500 hover:underline font-medium">Iniciá sesión</a>
     </p>
 
     <form @submit.prevent="submit" class="space-y-5">
@@ -35,7 +35,7 @@ function submit() {
           type="text"
           autocomplete="name"
           required
-          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#71C229] focus:border-transparent"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           :class="{ 'border-red-500': form.errors.name }"
         >
         <p v-if="form.errors.name" class="mt-1 text-xs text-red-600">{{ form.errors.name }}</p>
@@ -49,7 +49,7 @@ function submit() {
           type="email"
           autocomplete="email"
           required
-          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#71C229] focus:border-transparent"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           :class="{ 'border-red-500': form.errors.email }"
         >
         <p v-if="form.errors.email" class="mt-1 text-xs text-red-600">{{ form.errors.email }}</p>
@@ -63,7 +63,7 @@ function submit() {
           type="password"
           autocomplete="new-password"
           required
-          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#71C229] focus:border-transparent"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           :class="{ 'border-red-500': form.errors.password }"
         >
         <p v-if="form.errors.password" class="mt-1 text-xs text-red-600">{{ form.errors.password }}</p>
@@ -77,7 +77,7 @@ function submit() {
           type="password"
           autocomplete="new-password"
           required
-          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#71C229] focus:border-transparent"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           :class="{ 'border-red-500': form.errors.password_confirmation }"
         >
         <p v-if="form.errors.password_confirmation" class="mt-1 text-xs text-red-600">{{ form.errors.password_confirmation }}</p>
@@ -86,7 +86,7 @@ function submit() {
       <button
         type="submit"
         :disabled="form.processing"
-        class="w-full bg-black text-white font-semibold py-2.5 rounded-lg hover:bg-[#71C229] transition-colors duration-300 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+        class="w-full bg-black text-white font-semibold py-2.5 rounded-lg hover:bg-primary-500 transition-colors duration-300 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
       >
         {{ form.processing ? 'Creando cuenta...' : 'Crear cuenta' }}
       </button>

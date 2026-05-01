@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue'
 import { router } from '@inertiajs/vue3'
 import StorefrontLayout from '@/Layouts/StorefrontLayout.vue'
+import AppButton from '@/Components/AppButton.vue'
+import AppInput from '@/Components/AppInput.vue'
 
 defineOptions({ layout: StorefrontLayout })
 
@@ -138,7 +140,7 @@ async function placeOrder() {
       <div class="mb-12">
         <h1 class="text-4xl font-black text-gray-900 uppercase tracking-tighter italic">
           Checkout
-          <span class="block text-[10px] font-black text-[#71C229] uppercase tracking-[0.3em] mt-2 not-italic">
+          <span class="block text-[10px] font-black text-primary-500 uppercase tracking-[0.3em] mt-2 not-italic">
             Finalizá tu compra de forma segura
           </span>
         </h1>
@@ -150,7 +152,7 @@ async function placeOrder() {
         <div class="px-8 py-10 space-y-6 bg-white border border-gray-100 lg:sticky lg:top-32 rounded-2xl shadow-sm lg:order-last">
           <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
             Resumen del Pedido
-            <span class="h-1 w-1 rounded-full bg-[#71C229]" />
+            <span class="h-1 w-1 rounded-full bg-primary-500" />
           </h3>
 
           <div class="flow-root">
@@ -179,7 +181,7 @@ async function placeOrder() {
                     <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                       Cant. {{ line.quantity }}
                     </span>
-                    <span class="text-[10px] font-black text-[#71C229]">
+                    <span class="text-[10px] font-black text-primary-500">
                       {{ line.sub_total }}
                     </span>
                   </div>
@@ -214,7 +216,7 @@ async function placeOrder() {
 
               <div class="flex flex-wrap pt-6 mt-3 items-center justify-between border-t-2 border-gray-900">
                 <dt class="text-sm font-black text-gray-900">TOTAL</dt>
-                <dd class="text-lg font-black text-[#71C229]">{{ cart.total }}</dd>
+                <dd class="text-lg font-black text-primary-500">{{ cart.total }}</dd>
               </div>
             </dl>
           </div>
@@ -236,7 +238,7 @@ async function placeOrder() {
                   currentStep === idx + 1
                     ? 'bg-black text-white'
                     : currentStep > idx + 1
-                      ? 'bg-[#71C229] text-white'
+                      ? 'bg-primary-500 text-white'
                       : 'bg-gray-100 text-gray-400',
                 ]"
               >{{ idx + 1 }}</span>
@@ -255,7 +257,7 @@ async function placeOrder() {
             <div class="flex items-center justify-between h-16 px-8 border-b border-gray-50 bg-gray-50/50">
               <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
                 Detalles de Envío
-                <span class="h-1 w-1 rounded-full bg-[#71C229]" />
+                <span class="h-1 w-1 rounded-full bg-primary-500" />
               </h3>
               <button
                 v-if="currentStep > 1"
@@ -281,57 +283,46 @@ async function placeOrder() {
 
               <form class="grid grid-cols-6 gap-6" @submit.prevent="submitAddress">
                 <div class="col-span-3">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Nombre *</label>
-                  <input
+                  <AppInput
                     v-model="address.first_name"
+                    label="Nombre *"
                     type="text"
-                    required
-                    class="w-full rounded-xl border border-gray-100 px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] outline-none"
-                    :class="{ 'border-red-400': addressErrors.first_name }"
-                  >
-                  <p v-if="addressErrors.first_name" class="mt-1 text-[9px] text-red-500 font-bold">{{ addressErrors.first_name[0] }}</p>
+                    :error="addressErrors.first_name?.[0]"
+                  />
                 </div>
 
                 <div class="col-span-3">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Apellido *</label>
-                  <input
+                  <AppInput
                     v-model="address.last_name"
+                    label="Apellido *"
                     type="text"
-                    required
-                    class="w-full rounded-xl border border-gray-100 px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] outline-none"
-                    :class="{ 'border-red-400': addressErrors.last_name }"
-                  >
-                  <p v-if="addressErrors.last_name" class="mt-1 text-[9px] text-red-500 font-bold">{{ addressErrors.last_name[0] }}</p>
+                    :error="addressErrors.last_name?.[0]"
+                  />
                 </div>
 
                 <div class="col-span-6">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Empresa (Opcional)</label>
-                  <input
+                  <AppInput
                     v-model="address.company_name"
+                    label="Empresa (Opcional)"
                     type="text"
-                    class="w-full rounded-xl border border-gray-100 px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] outline-none"
-                  >
+                  />
                 </div>
 
                 <div class="col-span-6 sm:col-span-3">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Teléfono</label>
-                  <input
+                  <AppInput
                     v-model="address.contact_phone"
+                    label="Teléfono"
                     type="tel"
-                    class="w-full rounded-xl border border-gray-100 px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] outline-none"
-                  >
+                  />
                 </div>
 
                 <div class="col-span-6 sm:col-span-3">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Email *</label>
-                  <input
+                  <AppInput
                     v-model="address.contact_email"
+                    label="Email *"
                     type="email"
-                    required
-                    class="w-full rounded-xl border border-gray-100 px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] outline-none"
-                    :class="{ 'border-red-400': addressErrors.contact_email }"
-                  >
-                  <p v-if="addressErrors.contact_email" class="mt-1 text-[9px] text-red-500 font-bold">{{ addressErrors.contact_email[0] }}</p>
+                    :error="addressErrors.contact_email?.[0]"
+                  />
                 </div>
 
                 <div class="col-span-6">
@@ -339,66 +330,54 @@ async function placeOrder() {
                 </div>
 
                 <div class="col-span-3 sm:col-span-2">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Dirección *</label>
-                  <input
+                  <AppInput
                     v-model="address.line_one"
+                    label="Dirección *"
                     type="text"
-                    required
-                    class="w-full rounded-xl border border-gray-100 px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] outline-none"
-                    :class="{ 'border-red-400': addressErrors.line_one }"
-                  >
-                  <p v-if="addressErrors.line_one" class="mt-1 text-[9px] text-red-500 font-bold">{{ addressErrors.line_one[0] }}</p>
+                    :error="addressErrors.line_one?.[0]"
+                  />
                 </div>
 
                 <div class="col-span-3 sm:col-span-2">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Piso/Depto</label>
-                  <input
+                  <AppInput
                     v-model="address.line_two"
+                    label="Piso/Depto"
                     type="text"
-                    class="w-full rounded-xl border border-gray-100 px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] outline-none"
-                  >
+                  />
                 </div>
 
                 <div class="col-span-3 sm:col-span-2">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Referencia</label>
-                  <input
+                  <AppInput
                     v-model="address.line_three"
+                    label="Referencia"
                     type="text"
-                    class="w-full rounded-xl border border-gray-100 px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] outline-none"
-                  >
+                  />
                 </div>
 
                 <div class="col-span-3 sm:col-span-2">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Ciudad *</label>
-                  <input
+                  <AppInput
                     v-model="address.city"
+                    label="Ciudad *"
                     type="text"
-                    required
-                    class="w-full rounded-xl border border-gray-100 px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] outline-none"
-                    :class="{ 'border-red-400': addressErrors.city }"
-                  >
-                  <p v-if="addressErrors.city" class="mt-1 text-[9px] text-red-500 font-bold">{{ addressErrors.city[0] }}</p>
+                    :error="addressErrors.city?.[0]"
+                  />
                 </div>
 
                 <div class="col-span-3 sm:col-span-2">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Provincia</label>
-                  <input
+                  <AppInput
                     v-model="address.state"
+                    label="Provincia"
                     type="text"
-                    class="w-full rounded-xl border border-gray-100 px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] outline-none"
-                  >
+                  />
                 </div>
 
                 <div class="col-span-3 sm:col-span-2">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Cód. Postal *</label>
-                  <input
+                  <AppInput
                     v-model="address.postcode"
+                    label="Cód. Postal *"
                     type="text"
-                    required
-                    class="w-full rounded-xl border border-gray-100 px-4 py-3 text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] outline-none"
-                    :class="{ 'border-red-400': addressErrors.postcode }"
-                  >
-                  <p v-if="addressErrors.postcode" class="mt-1 text-[9px] text-red-500 font-bold">{{ addressErrors.postcode[0] }}</p>
+                    :error="addressErrors.postcode?.[0]"
+                  />
                 </div>
 
                 <div class="col-span-6">
@@ -406,7 +385,7 @@ async function placeOrder() {
                   <select
                     v-model="address.country_id"
                     required
-                    class="w-full px-4 py-3 border border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-[#71C229] focus:border-[#71C229] appearance-none bg-gray-50 outline-none"
+                    class="w-full px-4 py-3 border border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-gray-50 outline-none"
                     :class="{ 'border-red-400': addressErrors.country_id }"
                   >
                     <option value="">Seleccionar país</option>
@@ -426,7 +405,7 @@ async function placeOrder() {
                     <input
                       v-model="address.shipping_is_billing"
                       type="checkbox"
-                      class="w-4 h-4 text-[#71C229] border-gray-200 rounded focus:ring-[#71C229]"
+                      class="w-4 h-4 text-primary-500 border-gray-200 rounded focus:ring-primary-500"
                     >
                     <span class="text-[10px] font-bold text-gray-600 uppercase tracking-tight">
                       Usar como dirección de facturación
@@ -435,16 +414,15 @@ async function placeOrder() {
                 </div>
 
                 <div class="col-span-6 text-right">
-                  <button
+                  <AppButton
                     type="submit"
+                    variant="secondary"
+                    size="lg"
                     :disabled="addressLoading"
-                    class="px-10 py-4 text-[10px] font-black uppercase tracking-widest text-white bg-black rounded-xl hover:bg-[#71C229] transition-all duration-300 shadow-lg shadow-black/10 flex items-center gap-2 ml-auto group disabled:opacity-60"
+                    class="ml-auto"
                   >
                     {{ addressLoading ? 'Guardando...' : 'Guardar Dirección' }}
-                    <svg v-if="!addressLoading" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </button>
+                  </AppButton>
                 </div>
               </form>
             </div>
@@ -485,7 +463,7 @@ async function placeOrder() {
             <div class="flex items-center justify-between h-16 px-8 border-b border-gray-50 bg-gray-50/50">
               <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
                 Opciones de Envío
-                <span class="h-1 w-1 rounded-full bg-[#71C229]" />
+                <span class="h-1 w-1 rounded-full bg-primary-500" />
               </h3>
               <button
                 v-if="currentStep > 2"
@@ -528,10 +506,10 @@ async function placeOrder() {
                   >
                   <label
                     :for="option.identifier"
-                    class="flex items-center justify-between p-5 text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-[#71C229] hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-[#71C229]/20 transition-all duration-300"
+                    class="flex items-center justify-between p-5 text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-primary-500 hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-primary-500/20 transition-all duration-300"
                   >
                     <p class="text-gray-900">{{ option.name }}</p>
-                    <p class="text-[#71C229]">{{ option.price }}</p>
+                    <p class="text-primary-500">{{ option.price }}</p>
                   </label>
                 </div>
               </div>
@@ -541,17 +519,15 @@ async function placeOrder() {
               </p>
 
               <div class="mt-10 text-right">
-                <button
-                  type="button"
+                <AppButton
+                  variant="secondary"
+                  size="lg"
                   :disabled="shippingLoading || !selectedShipping"
-                  class="px-10 py-4 text-[10px] font-black uppercase tracking-widest text-white bg-black rounded-xl hover:bg-[#71C229] transition-all duration-300 shadow-lg shadow-black/10 flex items-center gap-2 ml-auto group disabled:opacity-60"
+                  class="ml-auto"
                   @click="submitShipping"
                 >
                   {{ shippingLoading ? 'Procesando...' : 'Seleccionar Envío' }}
-                  <svg v-if="!shippingLoading" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </button>
+                </AppButton>
               </div>
             </div>
 
@@ -559,7 +535,7 @@ async function placeOrder() {
             <div v-else-if="currentStep > 2 && selectedShippingOption" class="p-8">
               <dl class="flex flex-wrap max-w-xs text-[10px] font-black uppercase tracking-widest">
                 <dt class="w-1/2 text-gray-400">{{ selectedShippingOption.name }}</dt>
-                <dd class="w-1/2 text-right text-[#71C229]">{{ selectedShippingOption.price }}</dd>
+                <dd class="w-1/2 text-right text-primary-500">{{ selectedShippingOption.price }}</dd>
               </dl>
             </div>
           </div>
@@ -569,7 +545,7 @@ async function placeOrder() {
             <div class="h-16 px-8 border-b border-gray-50 bg-gray-50/50 flex items-center">
               <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
                 Confirmar Pedido
-                <span class="h-1 w-1 rounded-full bg-[#71C229]" />
+                <span class="h-1 w-1 rounded-full bg-primary-500" />
               </h3>
             </div>
 
@@ -585,17 +561,15 @@ async function placeOrder() {
                 {{ placeError }}
               </div>
 
-              <button
-                type="button"
+              <AppButton
+                variant="secondary"
+                size="lg"
                 :disabled="placeLoading"
-                class="w-full px-10 py-4 text-[10px] font-black uppercase tracking-widest text-white bg-black rounded-xl hover:bg-[#71C229] transition-all duration-300 shadow-lg shadow-black/10 flex items-center justify-center gap-2 group disabled:opacity-60"
+                class="w-full"
                 @click="placeOrder"
               >
                 {{ placeLoading ? 'Procesando pedido...' : 'Confirmar Pedido' }}
-                <svg v-if="!placeLoading" xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-              </button>
+              </AppButton>
             </div>
           </div>
 

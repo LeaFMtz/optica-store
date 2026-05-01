@@ -15,7 +15,7 @@ defineProps({
   >
     <!-- Discount badge -->
     <div v-if="product.discount_percentage > 0" class="absolute top-4 left-4 z-20">
-      <span class="px-2.5 py-1 text-[9px] font-black tracking-widest text-white uppercase bg-[#71C229] rounded-lg shadow-lg">
+      <span class="px-2.5 py-1 text-[9px] font-black tracking-widest text-white uppercase bg-primary-500 rounded-lg shadow-lg">
         {{ product.discount_percentage }}% OFF
       </span>
     </div>
@@ -50,7 +50,7 @@ defineProps({
       <!-- Product info -->
       <div class="p-6 flex flex-col flex-1">
         <div class="mb-4 flex-1">
-          <span class="text-[9px] font-black text-[#71C229] uppercase tracking-[0.2em] mb-2 block">
+          <span class="text-[9px] font-black text-primary-500 uppercase tracking-[0.2em] mb-2 block">
             Premium Eyewear
           </span>
           <h3
@@ -68,7 +68,7 @@ defineProps({
           itemtype="http://schema.org/Offer"
         >
           <div class="flex sm:flex-row sm:items-baseline gap-1 sm:gap-2">
-            <span class="text-lg font-black text-[#71C229]">{{ product.price_formatted }}</span>
+            <span class="text-lg font-black text-primary-500">{{ product.price_formatted }}</span>
             <span v-if="product.base_price_formatted" class="text-xs text-gray-400 line-through">
               {{ product.base_price_formatted }}
             </span>

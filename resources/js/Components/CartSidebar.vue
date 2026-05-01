@@ -125,7 +125,7 @@ const subtotal = () => {
           <h2 class="text-sm font-black uppercase tracking-widest text-gray-900">Carrito</h2>
           <span
             v-if="count > 0"
-            class="bg-[#71C229] text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center"
+            class="bg-primary-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center"
           >{{ count }}</span>
         </div>
         <button
@@ -143,7 +143,7 @@ const subtotal = () => {
 
         <!-- Loading -->
         <div v-if="loading" class="flex items-center justify-center py-20">
-          <div class="w-6 h-6 border-2 border-[#71C229] border-t-transparent rounded-full animate-spin" />
+          <div class="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
         </div>
 
         <!-- Error -->
@@ -193,13 +193,13 @@ const subtotal = () => {
               <p v-if="line.options" class="text-[9px] text-gray-400 uppercase tracking-widest mt-0.5">
                 {{ line.options }}
               </p>
-              <p class="text-xs font-bold text-[#71C229] mt-1">{{ line.unit_price }}</p>
+              <p class="text-xs font-bold text-primary-500 mt-1">{{ line.unit_price }}</p>
 
               <!-- Quantity controls -->
               <div class="flex items-center gap-2 mt-3">
                 <button
                   :disabled="updatingId === line.id || line.quantity <= 1"
-                  class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-lg text-gray-600 hover:border-[#71C229] hover:text-[#71C229] transition-colors disabled:opacity-40 text-sm font-bold"
+                  class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-lg text-gray-600 hover:border-primary-500 hover:text-primary-500 transition-colors disabled:opacity-40 text-sm font-bold"
                   @click="updateQuantity(line.id, line.quantity - 1)"
                 >
                   -
@@ -207,7 +207,7 @@ const subtotal = () => {
                 <span class="text-xs font-bold text-gray-900 w-6 text-center">{{ line.quantity }}</span>
                 <button
                   :disabled="updatingId === line.id"
-                  class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-lg text-gray-600 hover:border-[#71C229] hover:text-[#71C229] transition-colors disabled:opacity-40 text-sm font-bold"
+                  class="w-7 h-7 flex items-center justify-center border border-gray-200 rounded-lg text-gray-600 hover:border-primary-500 hover:text-primary-500 transition-colors disabled:opacity-40 text-sm font-bold"
                   @click="updateQuantity(line.id, line.quantity + 1)"
                 >
                   +
@@ -234,7 +234,7 @@ const subtotal = () => {
               v-if="updatingId === line.id"
               class="absolute inset-0 bg-white/70 flex items-center justify-center rounded-xl"
             >
-              <div class="w-4 h-4 border-2 border-[#71C229] border-t-transparent rounded-full animate-spin" />
+              <div class="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
             </div>
           </li>
         </ul>
@@ -244,7 +244,7 @@ const subtotal = () => {
       <div v-if="lines.length > 0" class="border-t border-gray-100 px-6 py-6 space-y-4">
         <a
           :href="route('checkout.view')"
-          class="block w-full h-14 bg-black text-white text-[10px] font-bold uppercase tracking-[0.3em] rounded-xl hover:bg-[#71C229] hover:text-black transition-all duration-500 flex items-center justify-center shadow-lg shadow-black/5 hover:shadow-[#71C229]/20"
+          class="block w-full h-14 bg-black text-white text-[10px] font-bold uppercase tracking-[0.3em] rounded-xl hover:bg-primary-500 hover:text-black transition-all duration-500 flex items-center justify-center shadow-lg shadow-black/5 hover:shadow-primary-500/20"
         >
           Ir al Checkout
         </a>
