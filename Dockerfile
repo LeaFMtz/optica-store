@@ -41,6 +41,7 @@ COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
 COPY docker/php.ini /etc/php/8.4/fpm/conf.d/99-app.ini
 
 COPY docker/php-fpm.conf /etc/php/8.4/fpm/pool.d/www.conf
+COPY docker/php-fpm-main.conf /etc/php/8.4/fpm/php-fpm.conf
 
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
 COPY docker/nginx.conf /etc/nginx/sites-available/optica.conf
