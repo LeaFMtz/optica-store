@@ -49,6 +49,7 @@ dev-env.sh
 .dockerignore
 README.md
 docs/
+infra/
 
 # --- Frontend Build Artifacts ---
 # Ignoramos hot reload y el build local para que el Dockerfile 
