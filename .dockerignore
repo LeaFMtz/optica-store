@@ -1,29 +1,69 @@
+# --- Version Control & IDEs ---
 .git
 .github
-.agents
-.gemini
+.gitignore
+.idea
+.vscode
+.phpstorm.meta.php
+_ide_helper.php
 .atl
 .engram
+
+# --- AI & Agent Contexts (Specific to your workflow) ---
 .agents
-.phpunit.cache
-.pnpm-store
-infrastructure
-node_modules
-vendor
+.gemini
+AGENTS.md
+CLAUDE.md
+
+# --- Laravel Framework & Runtime ---
+.env
+.env.*
+!.env.example
 storage/*.key
 storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
 storage/logs/*
 bootstrap/cache/*
-.env
-.phpunit.cache
+!bootstrap/cache/.gitignore
+logs/
+
+# --- Dependencies (Crucial: Install these inside the Dockerfile) ---
+node_modules
+vendor
+.pnpm-store
+pnpm-lock.yaml
+
+# --- Testing & CI/CD ---
 tests
-_ide_helper.php
-.phpstorm.meta.php
+.phpunit.cache
+phpunit.xml
+.phpunit.result.cache
+
+# --- Build Assets & Infrastructure ---
+infrastructure/
+docker/
 Dockerfile
+docker-compose.yml
+dev-env.sh
+.dockerignore
 README.md
+docs/
+
+# --- Frontend Build Artifacts ---
+# Ignoramos hot reload y el build local para que el Dockerfile 
+# se encargue de buildear los assets frescos.
 public/hot
 public/storage
 public/build
-docker/ssl
+public/index.nginx-debian.html
+
+# --- Temporary & Misc Files ---
+*.json
+!composer.json
+!composer.lock
+!package.json
+!opencode.json
+!boost.json
+productos.html
+productos.json
