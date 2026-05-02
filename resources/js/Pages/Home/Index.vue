@@ -45,7 +45,7 @@ function resetInterval() {
   if (props.heroBanners.length > 1) {
     intervalId = setInterval(() => {
       showSlide((currentSlide.value + 1) % props.heroBanners.length)
-    }, 5000)
+    }, 8000)
   }
 }
 
@@ -53,7 +53,7 @@ onMounted(() => {
   if (props.heroBanners.length > 1) {
     intervalId = setInterval(() => {
       showSlide((currentSlide.value + 1) % props.heroBanners.length)
-    }, 5000)
+    }, 8000)
   }
 })
 
@@ -111,7 +111,7 @@ function scrollSaleCarousel(direction) {
     <!-- Hero Banners Carousel -->
     <div
       v-if="heroBanners.length"
-      class="relative w-full h-[500px] overflow-hidden"
+      class="relative w-full h-[500px] lg:h-[700px] overflow-hidden"
     >
       <!-- Slides -->
       <div class="relative w-full h-full">
@@ -174,18 +174,22 @@ function scrollSaleCarousel(direction) {
 
     <div class="max-w-screen-xl px-4 py-12 mx-auto space-y-16 sm:px-6 lg:px-8">
 
-      <!-- Middle Banners — 2-col equal grid -->
+      <!-- Middle Banners — 2-col equal grid, sin bordes ni hover -->
       <div
         v-if="middleBanners.length"
-        :class="['grid grid-cols-1 gap-6', middleBanners.length === 1 ? 'md:grid-cols-1' : middleBanners.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3']"
+        :class="['grid grid-cols-1 gap-4', middleBanners.length === 2 ? 'md:grid-cols-2' : middleBanners.length >= 3 ? 'md:grid-cols-3' : '']"
       >
-        <Banner
-          v-for="(banner, index) in middleBanners"
+        <a
+          v-for="banner in middleBanners"
           :key="banner.id"
-          :banner="banner"
-          :col-span-class="middleBannerClasses(index).col"
-          :aspect-class="middleBannerClasses(index).aspect"
-        />
+          :href="banner.url ?? '#'"
+          class="block relative overflow-hidden aspect-[2/1]"
+        >
+          <picture class="block w-full h-full">
+            <source media="(max-width: 767px)" :srcset="banner.mobile_image_url || banner.image_url">
+            <img :src="banner.image_url" :alt="banner.title" class="w-full h-full object-cover">
+          </picture>
+        </a>
       </div>
 
       <!-- Benefits strip -->
@@ -342,27 +346,39 @@ function scrollSaleCarousel(direction) {
     </div>
   </div>
 
-  <!-- Newsletter Banner — full width -->
+  <!-- Newsletter Banner — full bleed con overlay y form -->
   <div
     v-if="newsletterBanner"
-    class="relative w-full overflow-hidden"
+    class="relative w-full h-[420px] overflow-hidden"
   >
-    <component
-      :is="newsletterBanner.url ? 'a' : 'div'"
-      :href="newsletterBanner.url || undefined"
-      class="block w-full"
-    >
-      <picture class="block w-full">
-        <source
-          media="(max-width: 767px)"
-          :srcset="newsletterBanner.mobile_image_url || newsletterBanner.image_url"
-        >
-        <img
-          :src="newsletterBanner.image_url"
-          :alt="newsletterBanner.title"
-          class="w-full object-cover max-h-[400px]"
-        >
+    <!-- Imagen de fondo -->
+    <div class="absolute inset-0">
+      <picture class="block w-full h-full">
+        <source media="(max-width: 767px)" :srcset="newsletterBanner.mobile_image_url || newsletterBanner.image_url">
+        <img :src="newsletterBanner.image_url" :alt="newsletterBanner.title" class="w-full h-full object-cover">
       </picture>
-    </component>
+    </div>
+    <!-- Overlay oscuro -->
+    <div class="absolute inset-0 bg-black/55" />
+    <!-- Contenido -->
+    <div class="relative h-full max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-end">
+      <div class="w-full max-w-sm text-white text-center">
+        <h2 class="text-2xl font-black uppercase tracking-widest mb-2">RECIBÍ NOVEDADES</h2>
+        <p class="text-sm text-white/80 mb-6 leading-relaxed">¡Suscribite al Newsletter para acceder a beneficios y lanzamientos exclusivos!</p>
+        <form class="space-y-3" @submit.prevent>
+          <input
+            type="email"
+            placeholder="Email"
+            class="w-full px-4 py-3 bg-transparent border border-white/40 text-white placeholder-white/55 focus:outline-none focus:border-white transition"
+          >
+          <button
+            type="submit"
+            class="w-full py-3 bg-white text-primary-500 font-semibold rounded-full hover:bg-gray-50 transition"
+          >
+            Enviar
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
