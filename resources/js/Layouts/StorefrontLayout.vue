@@ -31,7 +31,7 @@ provide('openCartSidebar', openCartSidebar)
 <template>
   <div class="min-h-screen flex flex-col">
     <AppHeader :cart-count="localCartCount" @open-cart="openCartSidebar" />
-    <main class="flex-1">
+    <main class="flex-1 pt-[112px] lg:pt-0">
       <slot />
     </main>
     <AppFooter />

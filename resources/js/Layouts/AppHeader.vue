@@ -19,6 +19,7 @@ watch(mobileMenuOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : ''
 })
 
+
 function logout() {
   router.post('/logout')
 }
@@ -118,51 +119,57 @@ function closeMobileMenu() {
         </a>
       </nav>
 
-      <!-- Mobile: hamburger | logo | cart -->
-      <div class="lg:hidden flex items-center justify-between py-3">
-        <!-- Hamburger -->
-        <button
-          type="button"
-          class="flex items-center justify-center w-10 h-10 text-white hover:text-primary-500 transition"
-          @click="mobileMenuOpen = true"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+      <!-- Mobile: hamburger | logo | search + cart -->
+      <div class="lg:hidden grid grid-cols-3 items-center py-2">
+        <!-- Left: Hamburger -->
+        <div class="flex">
+          <button
+            type="button"
+            class="flex items-center justify-center w-10 h-10 text-white hover:text-primary-500 transition"
+            @click="mobileMenuOpen = true"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
 
-        <!-- Logo centrado -->
-        <a href="/" class="block hover:opacity-80 transition">
-          <img :src="'/images/logo.webp'" alt="Óptica Guzmán" class="h-10 w-auto">
-        </a>
+        <!-- Center: Logo -->
+        <div class="flex justify-center">
+          <a href="/" class="block hover:opacity-80 transition">
+            <img :src="'/images/logo.webp'" alt="Óptica Guzmán" class="h-14 w-auto">
+          </a>
+        </div>
 
-        <!-- Cart -->
-        <button
-          type="button"
-          class="relative flex items-center justify-center w-10 h-10 text-white hover:text-primary-500 transition"
-          @click="$emit('open-cart')"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.4 5M17 13l1.4 5M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
-          </svg>
-          <span
-            v-if="cartCount > 0"
-            class="absolute -top-1 -right-1 bg-primary-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"
-          >{{ cartCount }}</span>
-        </button>
+        <!-- Right: Cart -->
+        <div class="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            class="relative flex items-center justify-center w-10 h-10 text-white hover:text-primary-500 transition"
+            @click="$emit('open-cart')"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.4 5M17 13l1.4 5M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z" />
+            </svg>
+            <span
+              v-if="cartCount > 0"
+              class="absolute -top-1 -right-1 bg-primary-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"
+            >{{ cartCount }}</span>
+          </button>
+        </div>
       </div>
 
-      <!-- Mobile search -->
+      <!-- Mobile search — always visible, slim -->
       <div class="lg:hidden pb-3">
         <form action="/search" method="GET">
-          <div class="flex items-center border border-white/30 rounded-full px-4 py-2 gap-2 overflow-hidden">
+          <div class="flex items-center border border-white/40 rounded-full px-4 py-1 gap-2 overflow-hidden">
             <input
               type="search"
               name="q"
               placeholder="¿Qué estás buscando?"
-              class="bg-transparent text-white text-sm placeholder-white/50 focus:outline-none focus:ring-0 appearance-none border-0 w-full"
+              class="bg-transparent text-white text-sm placeholder-white/70 focus:outline-none focus:ring-0 appearance-none border-0 w-full"
             >
-            <button type="submit" class="text-white/70 hover:text-white transition flex-shrink-0">
+            <button type="submit" class="text-white hover:text-primary-500 transition flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
               </svg>

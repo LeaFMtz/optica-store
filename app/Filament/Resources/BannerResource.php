@@ -11,9 +11,11 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
+use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
 use Filament\Tables\Table;
 
 class BannerResource extends Resource
@@ -36,15 +38,18 @@ class BannerResource extends Resource
                     ->label('Título')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\FileUpload::make('image_path')
-                    ->label('Imagen')
+                SpatieMediaLibraryFileUpload::make('image')
+                    ->label('Imagen (escritorio)')
+                    ->collection('image')
                     ->required()
                     ->image()
-                    ->directory('banners')
-                    ->panelLayout('compact')
-                    ->preserveFileNames()
-                    ->downloadable()
-                    ->openable(),
+                    ->panelLayout('compact'),
+                SpatieMediaLibraryFileUpload::make('mobile_image')
+                    ->label('Imagen mobile (opcional)')
+                    ->collection('mobile_image')
+                    ->image()
+                    ->helperText('Si no se sube, se usará la imagen de escritorio en todos los dispositivos.')
+                    ->panelLayout('compact'),
                 Forms\Components\TextInput::make('url')
                     ->label('URL de destino')
                     ->url()
@@ -67,7 +72,8 @@ class BannerResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('image_path')
+                SpatieMediaLibraryImageColumn::make('image')
+                    ->collection('image')
                     ->label('Imagen')
                     ->square(),
                 Tables\Columns\TextColumn::make('title')
@@ -79,7 +85,8 @@ class BannerResource extends Resource
                 Tables\Columns\TextColumn::make('order')
                     ->label('Orden')
                     ->sortable(),
-                Tables\Columns\BooleanColumn::make('is_active')
+                Tables\Columns\IconColumn::make('is_active')
+                    ->boolean()
                     ->label('Activo'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Creado')

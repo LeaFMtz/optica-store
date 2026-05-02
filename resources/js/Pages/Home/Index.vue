@@ -122,11 +122,17 @@ function scrollSaleCarousel(direction) {
           :style="{ opacity: index === currentSlide ? 1 : 0 }"
         >
           <a :href="banner.url" class="block w-full h-full">
-            <img
-              :src="banner.image_url"
-              :alt="banner.title"
-              class="w-full h-full object-cover"
-            >
+            <picture class="block w-full h-full">
+              <source
+                media="(max-width: 767px)"
+                :srcset="banner.mobile_image_url || banner.image_url"
+              >
+              <img
+                :src="banner.image_url"
+                :alt="banner.title"
+                class="w-full h-full object-cover"
+              >
+            </picture>
           </a>
         </div>
       </div>
@@ -346,11 +352,17 @@ function scrollSaleCarousel(direction) {
       :href="newsletterBanner.url || undefined"
       class="block w-full"
     >
-      <img
-        :src="newsletterBanner.image_url"
-        :alt="newsletterBanner.title"
-        class="w-full object-cover max-h-[400px]"
-      >
+      <picture class="block w-full">
+        <source
+          media="(max-width: 767px)"
+          :srcset="newsletterBanner.mobile_image_url || newsletterBanner.image_url"
+        >
+        <img
+          :src="newsletterBanner.image_url"
+          :alt="newsletterBanner.title"
+          class="w-full object-cover max-h-[400px]"
+        >
+      </picture>
     </component>
   </div>
 </template>

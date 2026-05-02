@@ -59,45 +59,53 @@ class HomeController extends Controller
         $heroBanners = Banner::where('is_active', true)
             ->where('position', 'home_hero')
             ->orderBy('order')
+            ->with('media')
             ->get()
             ->map(fn (Banner $banner) => [
                 'id' => $banner->id,
                 'title' => $banner->title,
-                'image_url' => asset('storage/'.$banner->image_path),
+                'image_url' => $banner->getFirstMediaUrl('image'),
+                'mobile_image_url' => $banner->getFirstMediaUrl('mobile_image') ?: null,
                 'url' => $banner->url ?? '#',
             ]);
 
         $middleBanners = Banner::where('is_active', true)
             ->where('position', 'home_middle')
             ->orderBy('order')
+            ->with('media')
             ->get()
             ->map(fn (Banner $banner) => [
                 'id' => $banner->id,
                 'title' => $banner->title,
-                'image_url' => asset('storage/'.$banner->image_path),
+                'image_url' => $banner->getFirstMediaUrl('image'),
+                'mobile_image_url' => $banner->getFirstMediaUrl('mobile_image') ?: null,
                 'url' => $banner->url ?? '#',
             ]);
 
         $bottomBanners = Banner::where('is_active', true)
             ->where('position', 'home_bottom')
             ->orderBy('order')
+            ->with('media')
             ->get()
             ->map(fn (Banner $banner) => [
                 'id' => $banner->id,
                 'title' => $banner->title,
-                'image_url' => asset('storage/'.$banner->image_path),
+                'image_url' => $banner->getFirstMediaUrl('image'),
+                'mobile_image_url' => $banner->getFirstMediaUrl('mobile_image') ?: null,
                 'url' => $banner->url ?? '#',
             ]);
 
         $newsletterBannerModel = Banner::where('is_active', true)
             ->where('position', 'home_newsletter')
             ->orderBy('order')
+            ->with('media')
             ->first();
 
         $newsletterBanner = $newsletterBannerModel ? [
             'id' => $newsletterBannerModel->id,
             'title' => $newsletterBannerModel->title,
-            'image_url' => asset('storage/'.$newsletterBannerModel->image_path),
+            'image_url' => $newsletterBannerModel->getFirstMediaUrl('image'),
+            'mobile_image_url' => $newsletterBannerModel->getFirstMediaUrl('mobile_image') ?: null,
             'url' => $newsletterBannerModel->url ?? null,
         ] : null;
 
