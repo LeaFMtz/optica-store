@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 use Lunar\Facades\CartSession;
+use Lunar\Models\Collection;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -53,6 +54,15 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'navCollections' => fn () => Collection::whereNull('parent_id')
+                ->with('urls')
+                ->get()
+                ->map(fn (Collection $col) => [
+                    'name' => $col->translateAttribute('name'),
+                    'slug' => $col->urls->first()?->slug,
+                ])
+                ->filter(fn (array $col) => $col['slug'])
+                ->values(),
         ]);
     }
 }

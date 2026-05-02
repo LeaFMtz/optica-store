@@ -31,6 +31,7 @@ class Banner extends Model
             'home_hero' => 'Home - Hero Principal',
             'home_middle' => 'Home - Banner Intermedio',
             'home_bottom' => 'Home - Banner Inferior',
+            'home_newsletter' => 'Home - Banner Newsletter',
             'footer' => 'Footer',
         ];
     }

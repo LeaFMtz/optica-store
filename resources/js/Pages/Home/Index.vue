@@ -11,6 +11,7 @@ const props = defineProps({
   heroBanners: { type: Array, default: () => [] },
   middleBanners: { type: Array, default: () => [] },
   bottomBanners: { type: Array, default: () => [] },
+  newsletterBanner: { type: Object, default: null },
   saleProducts: { type: Array, default: () => [] },
   saleCollectionSlug: { type: String, default: null },
   randomCollectionName: { type: String, default: null },
@@ -69,9 +70,7 @@ function middleBannerClasses(index) {
     return { col: 'md:col-span-3', aspect: 'aspect-[3/1] lg:aspect-[4/1]' }
   }
   if (count === 2) {
-    return index === 0
-      ? { col: 'md:col-span-2', aspect: 'aspect-[2/1] lg:aspect-[2.5/1]' }
-      : { col: 'md:col-span-1', aspect: 'aspect-[4/3] lg:aspect-[5/4]' }
+    return { col: '', aspect: 'aspect-[2/1] lg:aspect-[2.5/1]' }
   }
   return { col: 'md:col-span-1', aspect: 'aspect-[4/3]' }
 }
@@ -169,10 +168,10 @@ function scrollSaleCarousel(direction) {
 
     <div class="max-w-screen-xl px-4 py-12 mx-auto space-y-16 sm:px-6 lg:px-8">
 
-      <!-- Middle Banners — Dynamic Bento Grid -->
+      <!-- Middle Banners — 2-col equal grid -->
       <div
         v-if="middleBanners.length"
-        class="grid grid-cols-1 md:grid-cols-3 gap-6"
+        :class="['grid grid-cols-1 gap-6', middleBanners.length === 1 ? 'md:grid-cols-1' : middleBanners.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3']"
       >
         <Banner
           v-for="(banner, index) in middleBanners"
@@ -181,6 +180,37 @@ function scrollSaleCarousel(direction) {
           :col-span-class="middleBannerClasses(index).col"
           :aspect-class="middleBannerClasses(index).aspect"
         />
+      </div>
+
+      <!-- Benefits strip -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 py-10 border-t border-b border-gray-100">
+        <div class="flex flex-col items-center text-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zm10 0a2 2 0 11-4 0 2 2 0 014 0M3 7h2l2.4 9.6M3 7H1m2 0l1 4h13l1-4H3zm4 9.6L7 16h10" />
+          </svg>
+          <div>
+            <p class="font-black text-sm uppercase tracking-widest text-gray-900">Envíos</p>
+            <p class="text-xs text-gray-500 mt-1 max-w-[180px]">Envíos GRATIS a todo el País, retiros en sucursal Tucumán</p>
+          </div>
+        </div>
+        <div class="flex flex-col items-center text-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          </svg>
+          <div>
+            <p class="font-black text-sm uppercase tracking-widest text-gray-900">Cuotas sin interés</p>
+            <p class="text-xs text-gray-500 mt-1 max-w-[200px]">6 Cuotas sin interés con tarjetas de crédito y 4 Cuotas débito con Go Cuotas</p>
+          </div>
+        </div>
+        <div class="flex flex-col items-center text-center gap-3">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          <div>
+            <p class="font-black text-sm uppercase tracking-widest text-gray-900">Compra segura</p>
+            <p class="text-xs text-gray-500 mt-1 max-w-[180px]">Compra segura, todos tus datos están protegidos</p>
+          </div>
+        </div>
       </div>
 
       <!-- Offers Carousel -->
@@ -304,5 +334,23 @@ function scrollSaleCarousel(direction) {
       </template>
 
     </div>
+  </div>
+
+  <!-- Newsletter Banner — full width -->
+  <div
+    v-if="newsletterBanner"
+    class="relative w-full overflow-hidden"
+  >
+    <component
+      :is="newsletterBanner.url ? 'a' : 'div'"
+      :href="newsletterBanner.url || undefined"
+      class="block w-full"
+    >
+      <img
+        :src="newsletterBanner.image_url"
+        :alt="newsletterBanner.title"
+        class="w-full object-cover max-h-[400px]"
+      >
+    </component>
   </div>
 </template>

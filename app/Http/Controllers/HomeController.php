@@ -89,6 +89,18 @@ class HomeController extends Controller
                 'url' => $banner->url ?? '#',
             ]);
 
+        $newsletterBannerModel = Banner::where('is_active', true)
+            ->where('position', 'home_newsletter')
+            ->orderBy('order')
+            ->first();
+
+        $newsletterBanner = $newsletterBannerModel ? [
+            'id' => $newsletterBannerModel->id,
+            'title' => $newsletterBannerModel->title,
+            'image_url' => asset('storage/'.$newsletterBannerModel->image_path),
+            'url' => $newsletterBannerModel->url ?? null,
+        ] : null;
+
         /** @var Collection|null $saleCollection */
         $saleCollection = Url::whereElementType((new Collection)->getMorphClass())
             ->whereSlug('sale')
@@ -136,6 +148,7 @@ class HomeController extends Controller
             'heroBanners' => $heroBanners,
             'middleBanners' => $middleBanners,
             'bottomBanners' => $bottomBanners,
+            'newsletterBanner' => $newsletterBanner,
             'saleProducts' => $saleProducts,
             'saleCollectionSlug' => $saleCollection?->defaultUrl?->slug,
             'randomCollectionName' => $randomCollectionName,
