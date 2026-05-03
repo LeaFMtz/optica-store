@@ -72,6 +72,7 @@ class CheckoutController extends Controller
             ])->values()->all(),
             'sub_total' => $cart->subTotal->formatted(),
             'total' => $cart->total->formatted(),
+            'total_raw' => $cart->total->value / 100,  // float in ARS for MP Brick initialization
             'tax_breakdown' => $cart->taxBreakdown->amounts->map(fn ($tax) => [
                 'description' => $tax->description,
                 'price' => $tax->price->formatted(),

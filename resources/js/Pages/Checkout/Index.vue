@@ -1,11 +1,13 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { ref, computed, watch, onUnmounted } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
 import StorefrontLayout from '@/Layouts/StorefrontLayout.vue'
 import AppButton from '@/Components/AppButton.vue'
 import AppInput from '@/Components/AppInput.vue'
 
 defineOptions({ layout: StorefrontLayout })
+
+const page = usePage()
 
 const props = defineProps({
   cart: { type: Object, required: true },
@@ -14,7 +16,7 @@ const props = defineProps({
   countries: { type: Array, default: () => [] },
 })
 
-// ─── Steps: 1 = address, 2 = shipping, 3 = order summary ────────────────────
+// ─── Steps: 1 = address, 2 = shipping, 3 = pago ────────────────────────────
 const currentStep = ref(props.savedAddress ? 2 : 1)
 
 // ─── Address form ─────────────────────────────────────────────────────────────
@@ -43,9 +45,9 @@ const selectedShipping = ref(props.shippingOptions[0]?.identifier ?? null)
 const shippingErrors = ref({})
 const shippingLoading = ref(false)
 
-// ─── Place order ──────────────────────────────────────────────────────────────
-const placeLoading = ref(false)
-const placeError = ref(null)
+// ─── Payment Brick state ──────────────────────────────────────────────────────
+const paymentError = ref(null)
+let paymentBrickController = null
 
 // ─── Cart totals (may update after shipping chosen) ───────────────────────────
 const cartTotal = ref(props.cart.total)
@@ -117,19 +119,111 @@ async function submitShipping() {
   }
 }
 
-// ─── Step 3: place order ──────────────────────────────────────────────────────
-async function placeOrder() {
-  placeError.value = null
-  placeLoading.value = true
+// ─── Step 3: Payment Brick ────────────────────────────────────────────────────
+function loadMpSdk() {
+  return new Promise((resolve, reject) => {
+    if (window.MercadoPago) {
+      resolve()
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://sdk.mercadopago.com/v2/mercadopago.js'
+    script.onload = resolve
+    script.onerror = reject
+    document.head.appendChild(script)
+  })
+}
+
+async function mountPaymentBrick() {
+  paymentError.value = null
+  const mpPublicKey = page.props.mpPublicKey
+
+  if (!mpPublicKey) {
+    paymentError.value = 'Clave pública de MercadoPago no disponible.'
+    return
+  }
+
   try {
-    const result = await jsonPost('/checkout/place', {})
-    router.visit(`/checkout/success?order=${encodeURIComponent(result.reference)}`)
+    await loadMpSdk()
+
+    const mp = new window.MercadoPago(mpPublicKey, { locale: 'es-AR' })
+    const bricksBuilder = mp.bricks()
+
+    paymentBrickController = await bricksBuilder.create(
+      'payment',
+      'paymentBrick_container',
+      {
+        initialization: {
+          amount: props.cart.total_raw,
+        },
+        customization: {
+          paymentMethods: {
+            creditCard: 'all',
+            debitCard: 'all',
+            mercadoPago: ['wallet_purchase'],
+          },
+          visual: {
+            style: {
+              theme: 'default',
+            },
+          },
+        },
+        callbacks: {
+          onReady: () => {},
+          onSubmit: async (formData) => {
+            await submitPayment(formData)
+          },
+          onError: (error) => {
+            console.error('MP Brick error:', error)
+            paymentError.value = 'Error en el formulario de pago. Intentá de nuevo.'
+          },
+        },
+      },
+    )
   } catch (err) {
-    placeError.value = err.data?.message ?? 'Error al procesar el pedido. Intentá de nuevo.'
-  } finally {
-    placeLoading.value = false
+    console.error('Error mounting Payment Brick:', err)
+    paymentError.value = 'No se pudo cargar el formulario de pago.'
   }
 }
+
+async function submitPayment(formData) {
+  paymentError.value = null
+  try {
+    const result = await jsonPost('/checkout/payment', formData)
+    router.visit(`/checkout/success?order=${encodeURIComponent(result.reference)}`)
+  } catch (err) {
+    if (err.status === 422) {
+      paymentError.value = err.data?.message ?? 'Pago rechazado. Verificá los datos de tu tarjeta.'
+    } else {
+      paymentError.value = err.data?.message ?? 'Error al procesar el pago. Intentá de nuevo más tarde.'
+    }
+  }
+}
+
+function destroyBrick() {
+  if (paymentBrickController) {
+    try {
+      paymentBrickController.unmount()
+    } catch {
+      // ignore unmount errors
+    }
+    paymentBrickController = null
+  }
+}
+
+// Mount/destroy brick when step changes
+watch(currentStep, (newStep, oldStep) => {
+  if (newStep === 3) {
+    // Give Vue a tick to render the container div
+    setTimeout(() => mountPaymentBrick(), 100)
+  } else if (oldStep === 3) {
+    destroyBrick()
+  }
+})
+
+onUnmounted(() => {
+  destroyBrick()
+})
 </script>
 
 <template>
@@ -228,7 +322,7 @@ async function placeOrder() {
           <!-- Step indicator -->
           <div class="flex items-center gap-3 mb-4">
             <div
-              v-for="(label, idx) in ['Dirección', 'Envío', 'Confirmar']"
+              v-for="(label, idx) in ['Dirección', 'Envío', 'Pago']"
               :key="idx"
               class="flex items-center gap-2"
             >
@@ -540,36 +634,25 @@ async function placeOrder() {
             </div>
           </div>
 
-          <!-- ─── Step 3: Confirm order ──────────────────────────────────── -->
+          <!-- ─── Step 3: Payment Brick ──────────────────────────────────── -->
           <div v-if="currentStep >= 3" class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
             <div class="h-16 px-8 border-b border-gray-50 bg-gray-50/50 flex items-center">
               <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
-                Confirmar Pedido
+                Pago
                 <span class="h-1 w-1 rounded-full bg-primary-500" />
               </h3>
             </div>
 
             <div class="p-8">
-              <p class="text-xs font-bold text-gray-600 mb-6 leading-relaxed">
-                Revisá tu pedido antes de confirmar. Nos pondremos en contacto para coordinar la entrega.
-              </p>
-
               <div
-                v-if="placeError"
+                v-if="paymentError"
                 class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-[10px] font-bold text-red-600 uppercase tracking-widest"
               >
-                {{ placeError }}
+                {{ paymentError }}
               </div>
 
-              <AppButton
-                variant="secondary"
-                size="lg"
-                :disabled="placeLoading"
-                class="w-full"
-                @click="placeOrder"
-              >
-                {{ placeLoading ? 'Procesando pedido...' : 'Confirmar Pedido' }}
-              </AppButton>
+              <!-- MercadoPago Payment Brick container -->
+              <div id="paymentBrick_container" />
             </div>
           </div>
 

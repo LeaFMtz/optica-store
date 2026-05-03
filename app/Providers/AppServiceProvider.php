@@ -11,6 +11,7 @@ use App\Filament\Widgets\HierarchicalProductOptionsWidget;
 use App\Models\Product;
 use App\Models\ProductOption;
 use App\Modifiers\ShippingModifier;
+use App\PaymentTypes\MercadoPagoPayment;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Lunar\Admin\Filament\Resources\ProductOptionResource;
@@ -18,6 +19,7 @@ use Lunar\Admin\Filament\Resources\ProductResource\Pages\ManageProductVariants;
 use Lunar\Admin\Support\Facades\LunarPanel;
 use Lunar\Base\ShippingModifiers;
 use Lunar\Facades\ModelManifest;
+use Lunar\Facades\Payments;
 use Lunar\Facades\Telemetry;
 use Lunar\Shipping\ShippingPlugin;
 
@@ -71,5 +73,7 @@ class AppServiceProvider extends ServiceProvider
         );
 
         Telemetry::optOut();
+
+        Payments::extend('mercadopago', fn () => app(MercadoPagoPayment::class));
     }
 }
