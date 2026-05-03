@@ -21,7 +21,7 @@ return new class extends Migration
                 /** @var string|null $imagePath */
                 $imagePath = $banner->getRawOriginal('image_path');
 
-                if (! $imagePath) {
+                if (!$imagePath) {
                     return;
                 }
 
@@ -29,7 +29,7 @@ return new class extends Migration
                     $banner->addMediaFromDisk($imagePath, 'public')
                         ->preservingOriginal()
                         ->toMediaCollection('image');
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     Log::warning("Banner migration: skipping banner #{$banner->id} — file '{$imagePath}' not found on disk. Error: {$e->getMessage()}");
                 }
             });

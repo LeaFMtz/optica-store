@@ -11,8 +11,11 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Columns\SpatieMediaLibraryImageColumn;
@@ -34,37 +37,46 @@ class BannerResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('title')
+                TextInput::make('title')
                     ->label('Título')
                     ->required()
                     ->maxLength(255),
-                SpatieMediaLibraryFileUpload::make('image')
-                    ->label('Imagen (escritorio)')
-                    ->collection('image')
-                    ->required()
-                    ->image()
-                    ->panelLayout('compact'),
-                SpatieMediaLibraryFileUpload::make('mobile_image')
-                    ->label('Imagen mobile (opcional)')
-                    ->collection('mobile_image')
-                    ->image()
-                    ->helperText('Si no se sube, se usará la imagen de escritorio en todos los dispositivos.')
-                    ->panelLayout('compact'),
-                Forms\Components\TextInput::make('url')
-                    ->label('URL de destino')
-                    ->url()
-                    ->maxLength(500),
-                Forms\Components\Select::make('position')
-                    ->label('Posición')
-                    ->required()
-                    ->options(Banner::positions()),
-                Forms\Components\TextInput::make('order')
-                    ->label('Orden')
-                    ->numeric()
-                    ->default(0),
-                Forms\Components\Toggle::make('is_active')
-                    ->label('Activo')
-                    ->default(true),
+                Fieldset::make('Información básica')
+                    ->schema([
+                        TextInput::make('url')
+                            ->label('URL de destino')
+                            ->url()
+                            ->maxLength(500),
+                    ]),
+                Fieldset::make('Imágenes')
+                    ->schema([
+                        SpatieMediaLibraryFileUpload::make('image')
+                            ->label('Imagen (escritorio)')
+                            ->collection('image')
+                            ->required()
+                            ->image()
+                            ->panelLayout('compact'),
+                        SpatieMediaLibraryFileUpload::make('mobile_image')
+                            ->label('Imagen móvil')
+                            ->collection('mobile_image')
+                            ->image()
+                            ->helperText('La imagen mobile es opcional. Si no se carga, se usará la imagen desktop como fallback.')
+                            ->panelLayout('compact'),
+                    ]),
+                Fieldset::make('Posición')
+                    ->schema([
+                        Select::make('position')
+                            ->label('Posición')
+                            ->required()
+                            ->options(Banner::positions()),
+                        TextInput::make('order')
+                            ->label('Orden')
+                            ->numeric()
+                            ->default(0),
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Activo')
+                            ->default(true),
+                    ]),
             ]);
     }
 

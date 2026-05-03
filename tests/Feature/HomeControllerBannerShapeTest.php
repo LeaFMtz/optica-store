@@ -14,32 +14,6 @@ class HomeControllerBannerShapeTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Storage::fake('public');
-    }
-
-    /**
-     * Create an active hero banner with a desktop image attached.
-     */
-    private function createHeroBannerWithDesktopImage(): Banner
-    {
-        /** @var Banner $banner */
-        $banner = Banner::create([
-            'title' => 'Test Hero Banner',
-            'url' => 'https://example.com',
-            'position' => 'home_hero',
-            'order' => 1,
-            'is_active' => true,
-        ]);
-
-        $banner->addMedia(UploadedFile::fake()->image('desktop.jpg'))
-            ->toMediaCollection('image');
-
-        return $banner;
-    }
-
     public function test_hero_banner_with_desktop_image_only_returns_null_mobile_url(): void
     {
         $this->createHeroBannerWithDesktopImage();
@@ -91,5 +65,31 @@ class HomeControllerBannerShapeTest extends TestCase
         $this->assertEmpty($props['middleBanners']);
         $this->assertEmpty($props['bottomBanners']);
         $this->assertNull($props['newsletterBanner']);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('public');
+    }
+
+    /**
+     * Create an active hero banner with a desktop image attached.
+     */
+    private function createHeroBannerWithDesktopImage(): Banner
+    {
+        /** @var Banner $banner */
+        $banner = Banner::create([
+            'title' => 'Test Hero Banner',
+            'url' => 'https://example.com',
+            'position' => 'home_hero',
+            'order' => 1,
+            'is_active' => true,
+        ]);
+
+        $banner->addMedia(UploadedFile::fake()->image('desktop.jpg'))
+            ->toMediaCollection('image');
+
+        return $banner;
     }
 }

@@ -23,10 +23,10 @@ class ShippingModifier
         if (config('shipping-tables.enabled') == false) {
             ShippingManifest::addOption(
                 new ShippingOption(
-                    name: 'Basic Delivery',
-                    description: 'Basic Delivery',
-                    identifier: 'BASDEL',
-                    price: new Price(500, $cart->currency, 1),
+                    name: 'Retiro en local',
+                    description: 'Retiro en local',
+                    identifier: 'RETLOC',
+                    price: new Price(0, $cart->currency, 1),
                     taxClass: TaxClass::getDefault(),
                 ),
             );

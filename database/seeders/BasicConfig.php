@@ -8,8 +8,6 @@ use Illuminate\Database\Seeder;
 use Lunar\Models\Channel;
 use Lunar\Models\Currency;
 use Lunar\Models\Language;
-use Lunar\Models\TaxClass;
-use Lunar\Models\TaxZone;
 
 class BasicConfig extends Seeder
 {
@@ -35,45 +33,9 @@ class BasicConfig extends Seeder
         ]);
 
         Channel::create([
-            'name' => 'web',
-            'handle' => 'web',
+            'name' => 'Retail',
+            'handle' => 'retail',
             'default' => true,
-        ]);
-
-        $taxClassIva21 = TaxClass::create([
-            'name' => 'IVA 21%',
-            'default' => true,
-        ]);
-
-        $taxClassIva10 = TaxClass::create([
-            'name' => 'IVA 10.5%',
-        ]);
-
-        $taxZone = TaxZone::create([
-            'name' => 'Argentina',
-            'zone_type' => 'country',
-            'price_display' => true,
-            'active' => true,
-            'default' => true,
-        ]);
-
-        $taxZone->countries()->create([
-            'country_id' => 11, // ARGENTINA SEGUN EL IMPORT DEFAULT DE LUNAR
-        ]);
-
-        $taxRates = $taxZone->taxRates()->create([
-            'priority' => 1,
-            'name' => 'IVA',
-        ]);
-
-        $taxRates->taxRateAmounts()->create([
-            'percentage' => 21,
-            'tax_class_id' => $taxClassIva21->id,
-        ]);
-
-        $taxRates->taxRateAmounts()->create([
-            'percentage' => 10.5,
-            'tax_class_id' => $taxClassIva10->id,
         ]);
     }
 }
