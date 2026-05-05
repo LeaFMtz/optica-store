@@ -21,5 +21,13 @@ class ProductAssociationVariant extends LunarProductAssociation
             'product_variant_id',
         );
     }
-}
 
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::deleting(function (self $association) {
+            $association->variants()->sync([]);
+        });
+    }
+}
