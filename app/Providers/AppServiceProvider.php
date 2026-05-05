@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Filament\Resources\BannerResource;
+use App\Filament\Resources\ProductResourceExtension;
+use App\Models\ProductAssociationVariant;
 use App\Modifiers\ShippingModifier;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Admin\Support\Facades\LunarPanel;
 use Lunar\Base\ShippingModifiers;
+use Lunar\Facades\ModelManifest;
 use Lunar\Facades\Telemetry;
+use Lunar\Models\Contracts\ProductAssociation;
 use Lunar\Shipping\ShippingPlugin;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,6 +30,7 @@ class AppServiceProvider extends ServiceProvider
                 ])
                 ->resources([
                     BannerResource::class,
+                    ProductResourceExtension::class,
                 ])
                 ->path('panel'),
         )
@@ -39,6 +44,11 @@ class AppServiceProvider extends ServiceProvider
     {
         $shippingModifiers->add(
             ShippingModifier::class,
+        );
+
+        ModelManifest::replace(
+            ProductAssociation::class,
+            ProductAssociationVariant::class,
         );
 
         Telemetry::optOut();
