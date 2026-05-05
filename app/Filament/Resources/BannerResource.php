@@ -27,6 +27,8 @@ class BannerResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-photo';
 
+    protected static string|\UnitEnum|null $navigationGroup = null;
+
     protected static ?string $navigationLabel = 'Banners';
 
     protected static ?string $label = 'Banner';

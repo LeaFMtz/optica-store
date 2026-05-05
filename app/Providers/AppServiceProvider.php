@@ -27,7 +27,14 @@ class AppServiceProvider extends ServiceProvider
                 ->resources([
                     BannerResource::class,
                 ])
-                ->path('panel'),
+                ->path('panel')
+                ->brandName('Óptica Guzmán')
+                ->brandLogo(asset('images/logo-light.png'))
+                ->darkModeBrandLogo(asset('images/logo.webp'))
+                ->favicon(asset('favicon.png'))
+                ->brandLogoHeight('3.5rem')
+                ->colors(['primary' => '#427318'])
+                ->font(null),
         )
             ->register();
     }
