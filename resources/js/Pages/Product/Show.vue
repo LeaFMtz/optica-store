@@ -717,7 +717,7 @@ function formatPrice(cents) {
               <div v-if="pdField" class="mt-5 pt-5 border-t border-gray-100 space-y-3">
 
                 <!-- Fila principal: label + control(s) -->
-                <div class="flex flex-wrap items-center gap-3">
+                <div class="flex flex-wrap items-center justify-center gap-3">
                   <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest w-10">{{ pdField.label }}</span>
 
                   <template v-if="!doublePd">
@@ -757,7 +757,7 @@ function formatPrice(cents) {
                 </div>
 
                 <!-- Checkbox siempre en su propia línea -->
-                <label class="flex items-center gap-2 cursor-pointer">
+                <label class="flex items-center justify-center gap-2 cursor-pointer">
                   <input type="checkbox" :checked="doublePd" class="w-3.5 h-3.5 rounded border-gray-300 accent-primary-500 cursor-pointer" @change="toggleDoublePd" />
                   <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest select-none">Dos números de DP</span>
                 </label>
