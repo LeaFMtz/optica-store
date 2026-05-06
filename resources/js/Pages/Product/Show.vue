@@ -779,7 +779,7 @@ function formatPrice(cents) {
             <div v-else-if="configuratorStep === typeStep">
               <h2 class="text-xl font-black uppercase tracking-tight text-center mb-2">Tipo de lente</h2>
               <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center mb-8">Seleccioná el tipo de tratamiento</p>
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
                   v-for="type in availableTypes"
                   :key="type.id"

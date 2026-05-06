@@ -10,7 +10,6 @@ use App\Filament\Resources\ProductResource\Pages\ManageProductLensConfigurations
 use Filament\Tables\Table;
 use Lunar\Admin\Filament\Resources\ProductResource;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\EditProduct;
-use Lunar\Admin\Filament\Resources\ProductResource\Pages\ManageProductAssociations;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\ManageProductAvailability;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\ManageProductCollections;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\ManageProductIdentifiers;
