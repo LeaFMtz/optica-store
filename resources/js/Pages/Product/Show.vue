@@ -166,32 +166,16 @@ async function openConfigurator() {
 }
 
 function selectUse(useId) {
-  selectedUse.value      = useId
-  selectedType.value     = null
-  doublePd.value         = false
-  configuratorStep.value = 2
-
-  // Pre-inicializar steppers en su mínimo para que el usuario no parta de "—"
-  const values = {}
-  tableFields.value.forEach(f => {
-    if (f.step >= 1) {
-      values[`od_${f.key}`] = f.min
-      values[`oi_${f.key}`] = f.min
-    }
-  })
-  prescriptionValues.value = values
+  selectedUse.value        = useId
+  selectedType.value       = null
+  doublePd.value           = false
+  prescriptionValues.value = {}
+  configuratorStep.value   = 2
 }
 
 function resetPrescription() {
-  doublePd.value = false
-  const values   = {}
-  tableFields.value.forEach(f => {
-    if (f.step >= 1) {
-      values[`od_${f.key}`] = f.min
-      values[`oi_${f.key}`] = f.min
-    }
-  })
-  prescriptionValues.value = values
+  doublePd.value           = false
+  prescriptionValues.value = {}
 }
 
 function toggleDoublePd() {
@@ -202,7 +186,7 @@ function toggleDoublePd() {
 }
 
 function stepField(key, field, direction) {
-  const current = prescriptionValues.value[key] ?? field.min
+  const current = prescriptionValues.value[key] ?? 0
   const next    = current + direction * field.step
   prescriptionValues.value[key] = Math.min(field.max, Math.max(field.min, Math.round(next * 1000) / 1000))
 }
@@ -604,14 +588,14 @@ function formatPrice(cents) {
             <div v-else-if="configuratorStep === 1">
               <h2 class="text-xl font-black uppercase tracking-tight text-center mb-2">¿Para qué vas a usar los lentes?</h2>
               <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center mb-8">Seleccioná el tipo de uso</p>
-              <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <button
                   v-for="use in lensUses"
                   :key="use.id"
                   :class="selectedUse === use.id
                     ? 'border-primary-500 bg-primary-500/5'
                     : 'border-gray-200 hover:border-gray-300'"
-                  class="flex flex-col items-center justify-center gap-3 p-6 border-2 rounded-2xl transition-all duration-200 text-center"
+                  class="flex items-center justify-center p-5 border-2 rounded-2xl transition-all duration-200 text-center"
                   @click="selectUse(use.id)"
                 >
                   <span class="text-sm font-black uppercase tracking-wider text-gray-900 leading-tight">{{ use.name }}</span>
@@ -640,8 +624,47 @@ function formatPrice(cents) {
                 </button>
               </div>
 
-              <!-- Tabla OD / OI -->
-              <div class="overflow-x-auto">
+              <!-- Mobile: cards por ojo -->
+              <div class="sm:hidden space-y-3">
+                <div
+                  v-for="(eyeLabel, eyePrefix) in { od: 'OD — Ojo Derecho', oi: 'OI — Ojo Izquierdo' }"
+                  :key="eyePrefix"
+                  class="border-2 border-gray-100 rounded-2xl p-4 space-y-3"
+                >
+                  <p class="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em]">{{ eyeLabel }}</p>
+                  <div
+                    v-for="field in tableFields"
+                    :key="field.key"
+                    class="flex items-center justify-between gap-3"
+                  >
+                    <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap">{{ field.label }}</span>
+
+                    <!-- Stepper -->
+                    <div
+                      v-if="field.step >= 1"
+                      :class="['inline-flex items-center rounded-xl border-2 overflow-hidden transition-colors', isFilled(`${eyePrefix}_${field.key}`) ? 'border-primary-500' : 'border-gray-200']"
+                    >
+                      <button type="button" class="w-9 h-10 flex items-center justify-center font-black text-gray-500 hover:bg-gray-50 text-base" @click="stepField(`${eyePrefix}_${field.key}`, field, -1)">−</button>
+                      <div class="w-10 h-10 flex items-center justify-center text-sm font-bold text-gray-900 border-x-2 border-inherit bg-white">{{ prescriptionValues[`${eyePrefix}_${field.key}`] ?? '—' }}</div>
+                      <button type="button" class="w-9 h-10 flex items-center justify-center font-black text-gray-500 hover:bg-gray-50 text-base" @click="stepField(`${eyePrefix}_${field.key}`, field, 1)">+</button>
+                    </div>
+
+                    <!-- Picker trigger -->
+                    <button
+                      v-else
+                      type="button"
+                      :class="['h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[6rem] justify-between', isFilled(`${eyePrefix}_${field.key}`) ? 'border-primary-500 bg-primary-500/5 text-gray-900' : 'border-gray-200 text-gray-400']"
+                      @click="openPicker(`${eyePrefix}_${field.key}`, field)"
+                    >
+                      <span>{{ pickerLabel(prescriptionValues[`${eyePrefix}_${field.key}`], field) }}</span>
+                      <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Desktop: tabla -->
+              <div class="hidden sm:block overflow-x-auto">
                 <table class="border-collapse mx-auto">
                   <thead>
                     <tr>
@@ -661,50 +684,28 @@ function formatPrice(cents) {
                       :key="eyePrefix"
                       class="border-t border-gray-100"
                     >
-                      <td class="text-[9px] font-black text-gray-500 uppercase tracking-widest py-4 pr-6 whitespace-nowrap">
-                        {{ eye }}
-                      </td>
+                      <td class="text-[9px] font-black text-gray-500 uppercase tracking-widest py-4 pr-6 whitespace-nowrap">{{ eye }}</td>
                       <td v-for="field in tableFields" :key="field.key" class="py-4 px-3 text-center">
 
-                        <!-- Stepper para step entero (ej: Eje) -->
+                        <!-- Stepper -->
                         <div
                           v-if="field.step >= 1"
-                          :class="[
-                            'inline-flex items-center rounded-xl border-2 overflow-hidden transition-colors',
-                            isFilled(`${eyePrefix}_${field.key}`) ? 'border-primary-500' : 'border-gray-200',
-                          ]"
+                          :class="['inline-flex items-center rounded-xl border-2 overflow-hidden transition-colors', isFilled(`${eyePrefix}_${field.key}`) ? 'border-primary-500' : 'border-gray-200']"
                         >
-                          <button
-                            type="button"
-                            class="w-8 h-10 flex items-center justify-center font-black text-gray-500 hover:bg-gray-50 transition-colors text-base"
-                            @click="stepField(`${eyePrefix}_${field.key}`, field, -1)"
-                          >−</button>
-                          <div class="w-10 h-10 flex items-center justify-center text-sm font-bold text-gray-900 border-x-2 border-inherit bg-white">
-                            {{ prescriptionValues[`${eyePrefix}_${field.key}`] ?? '—' }}
-                          </div>
-                          <button
-                            type="button"
-                            class="w-8 h-10 flex items-center justify-center font-black text-gray-500 hover:bg-gray-50 transition-colors text-base"
-                            @click="stepField(`${eyePrefix}_${field.key}`, field, 1)"
-                          >+</button>
+                          <button type="button" class="w-8 h-10 flex items-center justify-center font-black text-gray-500 hover:bg-gray-50 text-base" @click="stepField(`${eyePrefix}_${field.key}`, field, -1)">−</button>
+                          <div class="w-10 h-10 flex items-center justify-center text-sm font-bold text-gray-900 border-x-2 border-inherit bg-white">{{ prescriptionValues[`${eyePrefix}_${field.key}`] ?? '—' }}</div>
+                          <button type="button" class="w-8 h-10 flex items-center justify-center font-black text-gray-500 hover:bg-gray-50 text-base" @click="stepField(`${eyePrefix}_${field.key}`, field, 1)">+</button>
                         </div>
 
-                        <!-- Picker trigger para step decimal (ej: Esfera, Cilindro) -->
+                        <!-- Picker trigger -->
                         <button
                           v-else
                           type="button"
-                          :class="[
-                            'h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5.5rem] justify-between',
-                            isFilled(`${eyePrefix}_${field.key}`)
-                              ? 'border-primary-500 bg-primary-500/5 text-gray-900'
-                              : 'border-gray-200 text-gray-400 hover:border-gray-300',
-                          ]"
+                          :class="['h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5.5rem] justify-between', isFilled(`${eyePrefix}_${field.key}`) ? 'border-primary-500 bg-primary-500/5 text-gray-900' : 'border-gray-200 text-gray-400 hover:border-gray-300']"
                           @click="openPicker(`${eyePrefix}_${field.key}`, field)"
                         >
                           <span>{{ pickerLabel(prescriptionValues[`${eyePrefix}_${field.key}`], field) }}</span>
-                          <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-                          </svg>
+                          <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
                         </button>
                       </td>
                     </tr>
@@ -713,66 +714,51 @@ function formatPrice(cents) {
               </div>
 
               <!-- DP / PD -->
-              <div v-if="pdField" class="mt-5 pt-5 border-t border-gray-100 flex items-center justify-center gap-4 flex-wrap">
-                <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest w-28">{{ pdField.label }}</span>
+              <div v-if="pdField" class="mt-5 pt-5 border-t border-gray-100 space-y-3">
 
-                <template v-if="!doublePd">
-                  <button
-                    type="button"
-                    :class="[
-                      'h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5.5rem] justify-between',
-                      isFilled('pd') ? 'border-primary-500 bg-primary-500/5 text-gray-900' : 'border-gray-200 text-gray-400 hover:border-gray-300',
-                    ]"
-                    @click="openPicker('pd', pdField)"
-                  >
-                    <span>{{ pickerLabel(prescriptionValues['pd'], pdField) }}</span>
-                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                </template>
-                <template v-else>
-                  <div class="flex items-center gap-2">
-                    <span class="text-[8px] text-gray-400 font-black uppercase tracking-widest">OD</span>
+                <!-- Fila principal: label + control(s) -->
+                <div class="flex flex-wrap items-center gap-3">
+                  <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest w-10">{{ pdField.label }}</span>
+
+                  <template v-if="!doublePd">
                     <button
                       type="button"
-                      :class="[
-                        'h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5rem] justify-between',
-                        isFilled('pd_od') ? 'border-primary-500 bg-primary-500/5 text-gray-900' : 'border-gray-200 text-gray-400 hover:border-gray-300',
-                      ]"
-                      @click="openPicker('pd_od', pdField)"
+                      :class="['h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5.5rem] justify-between', isFilled('pd') ? 'border-primary-500 bg-primary-500/5 text-gray-900' : 'border-gray-200 text-gray-400 hover:border-gray-300']"
+                      @click="openPicker('pd', pdField)"
                     >
-                      <span>{{ pickerLabel(prescriptionValues['pd_od'], pdField) }}</span>
-                      <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-                      </svg>
+                      <span>{{ pickerLabel(prescriptionValues['pd'], pdField) }}</span>
+                      <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
                     </button>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-[8px] text-gray-400 font-black uppercase tracking-widest">OI</span>
-                    <button
-                      type="button"
-                      :class="[
-                        'h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5rem] justify-between',
-                        isFilled('pd_oi') ? 'border-primary-500 bg-primary-500/5 text-gray-900' : 'border-gray-200 text-gray-400 hover:border-gray-300',
-                      ]"
-                      @click="openPicker('pd_oi', pdField)"
-                    >
-                      <span>{{ pickerLabel(prescriptionValues['pd_oi'], pdField) }}</span>
-                      <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                  </div>
-                </template>
+                  </template>
+                  <template v-else>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[8px] text-gray-400 font-black uppercase tracking-widest">OD</span>
+                      <button
+                        type="button"
+                        :class="['h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5rem] justify-between', isFilled('pd_od') ? 'border-primary-500 bg-primary-500/5 text-gray-900' : 'border-gray-200 text-gray-400 hover:border-gray-300']"
+                        @click="openPicker('pd_od', pdField)"
+                      >
+                        <span>{{ pickerLabel(prescriptionValues['pd_od'], pdField) }}</span>
+                        <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-[8px] text-gray-400 font-black uppercase tracking-widest">OI</span>
+                      <button
+                        type="button"
+                        :class="['h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5rem] justify-between', isFilled('pd_oi') ? 'border-primary-500 bg-primary-500/5 text-gray-900' : 'border-gray-200 text-gray-400 hover:border-gray-300']"
+                        @click="openPicker('pd_oi', pdField)"
+                      >
+                        <span>{{ pickerLabel(prescriptionValues['pd_oi'], pdField) }}</span>
+                        <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                    </div>
+                  </template>
+                </div>
 
-                <label class="flex items-center gap-2 cursor-pointer ml-1">
-                  <input
-                    type="checkbox"
-                    :checked="doublePd"
-                    class="w-3.5 h-3.5 rounded border-gray-300 accent-primary-500 cursor-pointer"
-                    @change="toggleDoublePd"
-                  />
+                <!-- Checkbox siempre en su propia línea -->
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" :checked="doublePd" class="w-3.5 h-3.5 rounded border-gray-300 accent-primary-500 cursor-pointer" @change="toggleDoublePd" />
                   <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest select-none">Dos números de DP</span>
                 </label>
               </div>
