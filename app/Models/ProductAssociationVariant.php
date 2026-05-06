@@ -8,6 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Lunar\Models\ProductAssociation as LunarProductAssociation;
 use Lunar\Models\ProductVariant;
 
+/**
+ * @deprecated Replaced by \App\Models\ProductLensConfiguration.
+ *             Do NOT remove until production data migration is confirmed.
+ *             See: lens-module-redesign SDD change.
+ */
 class ProductAssociationVariant extends LunarProductAssociation
 {
     public function variants(): BelongsToMany

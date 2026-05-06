@@ -4,16 +4,20 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Lunar\Models\Product as LunarProduct;
 
-class Product extends LunarProduct
+class LensQuality extends Model
 {
+    protected $table = 'opt_lens_qualities';
+
     protected $fillable = [
-        'attribute_data',
-        'product_type_id',
-        'status',
-        'brand_id',
+        'name',
+        'description',
+        'features',
+        'base_price',
+        'sort_order',
+        'is_recommended',
     ];
 
     /**
@@ -26,6 +30,9 @@ class Product extends LunarProduct
 
     protected function casts(): array
     {
-        return parent::casts();
+        return [
+            'features' => 'array',
+            'is_recommended' => 'boolean',
+        ];
     }
 }

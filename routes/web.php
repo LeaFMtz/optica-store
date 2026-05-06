@@ -17,6 +17,7 @@ use App\Http\Controllers\CollectionController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\FaqController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LensConfigurationController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RefundPolicyController;
 use App\Http\Controllers\SearchController;
@@ -58,6 +59,8 @@ Route::get('/products/{slug}', ProductController::class)->name('product.view');
 
 // Route::get('search', SearchPage::class)->name('search.view');  // Wave 3: replaced
 Route::get('search', SearchController::class)->name('search.view');
+
+Route::get('/lens-configurations', LensConfigurationController::class)->name('lens.configurations');
 
 // Cart JSON endpoints (non-Inertia, web middleware for session/CSRF)
 Route::prefix('cart')->name('cart.')->group(function () {

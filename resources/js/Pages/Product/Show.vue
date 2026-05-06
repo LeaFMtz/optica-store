@@ -8,11 +8,10 @@ import Badge from '@/Components/Badge.vue'
 defineOptions({ layout: StorefrontLayout })
 
 const props = defineProps({
-  product: { type: Object, required: true },
-  images:  { type: Array,  default: () => [] },
-  options: { type: Array,  default: () => [] },
-  lensMap: { type: Object, default: () => ({}) },
-  hasLens: { type: Boolean, default: false },
+  product:               { type: Object,  required: true },
+  images:                { type: Array,   default: () => [] },
+  options:               { type: Array,   default: () => [] },
+  hasLensConfigurations: { type: Boolean, default: false },
 })
 
 // ─── Cart sidebar open/close via provide/inject from StorefrontLayout ────────
@@ -33,39 +32,88 @@ const selectedValues = ref(
 // ─── Lens configurator state ──────────────────────────────────────────────────
 const configuratorOpen = ref(false)
 const configuratorStep = ref(1)
-const selectedUso      = ref(null)
-const selectedLens     = ref(null)
 
-const lensMapEntries = computed(() => Object.entries(props.lensMap))
+/** Loaded from /lens-configurations */
+const lensUses          = ref([])
+const lensLoading       = ref(false)
+const lensError         = ref(null)
 
-const availableLensValues = computed(() => {
-  if (!selectedUso.value) {
-    return []
-  }
-  return props.lensMap[selectedUso.value]?.values ?? []
+/** Step 1 — selected use */
+const selectedUse  = ref(null)
+
+/** Step 2 — selected type (within selectedUse.types) */
+const selectedType = ref(null)
+
+/** Step 3 — selected quality (within selectedType.qualities) */
+const selectedQuality = ref(null)
+
+const availableTypes = computed(() => {
+  if (!selectedUse.value) return []
+  const use = lensUses.value.find(u => u.id === selectedUse.value)
+  return use?.types ?? []
 })
 
-const childOptionName = computed(() => {
-  if (!selectedUso.value) {
-    return 'Tipo de lente'
-  }
-  return props.lensMap[selectedUso.value]?.child_option_name ?? 'Tipo de lente'
+const availableQualities = computed(() => {
+  if (!selectedType.value) return []
+  const type = availableTypes.value.find(t => t.id === selectedType.value)
+  return type?.qualities ?? []
 })
 
-const canConfirm = computed(() => selectedUso.value !== null && selectedLens.value !== null)
+const canConfirm = computed(() => selectedQuality.value !== null)
 
-function selectUso(id) {
-  selectedUso.value  = id
-  selectedLens.value = null
+async function openConfigurator() {
+  configuratorOpen.value = true
+  configuratorStep.value = 1
+  selectedUse.value      = null
+  selectedType.value     = null
+  selectedQuality.value  = null
+
+  if (lensUses.value.length > 0) return
+
+  lensLoading.value = true
+  lensError.value   = null
+  try {
+    const res  = await fetch(`/lens-configurations?product_id=${props.product.id}`, {
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin',
+    })
+    const data = await res.json()
+    lensUses.value = data.uses ?? []
+  } catch {
+    lensError.value = 'No se pudieron cargar las configuraciones de lentes.'
+  } finally {
+    lensLoading.value = false
+  }
+}
+
+function selectUse(useId) {
+  selectedUse.value  = useId
+  selectedType.value = null
   configuratorStep.value = 2
 }
-function selectLens(id) { selectedLens.value = id }
-function configuratorBack() { configuratorStep.value = 1; selectedLens.value = null }
+
+function selectType(typeId) {
+  selectedType.value    = typeId
+  selectedQuality.value = null
+  configuratorStep.value = 3
+}
+
+function configuratorBack() {
+  if (configuratorStep.value === 3) {
+    configuratorStep.value = 2
+    selectedQuality.value  = null
+  } else if (configuratorStep.value === 2) {
+    configuratorStep.value = 1
+    selectedType.value     = null
+  }
+}
+
 function closeConfigurator() {
   configuratorOpen.value = false
   configuratorStep.value = 1
-  selectedUso.value      = null
-  selectedLens.value     = null
+  selectedUse.value      = null
+  selectedType.value     = null
+  selectedQuality.value  = null
 }
 
 // ─── Cart operations ──────────────────────────────────────────────────────────
@@ -95,12 +143,11 @@ async function confirmAddWithLens() {
   cartError.value  = null
   addingCart.value = true
   try {
-    const variantId = resolveVariantByLens(Number(selectedUso.value), selectedLens.value)
-    if (!variantId) {
-      cartError.value = 'No encontramos esa combinación de lente.'
-      return
-    }
-    await postToCart(variantId, 1)
+    const frameVariantId = getFirstVariantId()
+    if (!frameVariantId) throw new Error('No se encontró variante del marco.')
+
+    await postToCartRaw(frameVariantId, 1, null, selectedQuality.value.configuration_id)
+
     closeConfigurator()
     if (openCartSidebar) openCartSidebar()
   } catch (err) {
@@ -110,9 +157,10 @@ async function confirmAddWithLens() {
   }
 }
 
-async function postToCart(variantId, quantity) {
-  const csrfMeta = document.querySelector('meta[name="csrf-token"]')
-  const csrf     = csrfMeta ? csrfMeta.getAttribute('content') : ''
+async function postToCartRaw(variantId, quantity, parentLineId = null, lensConfigurationId = null) {
+  const body = { variant_id: variantId, quantity }
+  if (parentLineId) body.parent_line_id = parentLineId
+  if (lensConfigurationId) body.lens_configuration_id = lensConfigurationId
 
   const response = await fetch('/cart/lines', {
     method:  'POST',
@@ -122,14 +170,17 @@ async function postToCart(variantId, quantity) {
       'X-XSRF-TOKEN':     decodeURIComponent(getCookie('XSRF-TOKEN') ?? ''),
       'X-Requested-With': 'XMLHttpRequest',
     },
-    body: JSON.stringify({ variant_id: variantId, quantity }),
+    body: JSON.stringify(body),
     credentials: 'same-origin',
   })
 
-  if (!response.ok) {
-    const json = await response.json().catch(() => ({}))
-    throw new Error(json.message ?? 'Error de servidor.')
-  }
+  const json = await response.json().catch(() => ({}))
+  if (!response.ok) throw new Error(json.message ?? 'Error de servidor.')
+  return json
+}
+
+async function postToCart(variantId, quantity) {
+  await postToCartRaw(variantId, quantity)
 }
 
 function getCookie(name) {
@@ -141,34 +192,13 @@ function getCookie(name) {
   return null
 }
 
-/**
- * Returns the first variant id — used for "frame only" add.
- * The backend resolves actual variant matching; here we only need a placeholder
- * that the Livewire ProductPage also used (it called product.variants.first()).
- */
 function getFirstVariantId() {
-  // We don't have variant IDs in props directly.
-  // The "frame only" path passes variant_id derived from the first option selection.
-  // Since options come with value IDs but not variant IDs, we rely on the backend
-  // CartController to handle variant_id = the first option value's variant.
-  // For now, expose variantId via the product prop extended in ProductController.
   return props.product.first_variant_id ?? null
 }
 
-/**
- * Resolve a variant ID by uso + lens value IDs.
- * Since we don't carry variant-to-value mapping in props, we rely on the
- * backend CartController to do the matching. Here we pass uso+lens as metadata.
- * NOTE: This requires CartController.store() to support uso_value_id + lens_value_id
- * OR we enrich the product prop with variant mappings. We enrich the prop (see ProductController).
- */
-function resolveVariantByLens(usoValueId, lensValueId) {
-  const variants = props.product.variants ?? []
-  const match = variants.find(v => {
-    const ids = v.value_ids ?? []
-    return ids.includes(usoValueId) && ids.includes(lensValueId)
-  })
-  return match?.id ?? null
+function formatPrice(cents) {
+  if (cents == null) return ''
+  return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(cents / 100)
 }
 </script>
 
@@ -281,8 +311,8 @@ function resolveVariantByLens(usoValueId, lensValueId) {
               <!-- CTA area -->
               <div class="pt-2">
 
-                <!-- Dual CTA for lens products -->
-                <template v-if="hasLens">
+                <!-- Dual CTA for frames with lens configurations -->
+                <template v-if="hasLensConfigurations">
                   <div class="flex flex-col sm:flex-row gap-3">
                     <AppButton
                       variant="outline"
@@ -298,7 +328,7 @@ function resolveVariantByLens(usoValueId, lensValueId) {
                       size="lg"
                       :disabled="addingCart"
                       class="flex-1"
-                      @click="configuratorOpen = true"
+                      @click="openConfigurator"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -378,7 +408,7 @@ function resolveVariantByLens(usoValueId, lensValueId) {
       </div>
     </div>
 
-    <!-- Lens configurator modal -->
+    <!-- Lens configurator modal — 3-step wizard -->
     <Teleport to="body">
       <div
         v-if="configuratorOpen"
@@ -392,11 +422,23 @@ function resolveVariantByLens(usoValueId, lensValueId) {
 
           <!-- Progress dots + close -->
           <div class="flex items-center justify-between px-8 pt-8 pb-4">
-            <div class="w-8" />
+            <div class="w-8">
+              <button
+                v-if="configuratorStep > 1"
+                class="text-gray-400 hover:text-gray-700 transition-colors"
+                @click="configuratorBack"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            </div>
             <div class="flex items-center gap-3">
               <div :class="configuratorStep >= 1 ? 'bg-primary-500' : 'bg-gray-200'" class="w-3 h-3 rounded-full transition-colors duration-300" />
               <div class="w-8 h-px bg-gray-200" />
               <div :class="configuratorStep >= 2 ? 'bg-primary-500' : 'bg-gray-200'" class="w-3 h-3 rounded-full transition-colors duration-300" />
+              <div class="w-8 h-px bg-gray-200" />
+              <div :class="configuratorStep >= 3 ? 'bg-primary-500' : 'bg-gray-200'" class="w-3 h-3 rounded-full transition-colors duration-300" />
             </div>
             <button class="text-gray-400 hover:text-gray-700 transition-colors" @click="closeConfigurator">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -408,51 +450,109 @@ function resolveVariantByLens(usoValueId, lensValueId) {
           <!-- Step content -->
           <div class="flex-1 overflow-y-auto px-8 py-4">
 
-            <!-- Step 1: Uso -->
-            <div v-if="configuratorStep === 1">
-              <h2 class="text-xl font-black uppercase tracking-tight text-center mb-8">Uso</h2>
-              <div class="flex flex-wrap justify-center gap-4">
+            <!-- Loading state -->
+            <div v-if="lensLoading" class="flex items-center justify-center py-20">
+              <div class="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+
+            <!-- Error state -->
+            <div v-else-if="lensError" class="flex items-center justify-center py-20">
+              <p class="text-sm text-red-500 font-bold">{{ lensError }}</p>
+            </div>
+
+            <!-- Step 1: Elegir uso -->
+            <div v-else-if="configuratorStep === 1">
+              <h2 class="text-xl font-black uppercase tracking-tight text-center mb-2">¿Para qué vas a usar los lentes?</h2>
+              <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center mb-8">Seleccioná el tipo de uso</p>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <button
-                  v-for="[usoId, data] in lensMapEntries"
-                  :key="usoId"
-                  :class="String(selectedUso) === String(usoId) ? 'border-primary-500 bg-primary-500/5' : 'border-gray-200 hover:border-gray-400'"
-                  class="inline-flex flex-col items-center gap-3 p-6 border-2 rounded-2xl transition-all duration-200 text-left w-44"
-                  @click="selectUso(usoId)"
+                  v-for="use in lensUses"
+                  :key="use.id"
+                  :class="selectedUse === use.id
+                    ? 'border-primary-500 bg-primary-500/5'
+                    : 'border-gray-200 hover:border-gray-300'"
+                  class="flex flex-col items-center justify-center gap-3 p-6 border-2 rounded-2xl transition-all duration-200 text-center"
+                  @click="selectUse(use.id)"
                 >
-                  <span class="text-xs font-black uppercase tracking-wider text-center">{{ data.uso_name }}</span>
+                  <span class="text-sm font-black uppercase tracking-wider text-gray-900 leading-tight">{{ use.name }}</span>
                 </button>
               </div>
             </div>
 
-            <!-- Step 2: Tipo de lente -->
-            <div v-if="configuratorStep === 2">
-              <div class="flex items-center gap-4 mb-8">
-                <button class="text-gray-400 hover:text-gray-700 transition-colors" @click="configuratorBack">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <h2 class="flex-1 text-xl font-black uppercase tracking-tight text-center">{{ childOptionName }}</h2>
-              </div>
-              <div class="flex flex-wrap justify-center gap-4">
+            <!-- Step 2: Elegir tipo de lente -->
+            <div v-else-if="configuratorStep === 2">
+              <h2 class="text-xl font-black uppercase tracking-tight text-center mb-2">Tipo de lente</h2>
+              <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center mb-8">Seleccioná el tipo de tratamiento</p>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <button
-                  v-for="lens in availableLensValues"
-                  :key="lens.id"
-                  :class="selectedLens === lens.id ? 'border-primary-500 bg-primary-500/5' : 'border-gray-200 hover:border-gray-400'"
-                  class="flex flex-col items-center gap-3 p-6 border-2 rounded-2xl transition-all duration-200 w-44"
-                  @click="selectLens(lens.id)"
+                  v-for="type in availableTypes"
+                  :key="type.id"
+                  :class="selectedType === type.id
+                    ? 'border-primary-500 bg-primary-500/5'
+                    : 'border-gray-200 hover:border-gray-300'"
+                  class="flex flex-col items-center justify-center gap-3 p-6 border-2 rounded-2xl transition-all duration-200 text-center"
+                  @click="selectType(type.id)"
                 >
-                  <span class="text-xs font-black uppercase tracking-wider text-center">{{ lens.name }}</span>
+                  <span class="text-sm font-black uppercase tracking-wider text-gray-900 leading-tight">{{ type.name }}</span>
                 </button>
               </div>
-              <div class="flex justify-center mt-8">
+            </div>
+
+            <!-- Step 3: Elegir calidad / paquete -->
+            <div v-else-if="configuratorStep === 3">
+              <h2 class="text-xl font-black uppercase tracking-tight text-center mb-2">Elegí tu paquete</h2>
+              <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center mb-8">Seleccioná la calidad de lente</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <button
+                  v-for="quality in availableQualities"
+                  :key="quality.configuration_id"
+                  :class="selectedQuality?.configuration_id === quality.configuration_id
+                    ? 'border-primary-500 bg-primary-500/5'
+                    : 'border-gray-200 hover:border-gray-300'"
+                  class="flex flex-col gap-3 p-5 border-2 rounded-2xl transition-all duration-200 text-left relative"
+                  @click="selectedQuality = quality"
+                >
+                  <!-- Recomendado badge -->
+                  <span
+                    v-if="quality.is_recommended"
+                    class="absolute top-3 right-3 text-[8px] font-black uppercase tracking-widest bg-primary-500 text-white px-2 py-0.5 rounded-full"
+                  >
+                    Recomendado
+                  </span>
+
+                  <span class="text-sm font-black uppercase tracking-wider text-gray-900 pr-16">{{ quality.name }}</span>
+
+                  <span v-if="quality.description" class="text-[10px] text-gray-500 leading-relaxed">
+                    {{ quality.description }}
+                  </span>
+
+                  <!-- Features list -->
+                  <ul v-if="quality.features && Object.keys(quality.features).length > 0" class="space-y-1">
+                    <li
+                      v-for="(value, key) in quality.features"
+                      :key="key"
+                      class="flex items-start gap-2 text-[9px] text-gray-500 uppercase tracking-wide"
+                    >
+                      <svg class="w-3 h-3 text-primary-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {{ value }}
+                    </li>
+                  </ul>
+
+                  <span class="text-lg font-black text-gray-900 mt-1">{{ formatPrice(quality.final_price) }}</span>
+                </button>
+              </div>
+
+              <!-- Confirm button -->
+              <div class="flex justify-center mt-10">
                 <AppButton
                   variant="secondary"
                   size="lg"
                   :disabled="!canConfirm || addingCart"
                   @click="confirmAddWithLens"
                 >
-                  Agregar al carrito
+                  {{ addingCart ? 'Agregando…' : 'Confirmar' }}
                 </AppButton>
               </div>
             </div>
@@ -466,9 +566,14 @@ function resolveVariantByLens(usoValueId, lensValueId) {
               class="w-12 h-12 object-cover rounded-xl"
               alt=""
             >
-            <div>
+            <div class="flex-1">
               <p class="text-xs font-black uppercase tracking-wider text-gray-900">{{ product.name }}</p>
               <p class="text-sm font-bold text-primary-500">{{ product.price_formatted }}</p>
+            </div>
+            <div v-if="selectedQuality" class="text-right">
+              <p class="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Lente seleccionado</p>
+              <p class="text-[9px] font-black uppercase tracking-wider text-gray-900">{{ selectedQuality.name }}</p>
+              <p class="text-xs font-bold text-primary-500">{{ formatPrice(selectedQuality.final_price) }}</p>
             </div>
           </div>
         </div>

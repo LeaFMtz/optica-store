@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Lunar\Facades\Pricing;
-use Lunar\Models\Product;
 
 class SearchController extends Controller
 {

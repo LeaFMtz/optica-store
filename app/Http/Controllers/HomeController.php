@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Banner;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Lunar\Facades\Pricing;
 use Lunar\Models\Collection;
-use Lunar\Models\Product;
 use Lunar\Models\Url;
 
 class HomeController extends Controller
@@ -120,6 +120,7 @@ class HomeController extends Controller
         if ($saleCollection) {
             $saleProducts = $saleCollection
                 ->products()
+                ->browsable()
                 ->with(['thumbnail', 'variants', 'variants.prices', 'defaultUrl'])
                 ->get()
                 ->map(fn ($product) => $this->serializeProduct($product))
@@ -145,6 +146,7 @@ class HomeController extends Controller
             $randomCollectionSlug = $randomCollection->defaultUrl?->slug;
             $randomCollectionProducts = $randomCollection
                 ->products()
+                ->browsable()
                 ->with(['thumbnail', 'variants', 'variants.prices', 'defaultUrl'])
                 ->get()
                 ->map(fn ($product) => $this->serializeProduct($product))

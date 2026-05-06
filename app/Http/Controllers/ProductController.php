@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\ProductLensConfiguration;
 use App\Traits\FetchesUrls;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -105,59 +106,6 @@ class ProductController extends Controller
             ->all();
     }
 
-    /**
-     * Returns true if the product has a 'uso' option with a 'tipo-de-lente' child option.
-     */
-    private function hasLensOption(Product $product): bool
-    {
-        return $product->variants
-            ->pluck('values')
-            ->flatten()
-            ->pluck('option')
-            ->unique('id')
-            ->contains(function ($option) {
-                return $option->handle === 'uso'
-                    && $option->children->contains('handle', 'tipo-de-lente');
-            });
-    }
-
-    /**
-     * Build the lens selection map from eager-loaded variant data.
-     * Shape: { uso_value_id: { uso_name, child_option_name, values: [{id, name}] } }
-     *
-     * @return array<int, array{uso_name: string, child_option_name: string, values: list<array{id: int, name: string}>}>
-     */
-    private function buildLensMap(Product $product): array
-    {
-        $map = [];
-
-        foreach ($product->variants as $variant) {
-            $usoValue = $variant->values->first(fn ($v) => $v->option->handle === 'uso');
-            $lensValue = $variant->values->first(fn ($v) => $v->option->handle === 'tipo-de-lente');
-
-            if (!$usoValue || !$lensValue) {
-                continue;
-            }
-
-            $usoId = $usoValue->id;
-
-            if (!isset($map[$usoId])) {
-                $map[$usoId] = [
-                    'uso_name' => $usoValue->translate('name'),
-                    'child_option_name' => $lensValue->option->translate('name'),
-                    'values' => [],
-                ];
-            }
-
-            $map[$usoId]['values'][] = [
-                'id' => $lensValue->id,
-                'name' => $lensValue->translate('name'),
-            ];
-        }
-
-        return $map;
-    }
-
     public function __invoke(Request $request, string $slug): Response
     {
         $url = $this->fetchUrl(
@@ -167,7 +115,7 @@ class ProductController extends Controller
                 'element.media',
                 'element.variants.basePrices.currency',
                 'element.variants.basePrices.priceable',
-                'element.variants.values.option.children',
+                'element.variants.values.option',
             ],
         );
 
@@ -182,8 +130,7 @@ class ProductController extends Controller
             'product' => $this->serializeProduct($product),
             'images' => $this->serializeImages($product),
             'options' => $this->serializeOptions($product),
-            'lensMap' => $this->buildLensMap($product),
-            'hasLens' => $this->hasLensOption($product),
+            'hasLensConfigurations' => ProductLensConfiguration::where('product_id', $product->id)->exists(),
         ]);
     }
 }

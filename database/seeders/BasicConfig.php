@@ -12,8 +12,11 @@ use Lunar\Models\Brand;
 use Lunar\Models\Channel;
 use Lunar\Models\Collection;
 use Lunar\Models\CollectionGroup;
+use Lunar\Models\Country;
 use Lunar\Models\Currency;
 use Lunar\Models\Language;
+use Lunar\Models\TaxClass;
+use Lunar\Models\TaxZone;
 
 class BasicConfig extends Seeder
 {
@@ -21,6 +24,21 @@ class BasicConfig extends Seeder
      * Run the database seeds.
      */
     public function run(): void
+    {
+        $this->basicConfig();
+
+        $this->taxSeeding();
+
+        $this->bannerSeedings();
+
+        $this->attributeGroupSeeding();
+
+        $this->collectionsSeeding();
+
+        $this->brandSeeding();
+    }
+
+    private function basicConfig(): void
     {
         Currency::create([
             'name' => 'Pesos',
@@ -39,18 +57,42 @@ class BasicConfig extends Seeder
         ]);
 
         Channel::create([
-            'name' => 'Retail',
-            'handle' => 'retail',
+            'name' => 'Web',
+            'handle' => 'web',
+            'default' => true,
+        ]);
+    }
+
+    private function taxSeeding(): void
+    {
+        $taxClassIva21 = TaxClass::create([
+            'name' => 'IVA 21%',
             'default' => true,
         ]);
 
-        $this->bannerSeedings();
+        $taxZone = TaxZone::create([
+            'name' => 'Argentina',
+            'zone_type' => 'country',
+            'price_display' => 'tax_inclusive',
+            'active' => true,
+            'default' => true,
+        ]);
 
-        $this->attributeGroupSeeding();
+        $argentina = Country::where('iso2', 'AR')->first();
 
-        $this->collectionsSeeding();
+        $taxZone->countries()->create([
+            'country_id' => $argentina?->id,
+        ]);
 
-        $this->brandSeeding();
+        $taxRate = $taxZone->taxRates()->create([
+            'priority' => 1,
+            'name' => 'IVA 21%',
+        ]);
+
+        $taxRate->taxRateAmounts()->create([
+            'percentage' => 21,
+            'tax_class_id' => $taxClassIva21->id,
+        ]);
     }
 
     private function brandSeeding(): void
