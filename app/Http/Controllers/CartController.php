@@ -39,6 +39,8 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:1', 'max:10000'],
             'parent_line_id' => ['nullable', 'integer', Rule::exists(CartLine::class, 'id')],
             'lens_configuration_id' => ['nullable', 'integer', Rule::exists(ProductLensConfiguration::class, 'id')],
+            'prescription_data' => ['nullable', 'array'],
+            'prescription_data.*' => ['nullable', 'numeric'],
         ]);
 
         /** @var ProductVariant $variant */
@@ -58,6 +60,10 @@ class CartController extends Controller
 
         if (!empty($validated['lens_configuration_id'])) {
             $meta['lens_configuration_id'] = $validated['lens_configuration_id'];
+        }
+
+        if (!empty($validated['prescription_data'])) {
+            $meta['prescription_data'] = $validated['prescription_data'];
         }
 
         CartSession::manager()->add($variant, (int) $validated['quantity'], $meta);

@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources\LensUseResource\RelationManagers;
 
+use App\Models\LensType;
+use Filament\Actions\AttachAction;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\CreateAction;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\EditAction;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
+use Filament\Actions\DetachAction;
+use Filament\Actions\DetachBulkAction;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -24,21 +22,7 @@ class LensTypesRelationManager extends RelationManager
 
     public function form(Schema $form): Schema
     {
-        return $form
-            ->schema([
-                TextInput::make('name')
-                    ->label('Nombre')
-                    ->required()
-                    ->maxLength(255),
-                Textarea::make('description')
-                    ->label('Descripción')
-                    ->rows(3)
-                    ->maxLength(1000),
-                TextInput::make('sort_order')
-                    ->label('Orden')
-                    ->numeric()
-                    ->default(0),
-            ]);
+        return $form->schema([]);
     }
 
     public function table(Table $table): Table
@@ -49,20 +33,30 @@ class LensTypesRelationManager extends RelationManager
                     ->label('Nombre')
                     ->searchable()
                     ->sortable(),
+
+                TextColumn::make('handle')
+                    ->label('Handle')
+                    ->searchable()
+                    ->copyable()
+                    ->copyMessage('Handle copiado'),
+
                 TextColumn::make('sort_order')
                     ->label('Orden')
                     ->sortable(),
             ])
             ->headerActions([
-                CreateAction::make(),
+                AttachAction::make()
+                    ->label('Asignar tipo de lente')
+                    ->preloadRecordSelect()
+                    ->recordTitle(fn (LensType $record) => "{$record->name} ({$record->handle})")
+                    ->recordSelectSearchColumns(['name', 'handle']),
             ])
             ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
+                DetachAction::make()->label('Quitar'),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DetachBulkAction::make(),
                 ]),
             ])
             ->defaultSort('sort_order');

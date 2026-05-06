@@ -16,7 +16,7 @@ class ProductLensConfiguration extends Model
         'product_id',
         'lens_use_id',
         'lens_type_id',
-        'lens_quality_id',
+        'crystal_product_id',
         'price_override',
     ];
 
@@ -45,19 +45,19 @@ class ProductLensConfiguration extends Model
     }
 
     /**
-     * @return BelongsTo<LensQuality, ProductLensConfiguration>
+     * @return BelongsTo<Product, ProductLensConfiguration>
      */
-    public function lensQuality(): BelongsTo
+    public function crystalProduct(): BelongsTo
     {
-        return $this->belongsTo(LensQuality::class);
+        return $this->belongsTo(Product::class, 'crystal_product_id');
     }
 
     /**
-     * Return the effective price in centavos.
-     * Uses price_override when set, otherwise falls back to lensQuality->base_price.
+     * Effective price in centavos.
+     * Uses price_override when set, otherwise falls back to 0 (price managed in Lunar).
      */
     public function finalPrice(): int
     {
-        return $this->price_override ?? $this->lensQuality->base_price;
+        return $this->price_override ?? 0;
     }
 }

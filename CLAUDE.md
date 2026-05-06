@@ -30,6 +30,22 @@ This project has domain-specific skills available. You MUST activate the relevan
 - `scout-development` — Develops full-text search with Laravel Scout. Activates when installing or configuring Scout; choosing a search engine (Algolia, Meilisearch, Typesense, Database, Collection); adding the Searchable trait to models; customizing toSearchableArray or searchableAs; importing or flushing search indexes; writing search queries with where clauses, pagination, or soft deletes; configuring index settings; troubleshooting search results; or when the user mentions Scout, full-text search, search indexing, or search engines in a Laravel project. Make sure to use this skill whenever the user works with search functionality in Laravel, even if they don't explicitly mention Scout.
 - `tailwindcss-development` — Always invoke when the user's message includes 'tailwind' in any form. Also invoke for: building responsive grid layouts (multi-column card grids, product grids), flex/grid page structures (dashboards with sidebars, fixed topbars, mobile-toggle navs), styling UI components (cards, tables, navbars, pricing sections, forms, inputs, badges), adding dark mode variants, fixing spacing or typography, and Tailwind v3/v4 work. The core use case: writing or fixing Tailwind utility classes in HTML templates (Blade, JSX, Vue). Skip for backend PHP logic, database queries, API routes, JavaScript with no HTML/CSS component, CSS file audits, build tool configuration, and vanilla CSS.
 
+## Environment
+
+The application runs inside Podman containers. All commands must be executed through the containers — do not run PHP, Artisan, Pint, or Composer directly on the host.
+
+- App container: `optica_app` — run PHP/Artisan/Pint/Composer here
+- DB container: `optica_db` — MySQL, accessible from inside `optica_app`
+- Use `podman` (not `docker`) — example: `podman exec optica_app php artisan list`
+
+Command patterns:
+- Artisan: `podman exec optica_app php artisan <command>`
+- Pint: `podman exec optica_app vendor/bin/pint --dirty --format agent`
+- Tests: `podman exec optica_app php artisan test --compact`
+- Tinker: `podman exec optica_app php artisan tinker --execute '...'`
+
+Shell tools (`fd`, `rg`, `bat`, `eza`): if not available on the host, fall back to `find`, `grep`, `cat`, `ls`. Do not try running them via the container.
+
 ## Conventions
 
 - You must follow all existing code conventions used in this application. When creating or editing a file, check sibling files for the correct structure, approach, and naming.
@@ -85,7 +101,7 @@ This project has domain-specific skills available. You MUST activate the relevan
 
 ## Artisan
 
-- Run Artisan commands directly via the command line (e.g., `php artisan route:list`). Use `php artisan list` to discover available commands and `php artisan [command] --help` to check parameters.
+- Run Artisan commands via the app container: `podman exec optica_app php artisan <command>`. Use `php artisan list` to discover available commands and `php artisan [command] --help` to check parameters.
 - Inspect routes with `php artisan route:list`. Filter with: `--method=GET`, `--name=users`, `--path=api`, `--except-vendor`, `--only-vendor`.
 - Read configuration values using dot notation: `php artisan config:show app.name`, `php artisan config:show database.default`. Or read config files directly from the `config/` directory.
 - To check environment variables, read the `.env` file directly.

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Filament\Resources\BannerResource;
-use App\Filament\Resources\LensQualityResource;
+use App\Filament\Resources\LensTypeResource;
 use App\Filament\Resources\LensUseResource;
+use App\Filament\Resources\PrescriptionFieldResource;
+use App\Filament\Resources\PrescriptionTypeResource;
 use App\Filament\Resources\ProductResourceExtension;
+
 use App\Models\Product as AppProduct;
 use App\Models\ProductAssociationVariant;
 use App\Modifiers\ShippingModifier;
@@ -35,7 +38,9 @@ class AppServiceProvider extends ServiceProvider
                 ->resources([
                     BannerResource::class,
                     LensUseResource::class,
-                    LensQualityResource::class,
+                    LensTypeResource::class,
+                    PrescriptionTypeResource::class,
+                    PrescriptionFieldResource::class,
                     ProductResourceExtension::class,
                 ])
                 ->path('panel')

@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Models\ProductLensConfiguration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Lunar\Facades\Pricing;
 use Lunar\Models\Product;
 
 class LensConfigurationController extends Controller
@@ -25,7 +26,11 @@ class LensConfigurationController extends Controller
             return response()->json([], 404);
         }
 
-        $configurations = ProductLensConfiguration::with(['lensUse', 'lensType', 'lensQuality'])
+        $configurations = ProductLensConfiguration::with([
+            'lensUse.prescriptionType.prescriptionFields',
+            'lensType:id,name,handle',
+            'crystalProduct.variants.basePrices.currency',
+        ])
             ->where('product_id', $productId)
             ->get();
 
@@ -33,9 +38,6 @@ class LensConfigurationController extends Controller
             return response()->json(['uses' => []]);
         }
 
-        // Build uses → types → qualities tree from the configurations for this product.
-        // Each quality entry under a type carries the configuration_id so the storefront
-        // can POST the exact ProductLensConfiguration row to the cart.
         $usesById = [];
 
         foreach ($configurations as $config) {
@@ -43,9 +45,23 @@ class LensConfigurationController extends Controller
             $typeId = $config->lens_type_id;
 
             if (!isset($usesById[$useId])) {
+                $prescriptionType = $config->lensUse->prescriptionType;
+
                 $usesById[$useId] = [
                     'id' => $useId,
                     'name' => $config->lensUse->name,
+                    'prescription_type' => $prescriptionType ? [
+                        'id' => $prescriptionType->id,
+                        'name' => $prescriptionType->name,
+                        'requires_prescription' => $prescriptionType->requires_prescription,
+                        'prescription_fields' => $prescriptionType->prescriptionFields->map(fn ($f) => [
+                            'key' => $f->key,
+                            'label' => $f->label,
+                            'min' => $f->min,
+                            'max' => $f->max,
+                            'step' => $f->step,
+                        ])->values()->all(),
+                    ] : null,
                     'types' => [],
                 ];
             }
@@ -62,23 +78,30 @@ class LensConfigurationController extends Controller
                 $usesById[$useId]['types'][] = [
                     'id' => $typeId,
                     'name' => $config->lensType->name,
-                    'qualities' => [],
+                    'handle' => $config->lensType->handle,
+                    'crystals' => [],
                 ];
                 $typeIndex = count($usesById[$useId]['types']) - 1;
             }
 
-            $quality = $config->lensQuality;
-            $finalPrice = $config->price_override ?? $quality->base_price;
+            $crystal = $config->crystalProduct;
 
-            $usesById[$useId]['types'][$typeIndex]['qualities'][] = [
+            $effectivePrice = $config->price_override;
+
+            if ($effectivePrice === null && $crystal !== null) {
+                $variant = $crystal->variants->first();
+                if ($variant !== null) {
+                    $pricing = Pricing::for($variant)->get();
+                    $effectivePrice = $pricing->matched?->price?->value ?? 0;
+                }
+            }
+
+            $usesById[$useId]['types'][$typeIndex]['crystals'][] = [
                 'configuration_id' => $config->id,
-                'id' => $quality->id,
-                'name' => $quality->name,
-                'description' => $quality->description,
-                'features' => $quality->features,
-                'base_price' => $quality->base_price,
-                'is_recommended' => $quality->is_recommended,
-                'final_price' => $finalPrice,
+                'crystal_product_id' => $config->crystal_product_id,
+                'name' => $crystal?->translateAttribute('name') ?? '—',
+                'price_override' => $config->price_override,
+                'effective_price' => $effectivePrice ?? 0,
             ];
         }
 

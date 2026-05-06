@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LensType extends Model
@@ -13,18 +13,18 @@ class LensType extends Model
     protected $table = 'opt_lens_types';
 
     protected $fillable = [
-        'lens_use_id',
         'name',
+        'handle',
         'description',
         'sort_order',
     ];
 
     /**
-     * @return BelongsTo<LensUse, LensType>
+     * @return BelongsToMany<LensUse>
      */
-    public function lensUse(): BelongsTo
+    public function lensUses(): BelongsToMany
     {
-        return $this->belongsTo(LensUse::class);
+        return $this->belongsToMany(LensUse::class, 'opt_lens_type_lens_use');
     }
 
     /**

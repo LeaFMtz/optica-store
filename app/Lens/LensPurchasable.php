@@ -17,8 +17,6 @@ class LensPurchasable implements Purchasable
     public function __construct(private readonly ProductLensConfiguration $config) {}
 
     /**
-     * Return a synthetic Price collection backed by the configuration's finalPrice.
-     *
      * @return Collection<int, Price>
      */
     public function getPrices(): Collection
@@ -48,37 +46,29 @@ class LensPurchasable implements Purchasable
         return null;
     }
 
-    /**
-     * Lenses are not physical shippable items; treat as digital/service.
-     */
     public function getType(): string
     {
         return 'digital';
     }
 
     /**
-     * Human-readable description: "Uso · Tipo · Calidad".
+     * Human-readable description: "Uso · Tipo · Cristal".
      */
     public function getDescription(): string
     {
         return implode(' · ', [
             $this->config->lensUse->name,
             $this->config->lensType->name,
-            $this->config->lensQuality->name,
+            $this->config->crystalProduct?->translateAttribute('name') ?? '—',
         ]);
     }
 
-    /**
-     * Short option label — the quality name.
-     */
     public function getOption(): ?string
     {
-        return $this->config->lensQuality->name;
+        return $this->config->crystalProduct?->translateAttribute('name');
     }
 
     /**
-     * Ordered list of option labels: use name then type name.
-     *
      * @return Collection<int, string>
      */
     public function getOptions(): Collection
@@ -89,9 +79,6 @@ class LensPurchasable implements Purchasable
         ]);
     }
 
-    /**
-     * Stable identifier for this purchasable item.
-     */
     public function getIdentifier(): string
     {
         return "lens-config-{$this->config->id}";
@@ -102,9 +89,6 @@ class LensPurchasable implements Purchasable
         return false;
     }
 
-    /**
-     * Lenses have no media thumbnail.
-     */
     public function getThumbnail(): ?Media
     {
         return null;

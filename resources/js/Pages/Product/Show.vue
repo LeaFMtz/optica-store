@@ -34,39 +34,118 @@ const configuratorOpen = ref(false)
 const configuratorStep = ref(1)
 
 /** Loaded from /lens-configurations */
-const lensUses          = ref([])
-const lensLoading       = ref(false)
-const lensError         = ref(null)
+const lensUses    = ref([])
+const lensLoading = ref(false)
+const lensError   = ref(null)
 
-/** Step 1 — selected use */
+/** Step 1 — selected use id */
 const selectedUse  = ref(null)
 
-/** Step 2 — selected type (within selectedUse.types) */
+/** Step 2 — selected type id (within selectedUse.types) */
 const selectedType = ref(null)
 
-/** Step 3 — selected quality (within selectedType.qualities) */
-const selectedQuality = ref(null)
+/** Step 3 — selected crystal object (within selectedType.crystals) */
+const selectedCrystal = ref(null)
 
-const availableTypes = computed(() => {
-  if (!selectedUse.value) return []
-  const use = lensUses.value.find(u => u.id === selectedUse.value)
-  return use?.types ?? []
-})
+/** Prescription field values — keyed as od_{key}, oi_{key}, pd, pd_od, pd_oi */
+const prescriptionValues = ref({})
+const doublePd           = ref(false)
 
-const availableQualities = computed(() => {
+// ─── Derived from selected use ────────────────────────────────────────────────
+const selectedUseData    = computed(() => lensUses.value.find(u => u.id === selectedUse.value))
+const prescriptionFields = computed(() => selectedUseData.value?.prescription_type?.prescription_fields ?? [])
+const requiresPrescription = computed(() => prescriptionFields.value.length > 0)
+const totalSteps  = computed(() => requiresPrescription.value ? 4 : 3)
+const typeStep    = computed(() => requiresPrescription.value ? 3 : 2)
+const crystalStep = computed(() => requiresPrescription.value ? 4 : 3)
+
+/** Field used as PD (single/double) — detected by key or label */
+const pdField = computed(() =>
+  prescriptionFields.value.find(f => /pd|dp|pupilar/i.test(f.key + ' ' + f.label))
+)
+
+/** Eye-specific fields — all except PD */
+const tableFields = computed(() =>
+  prescriptionFields.value.filter(f => f.key !== pdField.value?.key)
+)
+
+const availableTypes = computed(() => selectedUseData.value?.types ?? [])
+
+const availableCrystals = computed(() => {
   if (!selectedType.value) return []
   const type = availableTypes.value.find(t => t.id === selectedType.value)
-  return type?.qualities ?? []
+  return type?.crystals ?? []
 })
 
-const canConfirm = computed(() => selectedQuality.value !== null)
+/** Opciones pre-generadas para campos con step decimal */
+const fieldOptions = computed(() => {
+  const result = {}
+  const decimalFields = [...tableFields.value.filter(f => f.step < 1), ...(pdField.value ? [pdField.value] : [])]
+  decimalFields.forEach(f => {
+      const precision = (f.step.toString().split('.')[1] ?? '').length
+      const opts = []
+      let v = f.min
+      while (v <= f.max + Number.EPSILON) {
+        const r = Math.round(v * 1000) / 1000
+        opts.push({
+          value: r,
+          label: r === 0 ? 'Plano' : (r > 0 ? `+${r.toFixed(precision)}` : r.toFixed(precision)),
+        })
+        v = Math.round((v + f.step) * 1000) / 1000
+      }
+      result[f.key] = opts
+    })
+  return result
+})
+
+/** Picker overlay para campos decimales */
+const activePicker = ref(null) // { key, field }
+
+const pickerNegative = computed(() =>
+  activePicker.value ? (fieldOptions.value[activePicker.value.field.key] ?? []).filter(o => o.value < 0) : []
+)
+const pickerPositive = computed(() =>
+  activePicker.value ? (fieldOptions.value[activePicker.value.field.key] ?? []).filter(o => o.value >= 0) : []
+)
+
+function openPicker(key, field) { activePicker.value = { key, field } }
+function closePicker()          { activePicker.value = null }
+function pickValue(value)       { prescriptionValues.value[activePicker.value.key] = value; closePicker() }
+
+function pickerLabel(value, field) {
+  if (value === undefined || value === null) return '—'
+  if (value === 0) return 'Plano'
+  const precision = (field.step.toString().split('.')[1] ?? '').length
+  return value > 0 ? `+${value.toFixed(precision)}` : value.toFixed(precision)
+}
+
+function isFilled(key) {
+  const v = prescriptionValues.value[key]
+  return v !== '' && v !== null && v !== undefined && !Number.isNaN(Number(v))
+}
+
+const prescriptionComplete = computed(() => {
+  const eyeKeys = tableFields.value.flatMap(f => [`od_${f.key}`, `oi_${f.key}`])
+  const pdKeys  = pdField.value
+    ? (doublePd.value ? ['pd_od', 'pd_oi'] : ['pd'])
+    : []
+  const all = [...eyeKeys, ...pdKeys]
+  return all.length > 0 && all.every(isFilled)
+})
+
+const canConfirm = computed(() => {
+  if (!selectedCrystal.value) return false
+  if (requiresPrescription.value) return prescriptionComplete.value
+  return true
+})
 
 async function openConfigurator() {
-  configuratorOpen.value = true
-  configuratorStep.value = 1
-  selectedUse.value      = null
-  selectedType.value     = null
-  selectedQuality.value  = null
+  configuratorOpen.value   = true
+  configuratorStep.value   = 1
+  selectedUse.value        = null
+  selectedType.value       = null
+  selectedCrystal.value    = null
+  prescriptionValues.value = {}
 
   if (lensUses.value.length > 0) return
 
@@ -87,33 +166,77 @@ async function openConfigurator() {
 }
 
 function selectUse(useId) {
-  selectedUse.value  = useId
-  selectedType.value = null
+  selectedUse.value      = useId
+  selectedType.value     = null
+  doublePd.value         = false
   configuratorStep.value = 2
+
+  // Pre-inicializar steppers en su mínimo para que el usuario no parta de "—"
+  const values = {}
+  tableFields.value.forEach(f => {
+    if (f.step >= 1) {
+      values[`od_${f.key}`] = f.min
+      values[`oi_${f.key}`] = f.min
+    }
+  })
+  prescriptionValues.value = values
+}
+
+function resetPrescription() {
+  doublePd.value = false
+  const values   = {}
+  tableFields.value.forEach(f => {
+    if (f.step >= 1) {
+      values[`od_${f.key}`] = f.min
+      values[`oi_${f.key}`] = f.min
+    }
+  })
+  prescriptionValues.value = values
+}
+
+function toggleDoublePd() {
+  doublePd.value = !doublePd.value
+  delete prescriptionValues.value['pd']
+  delete prescriptionValues.value['pd_od']
+  delete prescriptionValues.value['pd_oi']
+}
+
+function stepField(key, field, direction) {
+  const current = prescriptionValues.value[key] ?? field.min
+  const next    = current + direction * field.step
+  prescriptionValues.value[key] = Math.min(field.max, Math.max(field.min, Math.round(next * 1000) / 1000))
+}
+
+function advancePrescription() {
+  configuratorStep.value = typeStep.value
 }
 
 function selectType(typeId) {
-  selectedType.value    = typeId
-  selectedQuality.value = null
-  configuratorStep.value = 3
+  selectedType.value     = typeId
+  selectedCrystal.value  = null
+  configuratorStep.value = crystalStep.value
 }
 
 function configuratorBack() {
-  if (configuratorStep.value === 3) {
-    configuratorStep.value = 2
-    selectedQuality.value  = null
+  if (configuratorStep.value === crystalStep.value) {
+    configuratorStep.value = typeStep.value
+    selectedCrystal.value  = null
+  } else if (configuratorStep.value === typeStep.value) {
+    configuratorStep.value = requiresPrescription.value ? 2 : 1
+    selectedType.value     = null
   } else if (configuratorStep.value === 2) {
     configuratorStep.value = 1
-    selectedType.value     = null
   }
 }
 
 function closeConfigurator() {
-  configuratorOpen.value = false
-  configuratorStep.value = 1
-  selectedUse.value      = null
-  selectedType.value     = null
-  selectedQuality.value  = null
+  configuratorOpen.value   = false
+  configuratorStep.value   = 1
+  selectedUse.value        = null
+  selectedType.value       = null
+  selectedCrystal.value    = null
+  prescriptionValues.value = {}
+  doublePd.value           = false
 }
 
 // ─── Cart operations ──────────────────────────────────────────────────────────
@@ -146,7 +269,24 @@ async function confirmAddWithLens() {
     const frameVariantId = getFirstVariantId()
     if (!frameVariantId) throw new Error('No se encontró variante del marco.')
 
-    await postToCartRaw(frameVariantId, 1, null, selectedQuality.value.configuration_id)
+    let prescriptionData = null
+    if (requiresPrescription.value) {
+      prescriptionData = {}
+      tableFields.value.forEach(f => {
+        prescriptionData[`od_${f.key}`] = prescriptionValues.value[`od_${f.key}`]
+        prescriptionData[`oi_${f.key}`] = prescriptionValues.value[`oi_${f.key}`]
+      })
+      if (pdField.value) {
+        if (doublePd.value) {
+          prescriptionData.pd_od = prescriptionValues.value.pd_od
+          prescriptionData.pd_oi = prescriptionValues.value.pd_oi
+        } else {
+          prescriptionData.pd = prescriptionValues.value.pd
+        }
+      }
+    }
+
+    await postToCartRaw(frameVariantId, 1, null, selectedCrystal.value.configuration_id, prescriptionData)
 
     closeConfigurator()
     if (openCartSidebar) openCartSidebar()
@@ -157,10 +297,11 @@ async function confirmAddWithLens() {
   }
 }
 
-async function postToCartRaw(variantId, quantity, parentLineId = null, lensConfigurationId = null) {
+async function postToCartRaw(variantId, quantity, parentLineId = null, lensConfigurationId = null, prescriptionData = null) {
   const body = { variant_id: variantId, quantity }
   if (parentLineId) body.parent_line_id = parentLineId
   if (lensConfigurationId) body.lens_configuration_id = lensConfigurationId
+  if (prescriptionData) body.prescription_data = prescriptionData
 
   const response = await fetch('/cart/lines', {
     method:  'POST',
@@ -434,11 +575,10 @@ function formatPrice(cents) {
               </button>
             </div>
             <div class="flex items-center gap-3">
-              <div :class="configuratorStep >= 1 ? 'bg-primary-500' : 'bg-gray-200'" class="w-3 h-3 rounded-full transition-colors duration-300" />
-              <div class="w-8 h-px bg-gray-200" />
-              <div :class="configuratorStep >= 2 ? 'bg-primary-500' : 'bg-gray-200'" class="w-3 h-3 rounded-full transition-colors duration-300" />
-              <div class="w-8 h-px bg-gray-200" />
-              <div :class="configuratorStep >= 3 ? 'bg-primary-500' : 'bg-gray-200'" class="w-3 h-3 rounded-full transition-colors duration-300" />
+              <template v-for="n in totalSteps" :key="n">
+                <div :class="configuratorStep >= n ? 'bg-primary-500' : 'bg-gray-200'" class="w-3 h-3 rounded-full transition-colors duration-300" />
+                <div v-if="n < totalSteps" class="w-8 h-px bg-gray-200" />
+              </template>
             </div>
             <button class="text-gray-400 hover:text-gray-700 transition-colors" @click="closeConfigurator">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -479,8 +619,178 @@ function formatPrice(cents) {
               </div>
             </div>
 
-            <!-- Step 2: Elegir tipo de lente -->
-            <div v-else-if="configuratorStep === 2">
+            <!-- Step 2: Receta (si el uso la requiere) -->
+            <div v-else-if="configuratorStep === 2 && requiresPrescription">
+
+              <!-- Header -->
+              <div class="flex items-center justify-between mb-6">
+                <div>
+                  <h2 class="text-xl font-black uppercase tracking-tight">Ingresá tu receta</h2>
+                  <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Completá los datos de graduación</p>
+                </div>
+                <button
+                  class="flex items-center gap-1.5 text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-primary-500 transition-colors"
+                  type="button"
+                  @click="resetPrescription"
+                >
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Reiniciar
+                </button>
+              </div>
+
+              <!-- Tabla OD / OI -->
+              <div class="overflow-x-auto">
+                <table class="border-collapse mx-auto">
+                  <thead>
+                    <tr>
+                      <th class="w-32 pb-3" />
+                      <th
+                        v-for="field in tableFields"
+                        :key="field.key"
+                        class="text-[9px] font-black text-gray-500 uppercase tracking-widest pb-3 text-center px-3 min-w-[7rem]"
+                      >
+                        {{ field.label }}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="(eye, eyePrefix) in { od: 'OD (Derecha)', oi: 'OI (Izquierda)' }"
+                      :key="eyePrefix"
+                      class="border-t border-gray-100"
+                    >
+                      <td class="text-[9px] font-black text-gray-500 uppercase tracking-widest py-4 pr-6 whitespace-nowrap">
+                        {{ eye }}
+                      </td>
+                      <td v-for="field in tableFields" :key="field.key" class="py-4 px-3 text-center">
+
+                        <!-- Stepper para step entero (ej: Eje) -->
+                        <div
+                          v-if="field.step >= 1"
+                          :class="[
+                            'inline-flex items-center rounded-xl border-2 overflow-hidden transition-colors',
+                            isFilled(`${eyePrefix}_${field.key}`) ? 'border-primary-500' : 'border-gray-200',
+                          ]"
+                        >
+                          <button
+                            type="button"
+                            class="w-8 h-10 flex items-center justify-center font-black text-gray-500 hover:bg-gray-50 transition-colors text-base"
+                            @click="stepField(`${eyePrefix}_${field.key}`, field, -1)"
+                          >−</button>
+                          <div class="w-10 h-10 flex items-center justify-center text-sm font-bold text-gray-900 border-x-2 border-inherit bg-white">
+                            {{ prescriptionValues[`${eyePrefix}_${field.key}`] ?? '—' }}
+                          </div>
+                          <button
+                            type="button"
+                            class="w-8 h-10 flex items-center justify-center font-black text-gray-500 hover:bg-gray-50 transition-colors text-base"
+                            @click="stepField(`${eyePrefix}_${field.key}`, field, 1)"
+                          >+</button>
+                        </div>
+
+                        <!-- Picker trigger para step decimal (ej: Esfera, Cilindro) -->
+                        <button
+                          v-else
+                          type="button"
+                          :class="[
+                            'h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5.5rem] justify-between',
+                            isFilled(`${eyePrefix}_${field.key}`)
+                              ? 'border-primary-500 bg-primary-500/5 text-gray-900'
+                              : 'border-gray-200 text-gray-400 hover:border-gray-300',
+                          ]"
+                          @click="openPicker(`${eyePrefix}_${field.key}`, field)"
+                        >
+                          <span>{{ pickerLabel(prescriptionValues[`${eyePrefix}_${field.key}`], field) }}</span>
+                          <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- DP / PD -->
+              <div v-if="pdField" class="mt-5 pt-5 border-t border-gray-100 flex items-center justify-center gap-4 flex-wrap">
+                <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest w-28">{{ pdField.label }}</span>
+
+                <template v-if="!doublePd">
+                  <button
+                    type="button"
+                    :class="[
+                      'h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5.5rem] justify-between',
+                      isFilled('pd') ? 'border-primary-500 bg-primary-500/5 text-gray-900' : 'border-gray-200 text-gray-400 hover:border-gray-300',
+                    ]"
+                    @click="openPicker('pd', pdField)"
+                  >
+                    <span>{{ pickerLabel(prescriptionValues['pd'], pdField) }}</span>
+                    <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                </template>
+                <template v-else>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[8px] text-gray-400 font-black uppercase tracking-widest">OD</span>
+                    <button
+                      type="button"
+                      :class="[
+                        'h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5rem] justify-between',
+                        isFilled('pd_od') ? 'border-primary-500 bg-primary-500/5 text-gray-900' : 'border-gray-200 text-gray-400 hover:border-gray-300',
+                      ]"
+                      @click="openPicker('pd_od', pdField)"
+                    >
+                      <span>{{ pickerLabel(prescriptionValues['pd_od'], pdField) }}</span>
+                      <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="text-[8px] text-gray-400 font-black uppercase tracking-widest">OI</span>
+                    <button
+                      type="button"
+                      :class="[
+                        'h-10 px-3 border-2 rounded-xl text-sm font-bold focus:outline-none transition-colors flex items-center gap-2 min-w-[5rem] justify-between',
+                        isFilled('pd_oi') ? 'border-primary-500 bg-primary-500/5 text-gray-900' : 'border-gray-200 text-gray-400 hover:border-gray-300',
+                      ]"
+                      @click="openPicker('pd_oi', pdField)"
+                    >
+                      <span>{{ pickerLabel(prescriptionValues['pd_oi'], pdField) }}</span>
+                      <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  </div>
+                </template>
+
+                <label class="flex items-center gap-2 cursor-pointer ml-1">
+                  <input
+                    type="checkbox"
+                    :checked="doublePd"
+                    class="w-3.5 h-3.5 rounded border-gray-300 accent-primary-500 cursor-pointer"
+                    @change="toggleDoublePd"
+                  />
+                  <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest select-none">Dos números de DP</span>
+                </label>
+              </div>
+
+              <div class="flex justify-center mt-8">
+                <AppButton
+                  variant="secondary"
+                  size="lg"
+                  :disabled="!prescriptionComplete"
+                  @click="advancePrescription"
+                >
+                  Continuar
+                </AppButton>
+              </div>
+            </div>
+
+            <!-- Step 2 (sin receta) / Step 3 (con receta): Elegir tipo de lente -->
+            <div v-else-if="configuratorStep === typeStep">
               <h2 class="text-xl font-black uppercase tracking-tight text-center mb-2">Tipo de lente</h2>
               <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center mb-8">Seleccioná el tipo de tratamiento</p>
               <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -498,53 +808,25 @@ function formatPrice(cents) {
               </div>
             </div>
 
-            <!-- Step 3: Elegir calidad / paquete -->
-            <div v-else-if="configuratorStep === 3">
-              <h2 class="text-xl font-black uppercase tracking-tight text-center mb-2">Elegí tu paquete</h2>
-              <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center mb-8">Seleccioná la calidad de lente</p>
+            <!-- Step 3 (sin receta) / Step 4 (con receta): Elegir cristal -->
+            <div v-else-if="configuratorStep === crystalStep">
+              <h2 class="text-xl font-black uppercase tracking-tight text-center mb-2">Elegí tu cristal</h2>
+              <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest text-center mb-8">Seleccioná el tipo de cristal</p>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <button
-                  v-for="quality in availableQualities"
-                  :key="quality.configuration_id"
-                  :class="selectedQuality?.configuration_id === quality.configuration_id
+                  v-for="crystal in availableCrystals"
+                  :key="crystal.configuration_id"
+                  :class="selectedCrystal?.configuration_id === crystal.configuration_id
                     ? 'border-primary-500 bg-primary-500/5'
                     : 'border-gray-200 hover:border-gray-300'"
-                  class="flex flex-col gap-3 p-5 border-2 rounded-2xl transition-all duration-200 text-left relative"
-                  @click="selectedQuality = quality"
+                  class="flex flex-col gap-3 p-5 border-2 rounded-2xl transition-all duration-200 text-left"
+                  @click="selectedCrystal = crystal"
                 >
-                  <!-- Recomendado badge -->
-                  <span
-                    v-if="quality.is_recommended"
-                    class="absolute top-3 right-3 text-[8px] font-black uppercase tracking-widest bg-primary-500 text-white px-2 py-0.5 rounded-full"
-                  >
-                    Recomendado
-                  </span>
-
-                  <span class="text-sm font-black uppercase tracking-wider text-gray-900 pr-16">{{ quality.name }}</span>
-
-                  <span v-if="quality.description" class="text-[10px] text-gray-500 leading-relaxed">
-                    {{ quality.description }}
-                  </span>
-
-                  <!-- Features list -->
-                  <ul v-if="quality.features && Object.keys(quality.features).length > 0" class="space-y-1">
-                    <li
-                      v-for="(value, key) in quality.features"
-                      :key="key"
-                      class="flex items-start gap-2 text-[9px] text-gray-500 uppercase tracking-wide"
-                    >
-                      <svg class="w-3 h-3 text-primary-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                      </svg>
-                      {{ value }}
-                    </li>
-                  </ul>
-
-                  <span class="text-lg font-black text-gray-900 mt-1">{{ formatPrice(quality.final_price) }}</span>
+                  <span class="text-sm font-black uppercase tracking-wider text-gray-900">{{ crystal.name }}</span>
+                  <span class="text-lg font-black text-gray-900 mt-1">{{ formatPrice(crystal.effective_price) }}</span>
                 </button>
               </div>
 
-              <!-- Confirm button -->
               <div class="flex justify-center mt-10">
                 <AppButton
                   variant="secondary"
@@ -570,11 +852,83 @@ function formatPrice(cents) {
               <p class="text-xs font-black uppercase tracking-wider text-gray-900">{{ product.name }}</p>
               <p class="text-sm font-bold text-primary-500">{{ product.price_formatted }}</p>
             </div>
-            <div v-if="selectedQuality" class="text-right">
-              <p class="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Lente seleccionado</p>
-              <p class="text-[9px] font-black uppercase tracking-wider text-gray-900">{{ selectedQuality.name }}</p>
-              <p class="text-xs font-bold text-primary-500">{{ formatPrice(selectedQuality.final_price) }}</p>
+            <div v-if="selectedCrystal" class="text-right">
+              <p class="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Cristal seleccionado</p>
+              <p class="text-[9px] font-black uppercase tracking-wider text-gray-900">{{ selectedCrystal.name }}</p>
+              <p class="text-xs font-bold text-primary-500">{{ formatPrice(selectedCrystal.effective_price) }}</p>
             </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Picker de valores decimales para receta -->
+    <Teleport to="body">
+      <div
+        v-if="activePicker"
+        class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4"
+      >
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closePicker" />
+
+        <div class="relative bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <h3 class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-900">
+              {{ activePicker.field.label }}
+            </h3>
+            <button
+              type="button"
+              class="text-gray-400 hover:text-gray-700 transition-colors"
+              @click="closePicker"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Valores en columnas -->
+          <div class="flex gap-3 p-4 max-h-[60vh] sm:max-h-80">
+
+            <!-- Negativos — solo si existen -->
+            <div v-if="pickerNegative.length" class="flex-1 flex flex-col gap-2 min-w-0">
+              <p class="text-[8px] font-black uppercase tracking-widest text-gray-400 text-center">(-) Negativo</p>
+              <div class="overflow-y-auto flex-1 space-y-1 pr-1">
+                <button
+                  v-for="opt in pickerNegative"
+                  :key="opt.value"
+                  type="button"
+                  :class="[
+                    'w-full py-2 rounded-xl text-sm font-bold text-center transition-colors',
+                    prescriptionValues[activePicker.key] === opt.value
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100 active:bg-gray-200',
+                  ]"
+                  @click="pickValue(opt.value)"
+                >{{ opt.label }}</button>
+              </div>
+            </div>
+
+            <!-- Positivos (incluye Plano) -->
+            <div class="flex-1 flex flex-col gap-2 min-w-0">
+              <p v-if="pickerNegative.length" class="text-[8px] font-black uppercase tracking-widest text-gray-400 text-center">(+) Positivo</p>
+              <div class="overflow-y-auto flex-1 space-y-1" :class="pickerNegative.length ? 'pl-1' : ''">
+                <button
+                  v-for="opt in pickerPositive"
+                  :key="opt.value"
+                  type="button"
+                  :class="[
+                    'w-full py-2 rounded-xl text-sm font-bold text-center transition-colors',
+                    prescriptionValues[activePicker.key] === opt.value
+                      ? 'bg-primary-500 text-white'
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-100 active:bg-gray-200',
+                  ]"
+                  @click="pickValue(opt.value)"
+                >{{ opt.label }}</button>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
