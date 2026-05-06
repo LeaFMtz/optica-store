@@ -102,7 +102,7 @@ const fieldOptions = computed(() => {
 const activePicker = ref(null) // { key, field }
 
 const pickerNegative = computed(() =>
-  activePicker.value ? (fieldOptions.value[activePicker.value.field.key] ?? []).filter(o => o.value < 0) : []
+  activePicker.value ? (fieldOptions.value[activePicker.value.field.key] ?? []).filter(o => o.value < 0).reverse() : []
 )
 const pickerPositive = computed(() =>
   activePicker.value ? (fieldOptions.value[activePicker.value.field.key] ?? []).filter(o => o.value >= 0) : []
