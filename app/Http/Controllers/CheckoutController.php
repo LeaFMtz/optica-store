@@ -11,6 +11,7 @@ use Inertia\Response;
 use Lunar\Facades\CartSession;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Country;
+use Lunar\Models\ProductVariant;
 
 class CheckoutController extends Controller
 {
@@ -27,6 +28,10 @@ class CheckoutController extends Controller
 
         if (!$cart || $cart->lines->isEmpty()) {
             return redirect()->route('home');
+        }
+
+        if ($this->hasInsufficientStock($cart->lines)) {
+            return redirect()->route('home')->with('error', 'Uno o más productos ya no tienen stock suficiente.');
         }
 
         $shippingOptions = ShippingManifest::getOptions($cart)->map(fn ($option) => [
@@ -87,5 +92,22 @@ class CheckoutController extends Controller
             'savedAddress' => $savedAddress,
             'countries' => $countries,
         ]);
+    }
+
+    private function hasInsufficientStock(iterable $lines): bool
+    {
+        foreach ($lines as $line) {
+            if ($line->purchasable_type !== 'product_variant') {
+                continue;
+            }
+
+            $variant = ProductVariant::find($line->purchasable_id);
+
+            if ($variant && ! $variant->canBeFulfilledAtQuantity($line->quantity)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

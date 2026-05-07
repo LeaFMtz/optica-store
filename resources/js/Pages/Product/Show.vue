@@ -140,6 +140,32 @@ const canConfirm = computed(() => {
 })
 
 async function openConfigurator() {
+  if (props.product.purchasable !== 'always') {
+    addingCart.value = true
+    cartError.value  = null
+    try {
+      const res      = await fetch('/cart', {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+      })
+      const cartData = await res.json()
+      const variantId = getFirstVariantId()
+      const alreadyInCart = (cartData.lines ?? [])
+        .filter(l => l.variant_id === variantId && !l.meta?.parent_line_id)
+        .reduce((sum, l) => sum + l.quantity, 0)
+
+      if (alreadyInCart + 1 > props.product.total_inventory) {
+        cartError.value = 'No hay stock suficiente para agregar este producto.'
+        return
+      }
+    } catch {
+      // Si el check falla, dejamos pasar — el backend rechazará si corresponde.
+    } finally {
+      addingCart.value = false
+    }
+  }
+
+  cartError.value          = null
   configuratorOpen.value   = true
   configuratorStep.value   = 1
   selectedUse.value        = null
@@ -299,6 +325,7 @@ async function confirmAddWithLens() {
 
     await doAddCombo(frameVariantId, crystalVariantId, prescriptionData)
   } catch (err) {
+    closeConfigurator()
     cartError.value = err.message ?? 'Error al agregar al carrito.'
   } finally {
     addingCart.value = false
@@ -306,10 +333,11 @@ async function confirmAddWithLens() {
 }
 
 async function doAddCombo(frameVariantId, crystalVariantId, prescriptionData) {
-  const frameRes = await postToCartRaw(frameVariantId, 1)
+  const comboId = `combo-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const frameRes = await postToCartRaw(frameVariantId, 1, null, null, null, comboId)
   const frameLineId = frameRes.new_line_id
   if (!frameLineId) throw new Error('No se pudo identificar la línea del marco.')
-  await postToCartRaw(crystalVariantId, 1, frameLineId, selectedCrystal.value.configuration_id, prescriptionData)
+  await postToCartRaw(crystalVariantId, 1, frameLineId, selectedCrystal.value.configuration_id, prescriptionData, comboId)
   closeConfigurator()
   if (openCartSidebar) openCartSidebar()
 }
@@ -353,11 +381,12 @@ async function chooseDuplicateLensOnly() {
   }
 }
 
-async function postToCartRaw(variantId, quantity, parentLineId = null, lensConfigurationId = null, prescriptionData = null) {
+async function postToCartRaw(variantId, quantity, parentLineId = null, lensConfigurationId = null, prescriptionData = null, comboId = null) {
   const body = { variant_id: variantId, quantity }
-  if (parentLineId)       body.parent_line_id        = parentLineId
+  if (parentLineId)        body.parent_line_id        = parentLineId
   if (lensConfigurationId) body.lens_configuration_id = lensConfigurationId
-  if (prescriptionData)   body.prescription_data     = prescriptionData
+  if (prescriptionData)    body.prescription_data     = prescriptionData
+  if (comboId)             body.combo_id              = comboId
 
   const response = await fetch('/cart/lines', {
     method:  'POST',
@@ -504,48 +533,58 @@ function formatPrice(cents) {
               <!-- CTA area -->
               <div class="pt-2">
 
-                <!-- Dual CTA for frames with lens configurations -->
-                <template v-if="hasLensConfigurations">
-                  <div class="flex flex-col sm:flex-row gap-3">
-                    <AppButton
-                      variant="outline"
-                      size="lg"
-                      :disabled="addingCart"
-                      class="flex-1"
-                      @click="addFrameOnly"
-                    >
-                      Solo Marco
-                    </AppButton>
+                <template v-if="product.in_stock">
+                  <!-- Dual CTA for frames with lens configurations -->
+                  <template v-if="hasLensConfigurations">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                      <AppButton
+                        variant="outline"
+                        size="lg"
+                        :disabled="addingCart"
+                        class="flex-1"
+                        @click="addFrameOnly"
+                      >
+                        Solo Marco
+                      </AppButton>
+                      <AppButton
+                        variant="secondary"
+                        size="lg"
+                        :disabled="addingCart"
+                        class="flex-1"
+                        @click="openConfigurator"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Agregar con Lente
+                      </AppButton>
+                    </div>
+                  </template>
+
+                  <!-- Standard add to cart -->
+                  <template v-else>
                     <AppButton
                       variant="secondary"
                       size="lg"
                       :disabled="addingCart"
-                      class="flex-1"
-                      @click="openConfigurator"
+                      class="w-full"
+                      @click="addFrameOnly"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
-                      Agregar con Lente
+                      Agregar al Carrito
                     </AppButton>
-                  </div>
+                  </template>
                 </template>
 
-                <!-- Standard add to cart -->
-                <template v-else>
-                  <AppButton
-                    variant="secondary"
-                    size="lg"
-                    :disabled="addingCart"
-                    class="w-full"
-                    @click="addFrameOnly"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                    Agregar al Carrito
-                  </AppButton>
-                </template>
+                <!-- Out of stock message -->
+                <div
+                  v-else
+                  class="w-full h-14 flex items-center justify-center rounded-xl border-2 border-gray-200 text-[10px] font-black uppercase tracking-[0.3em] text-gray-400"
+                >
+                  Sin Stock
+                </div>
 
                 <!-- Error message -->
                 <div

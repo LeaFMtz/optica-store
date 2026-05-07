@@ -44,8 +44,22 @@ async function updateQuantity(lineId, quantity) {
   updatingId.value = lineId
   error.value      = null
   try {
-    const res  = await apiRequest(`/cart/lines/${lineId}`, 'PATCH', { quantity })
+    const res  = await fetch(`/cart/lines/${lineId}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept':           'application/json',
+        'Content-Type':     'application/json',
+        'X-XSRF-TOKEN':     decodeURIComponent(getCookie('XSRF-TOKEN') ?? ''),
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({ quantity }),
+      credentials: 'same-origin',
+    })
     const data = await res.json()
+    if (!res.ok) {
+      error.value = data.message ?? 'Error al actualizar la cantidad.'
+      return
+    }
     lines.value     = data.lines ?? []
     count.value     = data.count ?? 0
     cartTotal.value = data.cart_total ?? null
@@ -152,16 +166,16 @@ function childrenOf(parentId) {
           <div class="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
         </div>
 
-        <!-- Error -->
+        <!-- Error banner (shows above lines, never replaces them) -->
         <div
-          v-else-if="error"
-          class="p-4 text-[9px] font-bold text-red-600 bg-red-50 border border-red-100 rounded-xl uppercase tracking-[0.2em]"
+          v-if="error"
+          class="mb-4 p-4 text-[9px] font-bold text-red-600 bg-red-50 border border-red-100 rounded-xl uppercase tracking-[0.2em]"
         >
           {{ error }}
         </div>
 
         <!-- Empty cart -->
-        <div v-else-if="lines.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+        <div v-if="!loading && lines.length === 0 && !error" class="flex flex-col items-center justify-center py-20 text-center">
           <svg class="w-12 h-12 text-gray-200 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
@@ -170,7 +184,7 @@ function childrenOf(parentId) {
         </div>
 
         <!-- Lines -->
-        <ul v-else class="space-y-6">
+        <ul v-if="!loading && lines.length > 0" class="space-y-6">
           <li
             v-for="line in parentLines"
             :key="line.id"

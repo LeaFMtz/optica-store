@@ -51,7 +51,10 @@ class ProductController extends Controller
             'price_formatted' => $priceFormatted,
             'base_price_formatted' => $basePriceFormatted,
             'discount_percentage' => $discountPercentage,
-            'first_variant_id' => $variant?->id,
+            'first_variant_id'  => $variant?->id,
+            'in_stock'          => $variant ? $variant->canBeFulfilledAtQuantity(1) : false,
+            'purchasable'       => $variant?->purchasable,
+            'total_inventory'   => $variant?->getTotalInventory() ?? 0,
             'variants' => $product->variants->map(fn ($v) => [
                 'id' => $v->id,
                 'value_ids' => $v->values->pluck('id')->all(),

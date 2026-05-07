@@ -47,6 +47,7 @@ class CatalogController extends Controller
             'price_formatted' => $priceFormatted,
             'base_price_formatted' => $basePriceFormatted,
             'discount_percentage' => $discountPercentage,
+            'in_stock' => $variant ? $variant->canBeFulfilledAtQuantity(1) : false,
         ];
     }
 

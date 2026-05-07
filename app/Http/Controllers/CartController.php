@@ -40,6 +40,7 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:1', 'max:10000'],
             'parent_line_id' => ['nullable', 'integer', Rule::exists(CartLine::class, 'id')],
             'lens_configuration_id' => ['nullable', 'integer', Rule::exists(ProductLensConfiguration::class, 'id')],
+            'combo_id' => ['nullable', 'string', 'max:64'],
             'prescription_data' => ['nullable', 'array'],
             'prescription_data.*' => ['nullable', 'numeric'],
         ]);
@@ -47,9 +48,14 @@ class CartController extends Controller
         /** @var ProductVariant $variant */
         $variant = ProductVariant::findOrFail($validated['variant_id']);
 
-        if ($variant->purchasable !== 'always' && $variant->stock < $validated['quantity']) {
+        $alreadyInCart = CartSession::current()?->lines
+            ->where('purchasable_type', 'product_variant')
+            ->where('purchasable_id', $variant->id)
+            ->sum('quantity') ?? 0;
+
+        if (! $variant->canBeFulfilledAtQuantity($alreadyInCart + $validated['quantity'])) {
             return response()->json([
-                'message' => 'The quantity exceeds the available stock.',
+                'message' => 'La cantidad supera el stock disponible.',
             ], 422);
         }
 
@@ -63,6 +69,10 @@ class CartController extends Controller
             $meta['lens_configuration_id'] = $validated['lens_configuration_id'];
         }
 
+        if (!empty($validated['combo_id'])) {
+            $meta['combo_id'] = $validated['combo_id'];
+        }
+
         if (!empty($validated['prescription_data'])) {
             $meta['prescription_data'] = $validated['prescription_data'];
         }
@@ -70,7 +80,13 @@ class CartController extends Controller
         CartSession::manager()->add($variant, (int) $validated['quantity'], $meta);
 
         $cart = CartSession::current();
-        $newLineId = CartLine::where('cart_id', $cart?->id)->orderByDesc('id')->value('id');
+
+        // When a combo_id is present we can find the exact line — avoids race conditions.
+        $newLineId = !empty($meta['combo_id'])
+            ? CartLine::where('cart_id', $cart?->id)
+                ->whereJsonContains('meta->combo_id', $meta['combo_id'])
+                ->value('id')
+            : CartLine::where('cart_id', $cart?->id)->orderByDesc('id')->value('id');
 
         return response()->json([
             'lines' => $this->serializeLines(),
@@ -89,9 +105,30 @@ class CartController extends Controller
             'quantity' => ['required', 'integer', 'min:1', 'max:10000'],
         ]);
 
+        $newQty = (int) $validated['quantity'];
+        $line = CartLine::findOrFail($id);
+
+        if ($newQty > $line->quantity && $line->purchasable_type === 'product_variant') {
+            $variant = ProductVariant::find($line->purchasable_id);
+
+            if ($variant) {
+                $otherLinesQty = CartSession::current()?->lines
+                    ->where('purchasable_type', 'product_variant')
+                    ->where('purchasable_id', $variant->id)
+                    ->where('id', '!=', $id)
+                    ->sum('quantity') ?? 0;
+
+                if (! $variant->canBeFulfilledAtQuantity($otherLinesQty + $newQty)) {
+                    return response()->json([
+                        'message' => 'La cantidad supera el stock disponible.',
+                    ], 422);
+                }
+            }
+        }
+
         CartSession::updateLines(collect([[
             'id' => $id,
-            'quantity' => (int) $validated['quantity'],
+            'quantity' => $newQty,
         ]]));
 
         return response()->json([
