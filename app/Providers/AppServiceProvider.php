@@ -7,9 +7,13 @@ namespace App\Providers;
 use App\Filament\Resources\BannerResource;
 use App\Filament\Resources\LensTypeResource;
 use App\Filament\Resources\LensUseResource;
+use App\Filament\Resources\OrderResource\Pages\Components\OrderItemsTableExtension;
+use App\Filament\Resources\OrderResource\Pages\ManageOrderExtension;
 use App\Filament\Resources\PrescriptionFieldResource;
 use App\Filament\Resources\PrescriptionTypeResource;
 use App\Filament\Resources\ProductResourceExtension;
+use Lunar\Admin\Filament\Resources\OrderResource\Pages\Components\OrderItemsTable;
+use Lunar\Admin\Filament\Resources\OrderResource\Pages\ManageOrder;
 
 use App\Models\Product as AppProduct;
 use App\Modifiers\ShippingModifier;
@@ -61,6 +65,11 @@ class AppServiceProvider extends ServiceProvider
         $shippingModifiers->add(
             ShippingModifier::class,
         );
+
+        LunarPanel::extensions([
+            OrderItemsTable::class => OrderItemsTableExtension::class,
+            ManageOrder::class => ManageOrderExtension::class,
+        ]);
 
         ModelManifest::replace(
             Product::class,
