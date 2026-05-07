@@ -57,13 +57,21 @@ class ManageOrderExtension extends ViewPageExtension
      */
     private function buildPrescriptionRows(array $meta): array
     {
+        $rows = [];
+
+        if (!empty($meta['lens_use_name'])) {
+            $rows['Uso'] = $meta['lens_use_name'];
+        }
+
+        if (!empty($meta['lens_type_name'])) {
+            $rows['Tipo'] = $meta['lens_type_name'];
+        }
+
         $data = $meta['prescription_data'] ?? null;
 
         if (empty($data)) {
-            return [];
+            return $rows;
         }
-
-        $rows = [];
 
         foreach (['od' => 'OD', 'oi' => 'OI'] as $prefix => $label) {
             $eyeParts = [];

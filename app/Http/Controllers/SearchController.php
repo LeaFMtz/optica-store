@@ -39,6 +39,14 @@ class SearchController extends Controller
             }
         }
 
+        $colors = $product->variants
+            ->flatMap(fn ($v) => $v->values)
+            ->unique('id')
+            ->map(fn ($v) => $v->translate('name'))
+            ->filter()
+            ->values()
+            ->all();
+
         return [
             'id' => $product->id,
             'name' => $product->translateAttribute('name'),
@@ -48,6 +56,7 @@ class SearchController extends Controller
             'base_price_formatted' => $basePriceFormatted,
             'discount_percentage' => $discountPercentage,
             'in_stock' => $variant ? $variant->canBeFulfilledAtQuantity(1) : false,
+            'colors' => $colors,
         ];
     }
 
@@ -59,7 +68,7 @@ class SearchController extends Controller
 
         if ($query !== '') {
             $paginator = Product::search($query)
-                ->query(fn ($builder) => $builder->with(['variants.basePrices', 'defaultUrl', 'thumbnail']))
+                ->query(fn ($builder) => $builder->with(['variants.basePrices', 'variants.values', 'defaultUrl', 'thumbnail']))
                 ->paginate(50);
 
             $results = $paginator->getCollection()

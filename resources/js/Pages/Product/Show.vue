@@ -4,6 +4,7 @@ import StorefrontLayout from '@/Layouts/StorefrontLayout.vue'
 import AppButton from '@/Components/AppButton.vue'
 import Breadcrumb from '@/Components/Breadcrumb.vue'
 import Badge from '@/Components/Badge.vue'
+import ProductCard from '@/Components/ProductCard.vue'
 
 defineOptions({ layout: StorefrontLayout })
 
@@ -12,6 +13,17 @@ const props = defineProps({
   images:                { type: Array,   default: () => [] },
   options:               { type: Array,   default: () => [] },
   hasLensConfigurations: { type: Boolean, default: false },
+  featuredProducts:      { type: Array,   default: () => [] },
+})
+
+// ─── Specs paired for 4-column table ─────────────────────────────────────────
+const attrPairs = computed(() => {
+  const attrs = props.product.attributes ?? []
+  const pairs = []
+  for (let i = 0; i < attrs.length; i += 2) {
+    pairs.push([attrs[i], attrs[i + 1] ?? null])
+  }
+  return pairs
 })
 
 // ─── Cart sidebar open/close via provide/inject from StorefrontLayout ────────
@@ -414,8 +426,18 @@ function getCookie(name) {
   return null
 }
 
+// Find the variant whose option values match the current selection
+const selectedVariantId = computed(() => {
+  const selectedIds = Object.values(selectedValues.value).filter(Boolean)
+  if (!selectedIds.length) return props.product.first_variant_id ?? null
+  const match = (props.product.variants ?? []).find(v =>
+    selectedIds.every(id => v.value_ids.includes(id)),
+  )
+  return match?.id ?? props.product.first_variant_id ?? null
+})
+
 function getFirstVariantId() {
-  return props.product.first_variant_id ?? null
+  return selectedVariantId.value
 }
 
 function formatPrice(cents) {
@@ -425,7 +447,7 @@ function formatPrice(cents) {
 </script>
 
 <template>
-  <section class="bg-white py-12 lg:py-24" itemscope itemtype="http://schema.org/Product">
+  <section class="bg-gray-50/40 py-12 lg:py-24" itemscope itemtype="http://schema.org/Product">
     <meta itemprop="sku" :content="product.sku">
     <meta itemprop="url" :content="$page.url">
 
@@ -494,12 +516,17 @@ function formatPrice(cents) {
             </div>
 
             <!-- Price -->
-            <div class="py-6 border-y border-gray-100 flex flex-col gap-1" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
-              <div class="flex items-baseline gap-2">
+            <div class="py-6 border-y border-gray-100 space-y-3" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+              <div class="flex items-center gap-3 flex-wrap">
                 <span class="text-3xl font-black text-gray-900" itemprop="price">{{ product.price_formatted }}</span>
-                <span v-if="product.base_price_formatted" class="text-lg text-gray-400 line-through">{{ product.base_price_formatted }}</span>
-                <Badge v-if="product.discount_percentage > 0" variant="primary">{{ product.discount_percentage }}% OFF</Badge>
-                <span class="text-[9px] text-primary-500 font-black uppercase tracking-widest italic">Mejor precio</span>
+                <Badge v-if="product.discount_percentage > 0" variant="primary">−{{ product.discount_percentage }}% OFF</Badge>
+              </div>
+              <div v-if="product.base_price_formatted" class="flex items-center gap-3">
+                <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Antes</span>
+                <span class="text-sm text-gray-400 line-through">{{ product.base_price_formatted }}</span>
+                <span v-if="product.savings_formatted" class="text-[9px] font-black text-primary-600 bg-primary-50 px-2 py-0.5 rounded-lg">
+                  Ahorrás {{ product.savings_formatted }}
+                </span>
               </div>
               <p class="text-[9px] text-gray-400 font-black uppercase tracking-widest">Contado / Transferencia / 1 Pago</p>
               <meta itemprop="priceCurrency" content="ARS">
@@ -598,7 +625,7 @@ function formatPrice(cents) {
             </div>
 
             <!-- Description -->
-            <div class="pt-8 border-t border-gray-100">
+            <div v-if="product.description" class="pt-8 border-t border-gray-100">
               <label class="text-[9px] font-black text-gray-900 uppercase tracking-[0.2em] block mb-3">Detalles del producto</label>
               <div
                 class="prose prose-sm max-w-none text-gray-500 text-[10px] leading-relaxed uppercase tracking-tight font-medium"
@@ -626,16 +653,48 @@ function formatPrice(cents) {
         </div>
       </div>
 
-      <!-- Related products placeholder -->
-      <div class="mt-24 pt-24 border-t border-gray-100">
+      <!-- Specs + detail banner panel -->
+      <div v-if="attrPairs.length || product.detail_banner_url" class="mt-16 pt-12 border-t border-gray-100">
+
+        <div v-if="attrPairs.length">
+          <h3 class="text-[9px] font-black text-gray-900 uppercase tracking-[0.2em] mb-6">Especificaciones</h3>
+          <table class="w-full border-collapse border border-gray-200 text-sm">
+            <tbody>
+              <tr v-for="pair in attrPairs" :key="pair[0].label" class="border-b border-gray-200 last:border-0">
+                <td class="py-3 px-4 text-[9px] font-black text-gray-500 uppercase tracking-widest bg-gray-50 border-r border-gray-200 w-1/4">{{ pair[0].label }}</td>
+                <td class="py-3 px-4 text-sm font-semibold text-gray-800 capitalize border-r border-gray-200 w-1/4">{{ pair[0].value }}</td>
+                <template v-if="pair[1]">
+                  <td class="py-3 px-4 text-[9px] font-black text-gray-500 uppercase tracking-widest bg-gray-50 border-r border-gray-200 w-1/4">{{ pair[1].label }}</td>
+                  <td class="py-3 px-4 text-sm font-semibold text-gray-800 capitalize w-1/4">{{ pair[1].value }}</td>
+                </template>
+                <template v-else>
+                  <td class="bg-gray-50 border-r border-gray-200 w-1/4" />
+                  <td class="w-1/4" />
+                </template>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div v-if="product.detail_banner_url" class="mt-8 flex justify-center">
+          <img
+            :src="product.detail_banner_url"
+            :alt="product.name"
+            class="w-full max-w-3xl rounded-2xl object-cover"
+          />
+        </div>
+      </div>
+
+      <!-- Featured products -->
+      <div v-if="featuredProducts.length" class="mt-24 pt-24 border-t border-gray-100">
         <div class="flex items-end justify-between mb-12">
           <h3 class="text-2xl font-black uppercase tracking-tighter italic text-black">
-            Productos Similares
-            <span class="block text-[10px] font-black text-primary-500 uppercase tracking-[0.3em] mt-2 italic not-italic">También te pueden gustar</span>
+            Productos Destacados
+            <span class="block text-[10px] font-black text-primary-500 uppercase tracking-[0.3em] mt-2 not-italic">También te pueden gustar</span>
           </h3>
         </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-50 grayscale transition hover:grayscale-0">
-          <div v-for="n in 4" :key="n" class="aspect-[4/5] bg-gray-50 rounded-2xl animate-pulse" />
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <ProductCard v-for="fp in featuredProducts" :key="fp.id" :product="fp" />
         </div>
       </div>
     </div>

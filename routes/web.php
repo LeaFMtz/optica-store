@@ -63,8 +63,8 @@ Route::prefix('cart')->name('cart.')->group(function () {
 // Route::get('checkout', CheckoutPage::class)->name('checkout.view');  // Wave 6: replaced
 Route::get('checkout', CheckoutController::class)->name('checkout.view');
 
-// Checkout JSON endpoints (auth required, web middleware for session/CSRF)
-Route::middleware('auth')->prefix('checkout')->name('checkout.')->group(function () {
+// Checkout JSON endpoints (web middleware for session/CSRF)
+Route::prefix('checkout')->name('checkout.')->group(function () {
     Route::post('/address', CheckoutAddressController::class)->name('address');
     Route::post('/shipping', CheckoutShippingController::class)->name('shipping');
     Route::post('/place', CheckoutPlaceController::class)->name('place');

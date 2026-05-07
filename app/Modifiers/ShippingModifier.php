@@ -28,6 +28,7 @@ class ShippingModifier
                     identifier: 'RETLOC',
                     price: new Price(0, $cart->currency, 1),
                     taxClass: TaxClass::getDefault(),
+                    collect: true,
                 ),
             );
         }

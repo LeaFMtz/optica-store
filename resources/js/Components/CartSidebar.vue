@@ -258,41 +258,46 @@ function childrenOf(parentId) {
             <!-- Child lines (lenses anchored to this frame) -->
             <ul
               v-if="childrenOf(line.id).length"
-              class="mt-2 ml-6 space-y-2 border-l-2 border-primary-100 pl-3"
+              class="mt-3 ml-4 space-y-2 border-l-2 border-primary-100 pl-4"
             >
               <li
                 v-for="child in childrenOf(line.id)"
                 :key="child.id"
-                class="flex items-center gap-3 relative"
+                class="relative bg-gray-50/60 rounded-xl p-3"
               >
-                <div class="w-10 h-10 flex-shrink-0 rounded-lg overflow-hidden bg-gray-50 border border-gray-100">
-                  <img
-                    v-if="child.thumbnail"
-                    :src="child.thumbnail"
-                    :alt="child.description"
-                    class="w-full h-full object-cover"
-                  >
-                  <div v-else class="w-full h-full flex items-center justify-center text-gray-200">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <!-- Lens header: name + price -->
+                <div class="flex items-start justify-between gap-2 mb-2">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <svg class="w-3.5 h-3.5 text-primary-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
+                    <p class="text-[9px] font-black text-gray-700 uppercase tracking-tight leading-tight line-clamp-1">
+                      {{ child.description }}
+                    </p>
+                  </div>
+                  <span class="text-[9px] font-black text-primary-500 flex-shrink-0">{{ child.unit_price }}</span>
+                </div>
+
+                <!-- Lens label: uso · tipo -->
+                <p v-if="child.lens_label" class="text-[8px] font-black text-primary-600 uppercase tracking-widest mb-2">
+                  {{ child.lens_label }}
+                </p>
+
+                <!-- Prescription rows -->
+                <div v-if="child.prescription_rows?.length" class="space-y-0.5">
+                  <div
+                    v-for="row in child.prescription_rows"
+                    :key="row.label"
+                    class="flex items-baseline gap-2"
+                  >
+                    <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest w-5 flex-shrink-0">{{ row.label }}</span>
+                    <span class="text-[8px] text-gray-500 font-medium">{{ row.value }}</span>
                   </div>
                 </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-[9px] font-black text-gray-600 uppercase tracking-tight leading-tight line-clamp-1">
-                    {{ child.description }}
-                  </p>
-                  <p class="text-[9px] font-bold text-primary-400 mt-0.5">{{ child.unit_price }}</p>
-                  <p
-                    v-if="child.prescription_summary"
-                    class="text-[8px] text-gray-400 font-medium mt-0.5 leading-relaxed whitespace-pre-line"
-                  >{{ child.prescription_summary }}</p>
-                </div>
-                <span class="text-[9px] font-black text-gray-500">{{ child.sub_total }}</span>
 
                 <div
                   v-if="updatingId === child.id"
-                  class="absolute inset-0 bg-white/70 flex items-center justify-center rounded-lg"
+                  class="absolute inset-0 bg-white/70 flex items-center justify-center rounded-xl"
                 >
                   <div class="w-3 h-3 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
                 </div>

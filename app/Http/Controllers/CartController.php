@@ -67,6 +67,14 @@ class CartController extends Controller
 
         if (!empty($validated['lens_configuration_id'])) {
             $meta['lens_configuration_id'] = $validated['lens_configuration_id'];
+
+            $config = ProductLensConfiguration::with(['lensUse', 'lensType'])
+                ->find($validated['lens_configuration_id']);
+
+            if ($config) {
+                $meta['lens_use_name'] = $config->lensUse?->name;
+                $meta['lens_type_name'] = $config->lensType?->name;
+            }
         }
 
         if (!empty($validated['combo_id'])) {
@@ -185,57 +193,78 @@ class CartController extends Controller
                 'sub_total' => $line->subTotal->formatted(),
                 'unit_price' => $line->unitPrice->formatted(),
                 'meta' => $meta,
-                'prescription_summary' => $this->buildPrescriptionSummary($meta),
+                'lens_label' => $this->buildLensLabel($meta),
+                'prescription_rows' => $this->buildPrescriptionRows($meta),
             ];
         })->values()->all();
     }
 
     /**
-     * Build a human-readable prescription summary from meta.prescription_data.
-     *
-     * Iterates dynamically over whatever field keys exist — no hardcoded field names.
+     * Return "Uso · Tipo" string for a lens line, resolved from meta or DB fallback.
      *
      * @param  array<string, mixed>|null  $meta
      */
-    private function buildPrescriptionSummary(?array $meta): ?string
+    private function buildLensLabel(?array $meta): ?string
+    {
+        if (empty($meta['lens_configuration_id'])) {
+            return null;
+        }
+
+        $useName = $meta['lens_use_name'] ?? null;
+        $typeName = $meta['lens_type_name'] ?? null;
+
+        if (!$useName || !$typeName) {
+            $config = ProductLensConfiguration::with(['lensUse', 'lensType'])
+                ->find($meta['lens_configuration_id']);
+            $useName ??= $config?->lensUse?->name;
+            $typeName ??= $config?->lensType?->name;
+        }
+
+        $parts = array_filter([$useName, $typeName]);
+
+        return $parts ? implode(' · ', $parts) : null;
+    }
+
+    /**
+     * Return structured prescription rows for display.
+     *
+     * @param  array<string, mixed>|null  $meta
+     * @return list<array{label: string, value: string}>
+     */
+    private function buildPrescriptionRows(?array $meta): array
     {
         $data = $meta['prescription_data'] ?? null;
 
         if (empty($data)) {
-            return null;
+            return [];
         }
 
-        $parts = [];
+        $rows = [];
 
         foreach (['od' => 'OD', 'oi' => 'OI'] as $prefix => $label) {
-            $eyeParts = [];
+            $parts = [];
             foreach ($data as $key => $value) {
-                if (!str_starts_with($key, "{$prefix}_")) {
-                    continue;
-                }
-                if ($value === null || $value === '') {
+                if (!str_starts_with($key, "{$prefix}_") || $value === null || $value === '') {
                     continue;
                 }
                 $fieldKey = substr($key, strlen("{$prefix}_"));
                 $fieldLabel = ucfirst(substr($fieldKey, 0, 3));
-                if (is_numeric($value)) {
-                    $formatted = (float) $value >= 0 ? "+{$value}" : (string) $value;
-                } else {
-                    $formatted = (string) $value;
-                }
-                $eyeParts[] = "{$fieldLabel} {$formatted}";
+                $formatted = is_numeric($value)
+                    ? ((float) $value >= 0 ? "+{$value}" : (string) $value)
+                    : (string) $value;
+                $parts[] = "{$fieldLabel} {$formatted}";
             }
-            if (!empty($eyeParts)) {
-                $parts[] = "{$label}: " . implode(' · ', $eyeParts);
+            if (!empty($parts)) {
+                $rows[] = ['label' => $label, 'value' => implode('  ·  ', $parts)];
             }
         }
 
         if (isset($data['pd']) && $data['pd'] !== null && $data['pd'] !== '') {
-            $parts[] = "DP: {$data['pd']}";
+            $rows[] = ['label' => 'DP', 'value' => (string) $data['pd']];
         } elseif (isset($data['pd_od']) || isset($data['pd_oi'])) {
-            $parts[] = "DP: " . ($data['pd_od'] ?? '—') . '/' . ($data['pd_oi'] ?? '—');
+            $rows[] = ['label' => 'DP', 'value' => ($data['pd_od'] ?? '—') . ' / ' . ($data['pd_oi'] ?? '—')];
         }
 
-        return !empty($parts) ? implode("\n", $parts) : null;
+        return $rows;
     }
 }

@@ -19,10 +19,6 @@ class CheckoutSuccessController extends Controller
      */
     public function __invoke(Request $request): Response|RedirectResponse
     {
-        if (!$request->user()) {
-            return redirect()->route('login');
-        }
-
         $reference = $request->query('order');
 
         if (!$reference) {

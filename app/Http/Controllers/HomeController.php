@@ -5,42 +5,55 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Banner;
-use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Lunar\Facades\Pricing;
 use Lunar\Models\Collection;
+use Lunar\Models\Product;
 
 class HomeController extends Controller
 {
+    private function formatPrice(int $cents): string
+    {
+        return '$ '.number_format($cents / 100, 0, ',', '.');
+    }
+
     /**
      * Serialize a product to a plain array safe for Inertia props.
      *
-     * @param  Product  $product
-     * @return array{id: int, name: string, slug: string|null, thumbnail_url: string|null, price_formatted: string|null, base_price_formatted: string|null, discount_percentage: int}
+     * @return array{id: int, name: string, slug: string|null, thumbnail_url: string|null, price_formatted: string|null, base_price_formatted: string|null, discount_percentage: int, savings_formatted: string|null, in_stock: bool}
      */
-    private function serializeProduct($product): array
+    private function serializeProduct(Product $product): array
     {
         $variant = $product->variants->first();
         $priceFormatted = null;
         $basePriceFormatted = null;
+        $savingsFormatted = null;
         $discountPercentage = 0;
 
         if ($variant) {
-            $pricing = Pricing::for($variant)->get();
+            $priceRecord = $variant->prices->first();
+            $currentValue = $priceRecord?->price?->value ?? 0;
+            $compareValue = $priceRecord?->compare_price?->value ?? 0;
 
-            if ($pricing->matched) {
-                $priceFormatted = $pricing->matched->price->formatted();
+            if ($currentValue > 0) {
+                $priceFormatted = $this->formatPrice($currentValue);
             }
 
-            if ($pricing->base && $pricing->base->price->value > ($pricing->matched?->price->value ?? 0)) {
-                $basePriceFormatted = $pricing->base->price->formatted();
-                $discountPercentage = (int) round(
-                    (($pricing->base->price->value - $pricing->matched->price->value) / $pricing->base->price->value) * 100,
-                );
+            if ($compareValue > 0 && $compareValue > $currentValue) {
+                $basePriceFormatted = $this->formatPrice($compareValue);
+                $discountPercentage = (int) round(($compareValue - $currentValue) / $compareValue * 100);
+                $savingsFormatted = $this->formatPrice($compareValue - $currentValue);
             }
         }
+
+        $colors = $product->variants
+            ->flatMap(fn ($v) => $v->values)
+            ->unique('id')
+            ->map(fn ($v) => $v->translate('name'))
+            ->filter()
+            ->values()
+            ->all();
 
         return [
             'id' => $product->id,
@@ -50,7 +63,9 @@ class HomeController extends Controller
             'price_formatted' => $priceFormatted,
             'base_price_formatted' => $basePriceFormatted,
             'discount_percentage' => $discountPercentage,
+            'savings_formatted' => $savingsFormatted,
             'in_stock' => $variant ? $variant->canBeFulfilledAtQuantity(1) : false,
+            'colors' => $colors,
         ];
     }
 
@@ -109,7 +124,7 @@ class HomeController extends Controller
             'url' => $newsletterBannerModel->url ?? null,
         ] : null;
 
-        $productWith = ['thumbnail', 'variants', 'variants.prices', 'defaultUrl'];
+        $productWith = ['thumbnail', 'variants', 'variants.prices', 'variants.values', 'defaultUrl'];
 
         /** @var Collection|null $featuredCollection */
         $featuredCollection = Collection::whereJsonContains('attribute_data->name->value', 'Destacados')->first();
@@ -119,18 +134,18 @@ class HomeController extends Controller
                 ->map(fn ($p) => $this->serializeProduct($p))->values()->all()
             : [];
 
-        /** @var Collection|null $offersCollection */
-        $offersCollection = Collection::whereJsonContains('attribute_data->name->value', 'Ofertas')->first();
+        $offerProducts = Product::query()
+            ->whereHas('variants.prices', function ($q) {
+                $q->whereColumn('compare_price', '>', 'price')->where('compare_price', '>', 0);
+            })
+            ->with($productWith)
+            ->get()
+            ->map(fn (Product $p) => $this->serializeProduct($p))
+            ->values()
+            ->all();
 
-        $offerProducts = $offersCollection
-            ? $offersCollection->products()->browsable()->with($productWith)->get()
-                ->map(fn ($p) => $this->serializeProduct($p))->values()->all()
-            : [];
-
-        $homeCollectionIds = Collection::where(function ($q) {
-            $q->whereJsonContains('attribute_data->name->value', 'Destacados')
-                ->orWhereJsonContains('attribute_data->name->value', 'Ofertas');
-        })->pluck('id');
+        $homeCollectionIds = Collection::whereJsonContains('attribute_data->name->value', 'Destacados')
+            ->pluck('id');
 
         /** @var Collection|null $randomCollection */
         $randomCollection = Collection::whereNotIn('id', $homeCollectionIds)

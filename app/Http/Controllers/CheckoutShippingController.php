@@ -16,10 +16,6 @@ class CheckoutShippingController extends Controller
      */
     public function __invoke(Request $request): JsonResponse
     {
-        if (!$request->user()) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
-        }
-
         $validated = $request->validate([
             'identifier' => ['required', 'string'],
         ]);

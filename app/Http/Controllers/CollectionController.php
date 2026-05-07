@@ -41,6 +41,14 @@ class CollectionController extends Controller
             }
         }
 
+        $colors = $product->variants
+            ->flatMap(fn ($v) => $v->values)
+            ->unique('id')
+            ->map(fn ($v) => $v->translate('name'))
+            ->filter()
+            ->values()
+            ->all();
+
         return [
             'id' => $product->id,
             'name' => $product->translateAttribute('name'),
@@ -50,6 +58,7 @@ class CollectionController extends Controller
             'base_price_formatted' => $basePriceFormatted,
             'discount_percentage' => $discountPercentage,
             'in_stock' => $variant ? $variant->canBeFulfilledAtQuantity(1) : false,
+            'colors' => $colors,
         ];
     }
 
@@ -71,7 +80,7 @@ class CollectionController extends Controller
 
         $products = $collection->products()
             ->browsable()
-            ->with(['variants.basePrices', 'defaultUrl', 'thumbnail'])
+            ->with(['variants.basePrices', 'variants.values', 'defaultUrl', 'thumbnail'])
             ->get()
             ->map(fn (Product $product) => $this->serializeProduct($product))
             ->values()

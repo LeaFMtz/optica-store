@@ -39,6 +39,14 @@ class CatalogController extends Controller
             }
         }
 
+        $colors = $product->variants
+            ->flatMap(fn ($v) => $v->values)
+            ->unique('id')
+            ->map(fn ($v) => $v->translate('name'))
+            ->filter()
+            ->values()
+            ->all();
+
         return [
             'id' => $product->id,
             'name' => $product->translateAttribute('name'),
@@ -48,13 +56,14 @@ class CatalogController extends Controller
             'base_price_formatted' => $basePriceFormatted,
             'discount_percentage' => $discountPercentage,
             'in_stock' => $variant ? $variant->canBeFulfilledAtQuantity(1) : false,
+            'colors' => $colors,
         ];
     }
 
     public function __invoke(Request $request): Response
     {
         $paginator = Product::browsable()
-            ->with(['variants.basePrices', 'defaultUrl', 'thumbnail'])
+            ->with(['variants.basePrices', 'variants.values', 'defaultUrl', 'thumbnail'])
             ->paginate(12);
 
         $products = $paginator->getCollection()

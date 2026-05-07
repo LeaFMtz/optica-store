@@ -20,10 +20,6 @@ class CheckoutController extends Controller
      */
     public function __invoke(Request $request): Response|RedirectResponse
     {
-        if (!$request->user()) {
-            return redirect()->route('login');
-        }
-
         $cart = CartSession::current();
 
         if (!$cart || $cart->lines->isEmpty()) {
@@ -34,17 +30,24 @@ class CheckoutController extends Controller
             return redirect()->route('home')->with('error', 'Uno o más productos ya no tienen stock suficiente.');
         }
 
-        $shippingOptions = ShippingManifest::getOptions($cart)->map(fn ($option) => [
+        $options = ShippingManifest::getOptions($cart);
+
+        $hasDeliveryShipping = $options->contains(fn ($o) => !$o->collect);
+
+        $shippingOptions = $options->map(fn ($option) => [
             'identifier' => $option->getIdentifier(),
             'name' => $option->getName(),
             'description' => $option->getDescription(),
             'price' => $option->getPrice()->formatted(),
+            'collect' => $option->collect,
         ])->values()->all();
 
-        $countries = Country::whereIn('iso3', ['GBR', 'USA'])->get()->map(fn ($country) => [
-            'id' => $country->id,
-            'name' => $country->native,
-        ])->values()->all();
+        $countries = Country::orderBy('name')->get()
+            ->sortByDesc(fn ($c) => $c->iso3 === 'ARG')
+            ->map(fn ($country) => [
+                'id' => $country->id,
+                'name' => $country->native,
+            ])->values()->all();
 
         $savedAddress = null;
 
@@ -91,6 +94,7 @@ class CheckoutController extends Controller
             'shippingOptions' => $shippingOptions,
             'savedAddress' => $savedAddress,
             'countries' => $countries,
+            'hasDeliveryShipping' => $hasDeliveryShipping,
         ]);
     }
 

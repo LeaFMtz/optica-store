@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Lunar\Facades\CartSession;
+use Lunar\Facades\ShippingManifest;
 use Lunar\Models\ProductVariant;
 
 class CheckoutPlaceController extends Controller
@@ -17,10 +18,6 @@ class CheckoutPlaceController extends Controller
      */
     public function __invoke(Request $request): JsonResponse
     {
-        if (!$request->user()) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
-        }
-
         $cart = CartSession::current();
 
         if (!$cart) {
@@ -32,7 +29,16 @@ class CheckoutPlaceController extends Controller
         }
 
         if (!$cart->shippingAddress->shipping_option) {
-            return response()->json(['message' => 'A shipping option must be selected.'], 422);
+            $retloc = ShippingManifest::getOptions($cart)->first(
+                fn ($o) => $o->getIdentifier() === 'RETLOC',
+            );
+
+            if (!$retloc) {
+                return response()->json(['message' => 'No hay opción de retiro disponible.'], 422);
+            }
+
+            CartSession::setShippingOption($retloc);
+            $cart->refresh();
         }
 
         foreach ($cart->lines as $line) {

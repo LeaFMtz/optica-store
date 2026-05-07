@@ -45,11 +45,11 @@ onUnmounted(() => { if (intervalId) clearInterval(intervalId) })
 const featuredCarouselRef = ref(null)
 const offerCarouselRef    = ref(null)
 
-function scrollCarousel(elRef, direction) {
-  if (!elRef.value) return
-  const card = elRef.value.querySelector('article')
+function scrollCarousel(el, direction) {
+  if (!el) return
+  const card = el.querySelector('article')
   if (!card) return
-  elRef.value.scrollBy({ left: (card.offsetWidth + 16) * 2 * direction, behavior: 'smooth' })
+  el.scrollBy({ left: (card.offsetWidth + 16) * 2 * direction, behavior: 'smooth' })
 }
 
 // ── Middle banner layout helpers ─────────────────────────────────────────────
