@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\Banner;
+use App\Models\LensType;
+use App\Models\LensUse;
+use App\Models\PrescriptionField;
+use App\Models\PrescriptionType;
 use Illuminate\Database\Seeder;
 use Lunar\FieldTypes\Text;
 use Lunar\Models\AttributeGroup;
@@ -15,6 +19,7 @@ use Lunar\Models\CollectionGroup;
 use Lunar\Models\Country;
 use Lunar\Models\Currency;
 use Lunar\Models\Language;
+use Lunar\Models\ProductType;
 use Lunar\Models\TaxClass;
 use Lunar\Models\TaxZone;
 
@@ -28,6 +33,12 @@ class BasicConfig extends Seeder
         $this->basicConfig();
 
         $this->taxSeeding();
+
+        $this->productTypeSeeding();
+
+        $this->lensTypeSeeding();
+
+        $this->prescriptionFieldSeeding();
 
         $this->bannerSeedings();
 
@@ -95,6 +106,99 @@ class BasicConfig extends Seeder
         ]);
     }
 
+    private function productTypeSeeding(): void
+    {
+        ProductType::create(['name' => 'Armazones']);
+        ProductType::create(['name' => 'Lentes Compuestos']);
+    }
+
+    private function lensTypeSeeding(): void
+    {
+        $prescriptionTypes = [
+            ['name' => 'Receta Lentes Disntacia'],
+            ['name' => 'Recetas Lentes Progresivos'],
+            ['name' => 'Recetas Lentes Bifocales'],
+            ['name' => 'Receta Lentes de Lectura'],
+        ];
+
+        $pts = [];
+        foreach ($prescriptionTypes as $data) {
+            $pts[] = PrescriptionType::create($data);
+        }
+
+        [$ptDistancia, $ptProgresivo, $ptBifocales, $ptLectura] = $pts;
+
+        $lensTypes = [];
+        foreach ([
+            ['name' => 'Fotocromatico', 'handle' => 'fotocromatico-simple', 'description' => 'Fotocromatico simple', 'sort_order' => 1],
+            ['name' => 'Gafas polarizadas', 'handle' => 'gafas-polarizadas', 'description' => '', 'sort_order' => 2],
+            ['name' => 'Teñido De Color', 'handle' => 'tenido-de-color', 'description' => '', 'sort_order' => 0],
+            ['name' => 'Bloqueo de Luz Azul', 'handle' => 'bloqueo-de-luz-azul', 'description' => '', 'sort_order' => 0],
+            ['name' => 'Transparente', 'handle' => 'transparente', 'description' => '', 'sort_order' => 0],
+            ['name' => 'Fotocromático&Bloqueo de luz azul', 'handle' => 'fotocromaticobloqueo-de-luz-azul', 'description' => '', 'sort_order' => 0],
+            ['name' => 'Fotocromático&visión nocturna', 'handle' => 'fotocromaticovision-nocturna', 'description' => '', 'sort_order' => 0],
+        ] as $data) {
+            $lensTypes[$data['handle']] = LensType::create($data);
+        }
+
+        $lensUses = [];
+        foreach ([
+            ['name' => 'Distancia', 'description' => 'Lentes de distancias bla bla', 'sort_order' => 1, 'prescription_type_id' => $ptDistancia->id],
+            ['name' => 'Lectura', 'description' => 'Lentes de lectura y bla bla', 'sort_order' => 2, 'prescription_type_id' => $ptLectura->id],
+            ['name' => 'Bifocales', 'description' => 'Lentes bifocales y bla bla', 'sort_order' => 3, 'prescription_type_id' => $ptBifocales->id],
+            ['name' => 'Progresivo', 'description' => '', 'sort_order' => 2, 'prescription_type_id' => $ptProgresivo->id],
+            ['name' => 'Lentes Funcionales', 'description' => '', 'sort_order' => 0, 'prescription_type_id' => null],
+        ] as $data) {
+            $lensUses[$data['name']] = LensUse::create($data);
+        }
+
+        // Valid LensType <-> LensUse pivot combinations
+        $pivot = [
+            'fotocromatico-simple' => ['Distancia', 'Progresivo'],
+            'gafas-polarizadas' => ['Distancia', 'Progresivo'],
+            'tenido-de-color' => ['Bifocales'],
+            'bloqueo-de-luz-azul' => ['Lectura', 'Lentes Funcionales'],
+            'transparente' => ['Lectura', 'Lentes Funcionales'],
+            'fotocromaticobloqueo-de-luz-azul' => ['Lentes Funcionales'],
+            'fotocromaticovision-nocturna' => ['Lentes Funcionales'],
+        ];
+
+        foreach ($pivot as $lensTypeHandle => $lensUseNames) {
+            foreach ($lensUseNames as $lensUseName) {
+                $lensTypes[$lensTypeHandle]->lensUses()->attach($lensUses[$lensUseName]->id);
+            }
+        }
+    }
+
+    private function prescriptionFieldSeeding(): void
+    {
+        $fields = [];
+        foreach ([
+            ['key' => 'esfera',            'label' => 'Esfera',             'min' => -20.00, 'max' => 20.00, 'step' => 0.25, 'sort_order' => 1],
+            ['key' => 'cilindro',          'label' => 'Cilindro',           'min' => -8.00,  'max' => 8.00,  'step' => 0.25, 'sort_order' => 2],
+            ['key' => 'eje',               'label' => 'Eje',                'min' => 0,      'max' => 180,   'step' => 1.00, 'sort_order' => 3],
+            ['key' => 'add',               'label' => 'Add',                'min' => 0.75,   'max' => 4.00,  'step' => 0.25, 'sort_order' => 4],
+            ['key' => 'distancia_pupilar', 'label' => 'Distancia Pupilar',  'min' => 50.00,  'max' => 80.00, 'step' => 0.50, 'sort_order' => 5],
+        ] as $data) {
+            $fields[$data['key']] = PrescriptionField::create($data);
+        }
+
+        // Each type attaches its fields in clinical order with sort_order on the pivot
+        $typeFields = [
+            'Receta Lentes Disntacia'    => ['esfera', 'cilindro', 'eje', 'distancia_pupilar'],
+            'Receta Lentes de Lectura'   => ['esfera', 'cilindro', 'eje', 'distancia_pupilar'],
+            'Recetas Lentes Bifocales'   => ['esfera', 'cilindro', 'eje', 'add', 'distancia_pupilar'],
+            'Recetas Lentes Progresivos' => ['esfera', 'cilindro', 'eje', 'add', 'distancia_pupilar'],
+        ];
+
+        foreach ($typeFields as $typeName => $fieldKeys) {
+            $type = PrescriptionType::where('name', $typeName)->first();
+            foreach ($fieldKeys as $order => $key) {
+                $type?->prescriptionFields()->attach($fields[$key]->id, ['sort_order' => $order + 1]);
+            }
+        }
+    }
+
     private function brandSeeding(): void
     {
         $brands = [
@@ -153,10 +257,12 @@ class BasicConfig extends Seeder
         ]);
 
         $categories = [
-            ['name' => 'Lentes de Sol', 'handle' => 'lentes-de-sol'],
-            ['name' => 'Niños', 'handle' => 'ninos'],
+            ['name' => 'Destacados',          'handle' => 'destacados'],
+            ['name' => 'Ofertas',             'handle' => 'ofertas'],
+            ['name' => 'Lentes de Sol',       'handle' => 'lentes-de-sol'],
+            ['name' => 'Niños',               'handle' => 'ninos'],
             ['name' => 'Armazones de Receta', 'handle' => 'armazones-de-receta'],
-            ['name' => 'Armazones Clip On', 'handle' => 'armazones-clip-on'],
+            ['name' => 'Armazones Clip On',   'handle' => 'armazones-clip-on'],
         ];
 
         foreach ($categories as $category) {

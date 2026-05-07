@@ -18,11 +18,13 @@ return new class extends Migration
         });
 
         // Step 2: Drop the unique index and the columns no longer needed.
+        // dropForeign removes the FK constraint AND its backing index — required on MySQL
+        // before dropping the index or column directly.
         Schema::table($this->prefix.'product_lens_configurations', function (Blueprint $table) {
             $table->dropUnique('opt_plc_unique');
-            $table->dropIndex('opt_product_lens_configurations_lens_use_id_foreign');
-            $table->dropIndex('opt_product_lens_configurations_lens_type_id_foreign');
-            $table->dropIndex('opt_product_lens_configurations_lens_quality_id_foreign');
+            $table->dropForeign(['lens_use_id']);
+            $table->dropForeign(['lens_type_id']);
+            $table->dropForeign(['lens_quality_id']);
             $table->dropColumn(['lens_use_id', 'lens_type_id', 'lens_quality_id']);
         });
 

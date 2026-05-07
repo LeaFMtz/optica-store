@@ -11,11 +11,10 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -31,7 +30,7 @@ class LensTypeResource extends Resource
 
     protected static ?string $navigationLabel = 'Tipos de Lente';
 
-    protected static ?string $label = 'Tipo de Lente';
+    protected static ?string $label = 'Tipo de Lens';
 
     protected static ?string $pluralLabel = 'Tipos de Lente';
 

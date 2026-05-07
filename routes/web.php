@@ -21,19 +21,9 @@ use App\Http\Controllers\LensConfigurationController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RefundPolicyController;
 use App\Http\Controllers\SearchController;
-// use App\Livewire\CheckoutPage;       // Wave 6: replaced by CheckoutController
-// use App\Livewire\CheckoutSuccessPage; // Wave 6: replaced by CheckoutSuccessController
-// use App\Livewire\ContactPage;   // migrated to ContactController (Wave 2)
-// use App\Livewire\FaqPage;       // migrated to FaqController (Wave 2)
-// use App\Livewire\CollectionPage;    // migrated to CollectionController (Wave 3)
-// use App\Livewire\Home;              // migrated to HomeController (Wave 1)
-// use App\Livewire\ProductPage;       // migrated to ProductController (Wave 4)
-// use App\Livewire\RefundPolicyPage;  // migrated to RefundPolicyController (Wave 2)
-// use App\Livewire\SearchPage;        // migrated to SearchController (Wave 3)
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-// Route::get('/', Home::class);       // Wave 1: replaced
 Route::get('/', HomeController::class)->name('home');
 
 Route::get('/login', LoginController::class)->name('login')->middleware('guest');
