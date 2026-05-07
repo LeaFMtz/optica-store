@@ -9,6 +9,7 @@ const emit = defineEmits(['close', 'cartUpdated'])
 
 const lines       = ref([])
 const count       = ref(0)
+const cartTotal   = ref(null)
 const loading     = ref(false)
 const error       = ref(null)
 const updatingId  = ref(null)
@@ -27,8 +28,9 @@ async function fetchCart() {
       credentials: 'same-origin',
     })
     const data = await res.json()
-    lines.value = data.lines ?? []
-    count.value = data.count ?? 0
+    lines.value     = data.lines ?? []
+    count.value     = data.count ?? 0
+    cartTotal.value = data.cart_total ?? null
     emit('cartUpdated', data.count ?? 0)
   } catch {
     error.value = 'No se pudo cargar el carrito.'
@@ -44,8 +46,9 @@ async function updateQuantity(lineId, quantity) {
   try {
     const res  = await apiRequest(`/cart/lines/${lineId}`, 'PATCH', { quantity })
     const data = await res.json()
-    lines.value = data.lines ?? []
-    count.value = data.count ?? 0
+    lines.value     = data.lines ?? []
+    count.value     = data.count ?? 0
+    cartTotal.value = data.cart_total ?? null
     emit('cartUpdated', data.count ?? 0)
   } catch {
     error.value = 'Error al actualizar la cantidad.'
@@ -60,8 +63,9 @@ async function removeLine(lineId) {
   try {
     const res  = await apiRequest(`/cart/lines/${lineId}`, 'DELETE')
     const data = await res.json()
-    lines.value = data.lines ?? []
-    count.value = data.count ?? 0
+    lines.value     = data.lines ?? []
+    count.value     = data.count ?? 0
+    cartTotal.value = data.cart_total ?? null
     emit('cartUpdated', data.count ?? 0)
   } catch {
     error.value = 'Error al eliminar el producto.'
@@ -265,6 +269,10 @@ function childrenOf(parentId) {
                     {{ child.description }}
                   </p>
                   <p class="text-[9px] font-bold text-primary-400 mt-0.5">{{ child.unit_price }}</p>
+                  <p
+                    v-if="child.prescription_summary"
+                    class="text-[8px] text-gray-400 font-medium mt-0.5 leading-relaxed whitespace-pre-line"
+                  >{{ child.prescription_summary }}</p>
                 </div>
                 <span class="text-[9px] font-black text-gray-500">{{ child.sub_total }}</span>
 
@@ -282,6 +290,10 @@ function childrenOf(parentId) {
 
       <!-- Footer -->
       <div v-if="lines.length > 0" class="border-t border-gray-100 px-6 py-6 space-y-4">
+        <div v-if="cartTotal" class="flex items-center justify-between">
+          <span class="text-[9px] font-black text-gray-500 uppercase tracking-widest">Total</span>
+          <span class="text-sm font-black text-gray-900">{{ cartTotal }}</span>
+        </div>
         <a
           :href="route('checkout.view')"
           class="block w-full h-14 bg-black text-white text-[10px] font-bold uppercase tracking-[0.3em] rounded-xl hover:bg-primary-500 hover:text-black transition-all duration-500 flex items-center justify-center shadow-lg shadow-black/5 hover:shadow-primary-500/20"

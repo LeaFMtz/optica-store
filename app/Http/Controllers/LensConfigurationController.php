@@ -85,20 +85,19 @@ class LensConfigurationController extends Controller
             }
 
             $crystal = $config->crystalProduct;
+            $crystalVariant = $crystal?->variants->first();
 
             $effectivePrice = $config->price_override;
 
-            if ($effectivePrice === null && $crystal !== null) {
-                $variant = $crystal->variants->first();
-                if ($variant !== null) {
-                    $pricing = Pricing::for($variant)->get();
-                    $effectivePrice = $pricing->matched?->price?->value ?? 0;
-                }
+            if ($effectivePrice === null && $crystalVariant !== null) {
+                $pricing = Pricing::for($crystalVariant)->get();
+                $effectivePrice = $pricing->matched?->price?->value ?? 0;
             }
 
             $usesById[$useId]['types'][$typeIndex]['crystals'][] = [
                 'configuration_id' => $config->id,
                 'crystal_product_id' => $config->crystal_product_id,
+                'crystal_variant_id' => $crystalVariant?->id,
                 'name' => $crystal?->translateAttribute('name') ?? '—',
                 'price_override' => $config->price_override,
                 'effective_price' => $effectivePrice ?? 0,

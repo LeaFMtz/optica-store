@@ -23,6 +23,7 @@ class CartController extends Controller
         return response()->json([
             'lines' => $this->serializeLines(),
             'count' => CartSession::current()?->lines?->sum('quantity') ?? 0,
+            'cart_total' => CartSession::current()?->total?->formatted(),
         ]);
     }
 
@@ -68,9 +69,14 @@ class CartController extends Controller
 
         CartSession::manager()->add($variant, (int) $validated['quantity'], $meta);
 
+        $cart = CartSession::current();
+        $newLineId = CartLine::where('cart_id', $cart?->id)->orderByDesc('id')->value('id');
+
         return response()->json([
             'lines' => $this->serializeLines(),
-            'count' => CartSession::current()?->lines?->sum('quantity') ?? 0,
+            'count' => $cart?->lines?->sum('quantity') ?? 0,
+            'cart_total' => $cart?->total?->formatted(),
+            'new_line_id' => $newLineId,
         ]);
     }
 
@@ -91,6 +97,7 @@ class CartController extends Controller
         return response()->json([
             'lines' => $this->serializeLines(),
             'count' => CartSession::current()?->lines?->sum('quantity') ?? 0,
+            'cart_total' => CartSession::current()?->total?->formatted(),
         ]);
     }
 
@@ -109,13 +116,14 @@ class CartController extends Controller
         return response()->json([
             'lines' => $this->serializeLines(),
             'count' => CartSession::current()?->lines?->sum('quantity') ?? 0,
+            'cart_total' => CartSession::current()?->total?->formatted(),
         ]);
     }
 
     /**
      * Serialize the current cart lines to a plain array.
      *
-     * @return list<array{id: int, identifier: string, quantity: int, description: string, thumbnail: string|null, option: string|null, options: string, sub_total: string, unit_price: string, meta: array<string, mixed>|null}>
+     * @return list<array{id: int, variant_id: int, identifier: string, quantity: int, description: string, thumbnail: string|null, option: string|null, options: string, sub_total: string, unit_price: string, meta: array<string, mixed>|null, prescription_summary: string|null}>
      */
     private function serializeLines(): array
     {
@@ -126,6 +134,8 @@ class CartController extends Controller
         }
 
         return $cart->lines->map(function ($line) {
+            $meta = $line->meta ? (array) $line->meta : null;
+
             return [
                 'id' => $line->id,
                 'variant_id' => $line->purchasable_id,
@@ -137,8 +147,58 @@ class CartController extends Controller
                 'options' => $line->purchasable->getOptions()->implode(' / '),
                 'sub_total' => $line->subTotal->formatted(),
                 'unit_price' => $line->unitPrice->formatted(),
-                'meta' => $line->meta ? (array) $line->meta : null,
+                'meta' => $meta,
+                'prescription_summary' => $this->buildPrescriptionSummary($meta),
             ];
         })->values()->all();
+    }
+
+    /**
+     * Build a human-readable prescription summary from meta.prescription_data.
+     *
+     * Iterates dynamically over whatever field keys exist — no hardcoded field names.
+     *
+     * @param  array<string, mixed>|null  $meta
+     */
+    private function buildPrescriptionSummary(?array $meta): ?string
+    {
+        $data = $meta['prescription_data'] ?? null;
+
+        if (empty($data)) {
+            return null;
+        }
+
+        $parts = [];
+
+        foreach (['od' => 'OD', 'oi' => 'OI'] as $prefix => $label) {
+            $eyeParts = [];
+            foreach ($data as $key => $value) {
+                if (!str_starts_with($key, "{$prefix}_")) {
+                    continue;
+                }
+                if ($value === null || $value === '') {
+                    continue;
+                }
+                $fieldKey = substr($key, strlen("{$prefix}_"));
+                $fieldLabel = ucfirst(substr($fieldKey, 0, 3));
+                if (is_numeric($value)) {
+                    $formatted = (float) $value >= 0 ? "+{$value}" : (string) $value;
+                } else {
+                    $formatted = (string) $value;
+                }
+                $eyeParts[] = "{$fieldLabel} {$formatted}";
+            }
+            if (!empty($eyeParts)) {
+                $parts[] = "{$label}: " . implode(' · ', $eyeParts);
+            }
+        }
+
+        if (isset($data['pd']) && $data['pd'] !== null && $data['pd'] !== '') {
+            $parts[] = "DP: {$data['pd']}";
+        } elseif (isset($data['pd_od']) || isset($data['pd_oi'])) {
+            $parts[] = "DP: " . ($data['pd_od'] ?? '—') . '/' . ($data['pd_oi'] ?? '—');
+        }
+
+        return !empty($parts) ? implode("\n", $parts) : null;
     }
 }

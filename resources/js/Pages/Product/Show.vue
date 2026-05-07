@@ -227,6 +227,10 @@ function closeConfigurator() {
 const cartError  = ref(null)
 const addingCart = ref(false)
 
+// ─── Duplicate frame detection modal ─────────────────────────────────────────
+const duplicateModalOpen = ref(false)
+const existingFrameLine  = ref(null)
+
 async function addFrameOnly() {
   cartError.value  = null
   addingCart.value = true
@@ -236,13 +240,31 @@ async function addFrameOnly() {
       cartError.value = 'No se encontró variante disponible.'
       return
     }
-    await postToCart(firstVariantId, 1)
+    await postToCartRaw(firstVariantId, 1)
     if (openCartSidebar) openCartSidebar()
   } catch (err) {
     cartError.value = err.message ?? 'Error al agregar al carrito.'
   } finally {
     addingCart.value = false
   }
+}
+
+function buildPrescriptionData() {
+  if (!requiresPrescription.value) return null
+  const data = {}
+  tableFields.value.forEach(f => {
+    data[`od_${f.key}`] = prescriptionValues.value[`od_${f.key}`]
+    data[`oi_${f.key}`] = prescriptionValues.value[`oi_${f.key}`]
+  })
+  if (pdField.value) {
+    if (doublePd.value) {
+      data.pd_od = prescriptionValues.value.pd_od
+      data.pd_oi = prescriptionValues.value.pd_oi
+    } else {
+      data.pd = prescriptionValues.value.pd
+    }
+  }
+  return data
 }
 
 async function confirmAddWithLens() {
@@ -253,27 +275,77 @@ async function confirmAddWithLens() {
     const frameVariantId = getFirstVariantId()
     if (!frameVariantId) throw new Error('No se encontró variante del marco.')
 
-    let prescriptionData = null
-    if (requiresPrescription.value) {
-      prescriptionData = {}
-      tableFields.value.forEach(f => {
-        prescriptionData[`od_${f.key}`] = prescriptionValues.value[`od_${f.key}`]
-        prescriptionData[`oi_${f.key}`] = prescriptionValues.value[`oi_${f.key}`]
-      })
-      if (pdField.value) {
-        if (doublePd.value) {
-          prescriptionData.pd_od = prescriptionValues.value.pd_od
-          prescriptionData.pd_oi = prescriptionValues.value.pd_oi
-        } else {
-          prescriptionData.pd = prescriptionValues.value.pd
-        }
-      }
+    const crystalVariantId = selectedCrystal.value.crystal_variant_id
+    if (!crystalVariantId) throw new Error('No se encontró variante del cristal.')
+
+    const prescriptionData = buildPrescriptionData()
+
+    // Check if this frame is already in the cart
+    const cartRes = await fetch('/cart', {
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin',
+    })
+    const cartData = await cartRes.json()
+    const found = (cartData.lines ?? []).find(
+      l => l.variant_id === frameVariantId && !l.meta?.parent_line_id,
+    )
+
+    if (found) {
+      existingFrameLine.value = found
+      duplicateModalOpen.value = true
+      addingCart.value = false
+      return
     }
 
-    await postToCartRaw(frameVariantId, 1, null, selectedCrystal.value.configuration_id, prescriptionData)
+    await doAddCombo(frameVariantId, crystalVariantId, prescriptionData)
+  } catch (err) {
+    cartError.value = err.message ?? 'Error al agregar al carrito.'
+  } finally {
+    addingCart.value = false
+  }
+}
 
-    closeConfigurator()
-    if (openCartSidebar) openCartSidebar()
+async function doAddCombo(frameVariantId, crystalVariantId, prescriptionData) {
+  const frameRes = await postToCartRaw(frameVariantId, 1)
+  const frameLineId = frameRes.new_line_id
+  if (!frameLineId) throw new Error('No se pudo identificar la línea del marco.')
+  await postToCartRaw(crystalVariantId, 1, frameLineId, selectedCrystal.value.configuration_id, prescriptionData)
+  closeConfigurator()
+  if (openCartSidebar) openCartSidebar()
+}
+
+async function doAddLensOnly(parentLineId, crystalVariantId, prescriptionData) {
+  await postToCartRaw(crystalVariantId, 1, parentLineId, selectedCrystal.value.configuration_id, prescriptionData)
+  duplicateModalOpen.value = false
+  existingFrameLine.value  = null
+  closeConfigurator()
+  if (openCartSidebar) openCartSidebar()
+}
+
+async function chooseDuplicateCombo() {
+  cartError.value  = null
+  addingCart.value = true
+  try {
+    const frameVariantId   = getFirstVariantId()
+    const crystalVariantId = selectedCrystal.value.crystal_variant_id
+    const prescriptionData = buildPrescriptionData()
+    duplicateModalOpen.value = false
+    existingFrameLine.value  = null
+    await doAddCombo(frameVariantId, crystalVariantId, prescriptionData)
+  } catch (err) {
+    cartError.value = err.message ?? 'Error al agregar al carrito.'
+  } finally {
+    addingCart.value = false
+  }
+}
+
+async function chooseDuplicateLensOnly() {
+  cartError.value  = null
+  addingCart.value = true
+  try {
+    const crystalVariantId = selectedCrystal.value.crystal_variant_id
+    const prescriptionData = buildPrescriptionData()
+    await doAddLensOnly(existingFrameLine.value.id, crystalVariantId, prescriptionData)
   } catch (err) {
     cartError.value = err.message ?? 'Error al agregar al carrito.'
   } finally {
@@ -283,9 +355,9 @@ async function confirmAddWithLens() {
 
 async function postToCartRaw(variantId, quantity, parentLineId = null, lensConfigurationId = null, prescriptionData = null) {
   const body = { variant_id: variantId, quantity }
-  if (parentLineId) body.parent_line_id = parentLineId
+  if (parentLineId)       body.parent_line_id        = parentLineId
   if (lensConfigurationId) body.lens_configuration_id = lensConfigurationId
-  if (prescriptionData) body.prescription_data = prescriptionData
+  if (prescriptionData)   body.prescription_data     = prescriptionData
 
   const response = await fetch('/cart/lines', {
     method:  'POST',
@@ -302,10 +374,6 @@ async function postToCartRaw(variantId, quantity, parentLineId = null, lensConfi
   const json = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(json.message ?? 'Error de servidor.')
   return json
-}
-
-async function postToCart(variantId, quantity) {
-  await postToCartRaw(variantId, quantity)
 }
 
 function getCookie(name) {
@@ -843,6 +911,46 @@ function formatPrice(cents) {
               <p class="text-[9px] font-black uppercase tracking-wider text-gray-900">{{ selectedCrystal.name }}</p>
               <p class="text-xs font-bold text-primary-500">{{ formatPrice(selectedCrystal.effective_price) }}</p>
             </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Modal: marco ya en carrito -->
+    <Teleport to="body">
+      <div
+        v-if="duplicateModalOpen"
+        class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+      >
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="duplicateModalOpen = false" />
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col gap-6">
+          <div>
+            <h3 class="text-sm font-black uppercase tracking-tight text-gray-900 mb-2">Marco ya en el carrito</h3>
+            <p class="text-[10px] text-gray-500 font-medium leading-relaxed">
+              Este marco ya está en tu carrito. ¿Querés agregar el combo completo o solo los lentes al marco existente?
+            </p>
+          </div>
+          <div class="flex flex-col gap-3">
+            <button
+              :disabled="addingCart"
+              class="w-full h-12 bg-black text-white text-[10px] font-bold uppercase tracking-[0.2em] rounded-xl hover:bg-primary-500 hover:text-black transition-all duration-300 disabled:opacity-50"
+              @click="chooseDuplicateCombo"
+            >
+              Agregar combo completo
+            </button>
+            <button
+              :disabled="addingCart"
+              class="w-full h-12 border-2 border-gray-200 text-gray-700 text-[10px] font-bold uppercase tracking-[0.2em] rounded-xl hover:border-primary-500 hover:text-primary-500 transition-all duration-300 disabled:opacity-50"
+              @click="chooseDuplicateLensOnly"
+            >
+              Solo agregar los lentes
+            </button>
+            <button
+              class="text-[9px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-700 transition-colors mt-1"
+              @click="duplicateModalOpen = false"
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       </div>
