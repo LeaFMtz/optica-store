@@ -115,6 +115,7 @@ return [
             Lunar\Pipelines\Order\Creation\CreateShippingLine::class,
             Lunar\Pipelines\Order\Creation\CleanUpOrderLines::class,
             Lunar\Pipelines\Order\Creation\MapDiscountBreakdown::class,
+            App\Pipelines\Order\Creation\DecrementStock::class,
         ],
     ],
 

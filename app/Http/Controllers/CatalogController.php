@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Lunar\Facades\Pricing;
-use Lunar\Models\Product;
 
 class CatalogController extends Controller
 {
@@ -47,12 +47,13 @@ class CatalogController extends Controller
             'price_formatted' => $priceFormatted,
             'base_price_formatted' => $basePriceFormatted,
             'discount_percentage' => $discountPercentage,
+            'in_stock' => $variant ? $variant->canBeFulfilledAtQuantity(1) : false,
         ];
     }
 
     public function __invoke(Request $request): Response
     {
-        $paginator = Product::query()
+        $paginator = Product::browsable()
             ->with(['variants.basePrices', 'defaultUrl', 'thumbnail'])
             ->paginate(12);
 

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Lunar\Facades\Pricing;
 use Lunar\Models\Collection as CollectionModel;
-use Lunar\Models\Product;
 use Lunar\Models\Url;
 
 class CollectionController extends Controller
@@ -49,6 +49,7 @@ class CollectionController extends Controller
             'price_formatted' => $priceFormatted,
             'base_price_formatted' => $basePriceFormatted,
             'discount_percentage' => $discountPercentage,
+            'in_stock' => $variant ? $variant->canBeFulfilledAtQuantity(1) : false,
         ];
     }
 
@@ -58,12 +59,7 @@ class CollectionController extends Controller
         $url = Url::whereElementType((new CollectionModel)->getMorphClass())
             ->whereDefault(true)
             ->whereSlug($slug)
-            ->with([
-                'element.thumbnail',
-                'element.products.variants.basePrices',
-                'element.products.defaultUrl',
-                'element.products.thumbnail',
-            ])
+            ->with(['element.thumbnail'])
             ->first();
 
         if (!$url) {
@@ -73,7 +69,10 @@ class CollectionController extends Controller
         /** @var CollectionModel $collection */
         $collection = $url->element;
 
-        $products = $collection->products
+        $products = $collection->products()
+            ->browsable()
+            ->with(['variants.basePrices', 'defaultUrl', 'thumbnail'])
+            ->get()
             ->map(fn (Product $product) => $this->serializeProduct($product))
             ->values()
             ->all();

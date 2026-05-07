@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Models\Banner;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Lunar\Facades\Pricing;
 use Lunar\Models\Collection;
-use Lunar\Models\Product;
-use Lunar\Models\Url;
 
 class HomeController extends Controller
 {
@@ -51,6 +50,7 @@ class HomeController extends Controller
             'price_formatted' => $priceFormatted,
             'base_price_formatted' => $basePriceFormatted,
             'discount_percentage' => $discountPercentage,
+            'in_stock' => $variant ? $variant->canBeFulfilledAtQuantity(1) : false,
         ];
     }
 
@@ -109,32 +109,33 @@ class HomeController extends Controller
             'url' => $newsletterBannerModel->url ?? null,
         ] : null;
 
-        /** @var Collection|null $saleCollection */
-        $saleCollection = Url::whereElementType((new Collection)->getMorphClass())
-            ->whereSlug('sale')
-            ->first()
-            ?->element;
+        $productWith = ['thumbnail', 'variants', 'variants.prices', 'defaultUrl'];
 
-        $saleProducts = [];
+        /** @var Collection|null $featuredCollection */
+        $featuredCollection = Collection::whereJsonContains('attribute_data->name->value', 'Destacados')->first();
 
-        if ($saleCollection) {
-            $saleProducts = $saleCollection
-                ->products()
-                ->with(['thumbnail', 'variants', 'variants.prices', 'defaultUrl'])
-                ->get()
-                ->map(fn ($product) => $this->serializeProduct($product))
-                ->values()
-                ->all();
-        }
+        $featuredProducts = $featuredCollection
+            ? $featuredCollection->products()->browsable()->with($productWith)->get()
+                ->map(fn ($p) => $this->serializeProduct($p))->values()->all()
+            : [];
 
-        $randomCollectionQuery = Url::whereElementType((new Collection)->getMorphClass());
+        /** @var Collection|null $offersCollection */
+        $offersCollection = Collection::whereJsonContains('attribute_data->name->value', 'Ofertas')->first();
 
-        if ($saleCollection) {
-            $randomCollectionQuery->where('element_id', '!=', $saleCollection->id);
-        }
+        $offerProducts = $offersCollection
+            ? $offersCollection->products()->browsable()->with($productWith)->get()
+                ->map(fn ($p) => $this->serializeProduct($p))->values()->all()
+            : [];
+
+        $homeCollectionIds = Collection::where(function ($q) {
+            $q->whereJsonContains('attribute_data->name->value', 'Destacados')
+                ->orWhereJsonContains('attribute_data->name->value', 'Ofertas');
+        })->pluck('id');
 
         /** @var Collection|null $randomCollection */
-        $randomCollection = $randomCollectionQuery->inRandomOrder()->first()?->element;
+        $randomCollection = Collection::whereNotIn('id', $homeCollectionIds)
+            ->inRandomOrder()
+            ->first();
 
         $randomCollectionProducts = [];
         $randomCollectionName = null;
@@ -145,7 +146,8 @@ class HomeController extends Controller
             $randomCollectionSlug = $randomCollection->defaultUrl?->slug;
             $randomCollectionProducts = $randomCollection
                 ->products()
-                ->with(['thumbnail', 'variants', 'variants.prices', 'defaultUrl'])
+                ->browsable()
+                ->with($productWith)
                 ->get()
                 ->map(fn ($product) => $this->serializeProduct($product))
                 ->values()
@@ -157,8 +159,8 @@ class HomeController extends Controller
             'middleBanners' => $middleBanners,
             'bottomBanners' => $bottomBanners,
             'newsletterBanner' => $newsletterBanner,
-            'saleProducts' => $saleProducts,
-            'saleCollectionSlug' => $saleCollection?->defaultUrl?->slug,
+            'featuredProducts' => $featuredProducts,
+            'offerProducts' => $offerProducts,
             'randomCollectionName' => $randomCollectionName,
             'randomCollectionSlug' => $randomCollectionSlug,
             'randomCollectionProducts' => $randomCollectionProducts,

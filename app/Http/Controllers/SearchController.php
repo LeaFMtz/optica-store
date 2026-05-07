@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Lunar\Facades\Pricing;
-use Lunar\Models\Product;
 
 class SearchController extends Controller
 {
@@ -47,6 +47,7 @@ class SearchController extends Controller
             'price_formatted' => $priceFormatted,
             'base_price_formatted' => $basePriceFormatted,
             'discount_percentage' => $discountPercentage,
+            'in_stock' => $variant ? $variant->canBeFulfilledAtQuantity(1) : false,
         ];
     }
 

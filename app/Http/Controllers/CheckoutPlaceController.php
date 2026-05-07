@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Lunar\Facades\CartSession;
+use Lunar\Models\ProductVariant;
 
 class CheckoutPlaceController extends Controller
 {
@@ -32,6 +33,20 @@ class CheckoutPlaceController extends Controller
 
         if (!$cart->shippingAddress->shipping_option) {
             return response()->json(['message' => 'A shipping option must be selected.'], 422);
+        }
+
+        foreach ($cart->lines as $line) {
+            if ($line->purchasable_type !== 'product_variant') {
+                continue;
+            }
+
+            $variant = ProductVariant::find($line->purchasable_id);
+
+            if ($variant && ! $variant->canBeFulfilledAtQuantity($line->quantity)) {
+                return response()->json([
+                    'message' => 'Uno o más productos ya no tienen stock suficiente para completar el pedido.',
+                ], 422);
+            }
         }
 
         // createOrder(forget: true) converts the cart into an order and clears the session.

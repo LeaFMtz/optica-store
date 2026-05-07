@@ -5,11 +5,24 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Filament\Resources\BannerResource;
+use App\Filament\Resources\LensTypeResource;
+use App\Filament\Resources\LensUseResource;
+use App\Filament\Resources\OrderResource\Pages\Components\OrderItemsTableExtension;
+use App\Filament\Resources\OrderResource\Pages\ManageOrderExtension;
+use App\Filament\Resources\PrescriptionFieldResource;
+use App\Filament\Resources\PrescriptionTypeResource;
+use App\Filament\Resources\ProductResourceExtension;
+use Lunar\Admin\Filament\Resources\OrderResource\Pages\Components\OrderItemsTable;
+use Lunar\Admin\Filament\Resources\OrderResource\Pages\ManageOrder;
+
+use App\Models\Product as AppProduct;
 use App\Modifiers\ShippingModifier;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Admin\Support\Facades\LunarPanel;
 use Lunar\Base\ShippingModifiers;
+use Lunar\Facades\ModelManifest;
 use Lunar\Facades\Telemetry;
+use Lunar\Models\Contracts\Product;
 use Lunar\Shipping\ShippingPlugin;
 
 class AppServiceProvider extends ServiceProvider
@@ -26,6 +39,11 @@ class AppServiceProvider extends ServiceProvider
                 ])
                 ->resources([
                     BannerResource::class,
+                    LensUseResource::class,
+                    LensTypeResource::class,
+                    PrescriptionTypeResource::class,
+                    PrescriptionFieldResource::class,
+                    ProductResourceExtension::class,
                 ])
                 ->path('panel')
                 ->brandName('Óptica Guzmán')
@@ -46,6 +64,16 @@ class AppServiceProvider extends ServiceProvider
     {
         $shippingModifiers->add(
             ShippingModifier::class,
+        );
+
+        LunarPanel::extensions([
+            OrderItemsTable::class => OrderItemsTableExtension::class,
+            ManageOrder::class => ManageOrderExtension::class,
+        ]);
+
+        ModelManifest::replace(
+            Product::class,
+            AppProduct::class,
         );
 
         Telemetry::optOut();

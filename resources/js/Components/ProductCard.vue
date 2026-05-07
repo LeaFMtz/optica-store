@@ -20,6 +20,13 @@ defineProps({
       </span>
     </div>
 
+    <!-- Out of stock badge -->
+    <div v-if="product.in_stock === false" class="absolute top-4 right-4 z-20">
+      <span class="px-2.5 py-1 text-[9px] font-black tracking-widest text-white uppercase bg-gray-700 rounded-lg shadow-lg">
+        Sin Stock
+      </span>
+    </div>
+
     <!-- Product link -->
     <a
       :href="product.slug ? `/products/${product.slug}` : '#'"
