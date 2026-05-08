@@ -15,6 +15,11 @@ export default defineConfig(({}) => {
     server: {
       host: "0.0.0.0",
       port: 5173,
+      hmr: {
+        host: env.VITE_HMR_HOST || "localhost",
+        protocol: env.VITE_HMR_PROTOCOL || "ws",
+        clientPort: env.VITE_HMR_CLIENT_PORT || 5173,
+      },
       watch: {
         ignored: ["**/vendor/**", "**/storage/**", "**/.git/**"],
       },
