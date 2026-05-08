@@ -33,5 +33,3 @@ _ide_helper.php
 .phpstorm.meta.php
 .editorconfig
 /storage/media-library
-/docker/ssl/cert.pem
-/docker/ssl/key.pem

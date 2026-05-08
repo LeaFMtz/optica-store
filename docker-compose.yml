@@ -1,21 +1,4 @@
 services:
-  nginx-ssl:
-    image: docker.io/library/nginx:alpine
-    container_name: optica_nginx
-    restart: unless-stopped
-    ports:
-      - "${PORT_HTTP:-80}:80"
-      - "${PORT_HTTPS:-443}:443"
-    volumes:
-      - ./docker/ssl/nginx-ssl.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/ssl:/etc/nginx/ssl:ro
-      - .:/var/www/html:ro
-    networks:
-      - optica_network
-    depends_on:
-      app:
-        condition: service_healthy
-
   app:
     build:
       context: .
@@ -26,6 +9,7 @@ services:
     entrypoint: ["/var/www/html/docker/entrypoint.sh"]
     command: ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
     ports:
+      - "8080:80"
       - "5173:5173"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]
