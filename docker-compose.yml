@@ -4,8 +4,8 @@ services:
     container_name: optica_nginx
     restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
+      - "${PORT_HTTP:-80}:80"
+      - "${PORT_HTTPS:-443}:443"
     volumes:
       - ./docker/ssl/nginx-ssl.conf:/etc/nginx/nginx.conf:ro
       - ./docker/ssl:/etc/nginx/ssl:ro
