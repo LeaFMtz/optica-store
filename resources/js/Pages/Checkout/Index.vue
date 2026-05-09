@@ -13,6 +13,7 @@ const props = defineProps({
   savedAddress: { type: Object, default: null },
   countries: { type: Array, default: () => [] },
   hasDeliveryShipping: { type: Boolean, required: true },
+  paymentMethods: { type: Array, default: () => [] },
 })
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
@@ -61,6 +62,11 @@ const addressLoading = ref(false)
 const selectedShipping = ref(props.shippingOptions[0]?.identifier ?? null)
 const shippingErrors = ref({})
 const shippingLoading = ref(false)
+
+// ─── Payment method selection ───────────────────────────────────────────────────
+const selectedPayment = ref(null)
+const paymentErrors = ref({})
+const paymentLoading = ref(false)
 
 // ─── Place order ──────────────────────────────────────────────────────────────
 const placeLoading = ref(false)
@@ -167,8 +173,24 @@ async function placeOrder() {
   placeError.value = null
   placeLoading.value = true
   try {
-    const result = await jsonPost('/checkout/place', {})
-    router.visit(`/checkout/success?order=${encodeURIComponent(result.reference)}`)
+    // Prepare payment data
+    const paymentData = {}
+    
+    // Add payment type if selected
+    if (selectedPayment.value) {
+      paymentData.payment_type = selectedPayment.value
+    }
+    
+    const result = await jsonPost('/checkout/place', paymentData)
+    
+    // Handle Mercado Pago redirect vs normal success
+    if (result.redirect_url) {
+      // Mercado Pago payment - redirect to checkout.pro
+      window.location.href = result.redirect_url
+    } else {
+      // Cash-in-hand or other offline payment - normal flow
+      router.visit(`/checkout/success?order=${encodeURIComponent(result.reference)}`)
+    }
   } catch (err) {
     placeError.value = err.data?.message ?? 'Error al procesar el pedido. Intentá de nuevo.'
   } finally {
@@ -507,6 +529,52 @@ async function placeOrder() {
               <p class="text-xs font-bold text-gray-600 mb-6 leading-relaxed">
                 Revisá tu pedido antes de confirmar. Nos pondremos en contacto para coordinar la entrega.
               </p>
+
+              <!-- ─── Payment method selection ──────────────────────────────────────── -->
+              <div v-if="paymentMethods.length > 0" class="mb-6">
+                <div v-if="paymentErrors._general" class="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-[10px] font-bold text-red-600 uppercase tracking-widest">
+                  {{ paymentErrors._general[0] }}
+                </div>
+                <div class="mb-3 text-[10px] font-bold text-gray-900 uppercase tracking-widest">
+                  Método de Pago
+                </div>
+                <div class="space-y-3">
+                  <div v-for="method in paymentMethods" :key="method" class="flex items-center">
+                    <input
+                      :id="'payment-' + method"
+                      v-model="selectedPayment"
+                      class="hidden peer"
+                      type="radio"
+                      :value="method"
+                      name="paymentMethod"
+                    />
+                    <label
+                      :for="'payment-' + method"
+                      class="flex items-center justify-between w-full cursor-pointer p-3 border border-gray-200 rounded-lg peer-checked:border-primary-500 peer-checked:bg-primary-50 peer-checked:text-primary-600 hover:bg-gray-50 transition-colors"
+                    >
+                      <div class="flex items-center">
+                        <span v-if="method === 'mercadopago'" class="mr-3">
+                          💳
+                        </span>
+                        <span v-else-if="method === 'cash-in-hand'" class="mr-3">
+                          💵
+                        </span>
+                        <span class="font-medium">
+                          {{ method === 'mercadopago' ? 'Mercado Pago' : 'Efectivo' }}
+                        </span>
+                      </div>
+                      <span class="text-[9px] text-gray-500">
+                        {{ method === 'mercadopago' ? 'Pagar con tarjeta o efectivo en redes de pago' : 'Pagar al recibir el pedido' }}
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <div v-if="Object.keys(paymentErrors).length > 0" class="mt-3">
+                  <div v-for="error in Object.values(paymentErrors)" :key="error[0]" class="text-[9px] text-red-500 font-bold">
+                    {{ error[0] }}
+                  </div>
+                </div>
+              </div>
 
               <div
                 v-if="placeError"

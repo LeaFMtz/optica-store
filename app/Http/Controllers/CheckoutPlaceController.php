@@ -4,17 +4,23 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\PaymentTypes\MercadoPagoPayment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Lunar\Facades\CartSession;
+use Lunar\Facades\Payments;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\ProductVariant;
 
 class CheckoutPlaceController extends Controller
 {
     /**
-     * Place the order using Lunar's CartSession::createOrder().
-     * No payment processing — cash-in-hand / offline flow.
+     * Place the order.
+     *
+     * For cash-in-hand: creates the order directly via CartSession.
+     * For mercadopago: delegates to the MercadoPagoPayment driver, which
+     * creates a Checkout Pro Preference and returns the init_point URL
+     * so the frontend can redirect the buyer to MercadoPago.
      */
     public function __invoke(Request $request): JsonResponse
     {
@@ -55,7 +61,48 @@ class CheckoutPlaceController extends Controller
             }
         }
 
-        // createOrder(forget: true) converts the cart into an order and clears the session.
+        $paymentType = $request->input('payment_type', 'cash-in-hand');
+
+        if ($paymentType === 'mercadopago') {
+            return $this->handleMercadoPago($cart);
+        }
+
+        return $this->handleCashInHand($cart);
+    }
+
+    /**
+     * Process a MercadoPago Checkout Pro payment.
+     *
+     * The driver creates the order internally and returns the
+     * MercadoPago init_point URL for the frontend to redirect to.
+     */
+    private function handleMercadoPago($cart): JsonResponse
+    {
+        /** @var MercadoPagoPayment $driver */
+        $driver = Payments::driver('mercadopago');
+
+        $authorize = $driver->cart($cart)->authorize();
+
+        if ($authorize && $authorize->success) {
+            CartSession::forget();
+
+            return response()->json([
+                'reference' => $authorize->orderId ? (string) $authorize->orderId : null,
+                'order_id' => $authorize->orderId,
+                'redirect_url' => $authorize->message,
+            ]);
+        }
+
+        return response()->json([
+            'message' => $authorize?->message ?? 'Error al procesar el pago con Mercado Pago.',
+        ], 422);
+    }
+
+    /**
+     * Process a cash-in-hand / offline order.
+     */
+    private function handleCashInHand($cart): JsonResponse
+    {
         $order = CartSession::createOrder(forget: false);
 
         CartSession::forget();

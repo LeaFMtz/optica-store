@@ -9,6 +9,10 @@ return [
             'driver' => 'offline',
             'authorized' => 'payment-offline',
         ],
+        'mercadopago' => [
+            'driver' => 'mercadopago',
+            'authorized' => 'payment-pending',
+        ],
     ],
 
 ];

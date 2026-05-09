@@ -40,6 +40,22 @@
       "sessions": 1,
       "memories": 5,
       "prompts": 5
+    },
+    {
+      "id": "3165ed70",
+      "created_by": "clawbot",
+      "created_at": "2026-05-09T01:10:48Z",
+      "sessions": 8,
+      "memories": 5,
+      "prompts": 8
+    },
+    {
+      "id": "c71ebd5d",
+      "created_by": "clawbot",
+      "created_at": "2026-05-09T04:57:56Z",
+      "sessions": 3,
+      "memories": 3,
+      "prompts": 17
     }
   ]
 }
