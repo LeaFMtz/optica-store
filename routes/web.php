@@ -82,3 +82,11 @@ Route::get('preguntas-frecuentes', FaqController::class)->name('faq.view');
 
 // Route::get('politica-de-devolucion', RefundPolicyPage::class)->name('refund-policy.view');  // Wave 2: replaced
 Route::get('politica-de-devolucion', RefundPolicyController::class)->name('refund-policy.view');
+
+
+
+
+
+
+// MercadoPago Webhook (external, no CSRF)
+Route::post('/webhooks/mercadopago', [App\Http\Controllers\Webhooks\MercadoPagoController::class, '__invoke'])->name('webhooks.mercadopago');

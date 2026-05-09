@@ -12,6 +12,7 @@ use Lunar\Facades\CartSession;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Country;
 use Lunar\Models\ProductVariant;
+use Illuminate\Support\Facades\Config;
 
 class CheckoutController extends Controller
 {
@@ -95,6 +96,7 @@ class CheckoutController extends Controller
             'savedAddress' => $savedAddress,
             'countries' => $countries,
             'hasDeliveryShipping' => $hasDeliveryShipping,
+            'paymentMethods' => array_keys(Config::get('lunar.payments.types')),
         ]);
     }
 
