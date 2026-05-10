@@ -64,12 +64,12 @@ const selectedShipping = ref(props.shippingOptions[0]?.identifier ?? null)
 const shippingErrors = ref({})
 const shippingLoading = ref(false)
 
-// ─── Place order / CardForm (mp.cardForm) ─────────────────────────────────────
+// ─── Payment — Card Payment Brick ─────────────────────────────────────────────
 const payLoading = ref(false)
 const paymentError = ref(null)
 const mpReady = ref(false)
 
-let cardFormInstance = null
+let cardPaymentBrickController = null
 
 // ─── Cart totals (may update after shipping chosen) ───────────────────────────
 const cartTotal = ref(props.cart.total)
@@ -167,7 +167,7 @@ async function submitAddress() {
   }
 }
 
-// ─── CardForm (mp.cardForm — PCI-compliant iframe-based) ──────────────────────
+// ─── Card Payment Brick (designed for Orders API) ────────────────────────────
 
 const mpPublicKey = computed(() => page.props.mpPublicKey)
 
@@ -185,7 +185,7 @@ function loadMpSdk() {
   })
 }
 
-async function mountCardForm() {
+async function mountCardPaymentBrick() {
   paymentError.value = null
 
   if (!mpPublicKey.value) {
@@ -197,200 +197,96 @@ async function mountCardForm() {
     await loadMpSdk()
 
     const mp = new window.MercadoPago(mpPublicKey.value, { locale: 'es-AR' })
+    const bricksBuilder = mp.bricks()
 
-    cardFormInstance = mp.cardForm({
-      amount: String(props.cart.total_raw),
-      iframe: true,
-      form: {
-        id: 'form-checkout',
-        cardNumber: {
-          id: 'form-checkout__cardNumber',
-          placeholder: 'Número de tarjeta',
-          style: {
-            fontFamily: 'inherit',
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#111827',
+    cardPaymentBrickController = await bricksBuilder.create(
+      'cardPayment',
+      'cardPaymentBrick_container',
+      {
+        initialization: {
+          amount: props.cart.total_raw,
+          payer: {
+            email: address.value.contact_email || '',
           },
         },
-        expirationDate: {
-          id: 'form-checkout__expirationDate',
-          placeholder: 'MM/AA',
-          style: {
-            fontFamily: 'inherit',
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#111827',
+        customization: {
+          visual: {
+            style: { theme: 'default' },
+          },
+          paymentMethods: {
+            creditCard: 'all',
+            debitCard: 'all',
           },
         },
-        securityCode: {
-          id: 'form-checkout__securityCode',
-          placeholder: 'Código',
-          style: {
-            fontFamily: 'inherit',
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#111827',
+        callbacks: {
+          onReady: () => {
+            mpReady.value = true
           },
-        },
-        cardholderName: {
-          id: 'form-checkout__cardholderName',
-          placeholder: 'Como aparece en la tarjeta',
-          style: {
-            fontFamily: 'inherit',
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#111827',
+          onSubmit: (formData, additionalData) => {
+            payLoading.value = true
+            paymentError.value = null
+
+            return new Promise((resolve) => {
+              jsonPost('/checkout/payment', {
+                token: formData.token,
+                payment_method_id: formData.payment_method_id,
+                installments: formData.installments,
+                payment_type_id: additionalData?.paymentTypeId ?? 'credit_card',
+                payer: {
+                  email: formData.payer?.email || address.value.contact_email,
+                  identification: formData.payer?.identification || {},
+                },
+              })
+                .then((result) => {
+                  paymentError.value = null
+                  router.visit(`/checkout/success?order=${encodeURIComponent(result.reference)}`)
+                  resolve()
+                })
+                .catch((err) => {
+                  if (err.status === 422) {
+                    paymentError.value = err.data?.message ?? 'Pago rechazado. Verificá los datos de tu tarjeta.'
+                  } else {
+                    paymentError.value = err.data?.message ?? 'Error al procesar el pago. Intentá de nuevo más tarde.'
+                  }
+                  resolve() // always resolve so Brick re-enables the button
+                })
+                .finally(() => {
+                  payLoading.value = false
+                })
+            })
           },
-        },
-        issuer: {
-          id: 'form-checkout__issuer',
-          placeholder: 'Banco emisor',
-          style: {
-            fontFamily: 'inherit',
-            fontSize: '12px',
-            fontWeight: '700',
-            color: '#111827',
-          },
-        },
-        installments: {
-          id: 'form-checkout__installments',
-          placeholder: 'Cuotas',
-          style: {
-            fontFamily: 'inherit',
-            fontSize: '12px',
-            fontWeight: '700',
-            color: '#111827',
-          },
-        },
-        identificationType: {
-          id: 'form-checkout__identificationType',
-          placeholder: 'Tipo de documento',
-          style: {
-            fontFamily: 'inherit',
-            fontSize: '12px',
-            fontWeight: '700',
-            color: '#111827',
-          },
-        },
-        identificationNumber: {
-          id: 'form-checkout__identificationNumber',
-          placeholder: 'Nº de documento',
-          style: {
-            fontFamily: 'inherit',
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#111827',
-          },
-        },
-        cardholderEmail: {
-          id: 'form-checkout__cardholderEmail',
-          placeholder: 'E-mail',
-          style: {
-            fontFamily: 'inherit',
-            fontSize: '14px',
-            fontWeight: '600',
-            color: '#111827',
+          onError: (error) => {
+            console.error('Card Payment Brick error:', error)
+            paymentError.value = 'Error en el formulario de pago. Intentá de nuevo.'
           },
         },
       },
-      callbacks: {
-        onFormMounted: (error) => {
-          if (error) {
-            console.error('CardForm mount error:', error)
-            paymentError.value = 'No se pudo cargar el formulario de pago.'
-            return
-          }
-          mpReady.value = true
-        },
-        onSubmit: (event) => {
-          event.preventDefault()
-          payLoading.value = true
-          paymentError.value = null
-
-          const {
-            token,
-            paymentMethodId: payment_method_id,
-            issuerId: issuer_id,
-            cardholderEmail: email,
-            installments,
-            identificationNumber,
-            identificationType,
-          } = cardFormInstance.getCardFormData()
-
-          jsonPost('/checkout/payment', {
-            token,
-            payment_method_id,
-            issuer_id,
-            installments: Number(installments),
-            payer: {
-              email: email || address.value.contact_email,
-              identification: {
-                type: identificationType,
-                number: identificationNumber,
-              },
-            },
-          })
-            .then((result) => {
-              paymentError.value = null
-              router.visit(`/checkout/success?order=${encodeURIComponent(result.reference)}`)
-            })
-            .catch((err) => {
-              if (err.status === 422) {
-                paymentError.value = err.data?.message ?? 'Pago rechazado. Verificá los datos de tu tarjeta.'
-              } else {
-                paymentError.value = err.data?.message ?? 'Error al procesar el pago. Intentá de nuevo más tarde.'
-              }
-            })
-            .finally(() => {
-              payLoading.value = false
-            })
-        },
-        onFetching: (resource) => {
-          // Animate the progress bar while fetching BIN/installments
-          const progressBar = document.querySelector('.cardform-progress-bar')
-          if (progressBar) progressBar.removeAttribute('value')
-
-          return () => {
-            if (progressBar) progressBar.setAttribute('value', '0')
-          }
-        },
-        onError: (error) => {
-          console.error('CardForm error:', error)
-          paymentError.value = 'Error en el formulario de pago. Intentá de nuevo.'
-        },
-      },
-    })
+    )
   } catch (err) {
-    console.error('Error mounting CardForm:', err)
-    paymentError.value = 'No se pudo cargar MercadoPago. Recargá la página.'
+    console.error('Error mounting Card Payment Brick:', err)
+    paymentError.value = 'No se pudo cargar el formulario de pago.'
   }
 }
 
-function destroyCardForm() {
-  if (cardFormInstance) {
-    try {
-      cardFormInstance.unmount()
-    } catch {
-      // ignore unmount errors
-    }
-    cardFormInstance = null
+function destroyBrick() {
+  if (cardPaymentBrickController) {
+    try { cardPaymentBrickController.unmount() } catch { /* ignore */ }
+    cardPaymentBrickController = null
   }
   mpReady.value = false
 }
 
-// Mount/destroy CardForm when reaching the confirm step
 watch(currentStep, (step) => {
-  if (step === confirmStep.value && !cardFormInstance) {
-    setTimeout(() => mountCardForm(), 100)
-  } else if (step !== confirmStep.value && cardFormInstance) {
-    destroyCardForm()
+  if (step === confirmStep.value && !cardPaymentBrickController) {
+    setTimeout(() => mountCardPaymentBrick(), 100)
+  } else if (step !== confirmStep.value && cardPaymentBrickController) {
+    destroyBrick()
     paymentError.value = null
   }
 })
 
 onUnmounted(() => {
-  destroyCardForm()
+  destroyBrick()
 })
 </script>
 
@@ -711,7 +607,7 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- ─── Payment step: CardForm (mp.cardForm) ──────────────────────────── -->
+          <!-- ─── Payment step: Card Payment Brick ────────────────────────────── -->
           <div v-if="currentStep >= confirmStep" class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
             <div class="h-16 px-8 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
               <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
@@ -731,120 +627,8 @@ onUnmounted(() => {
                 {{ paymentError }}
               </div>
 
-              <form id="form-checkout" class="space-y-6">
-                <!-- Row 1: Card Number + Expiration + CVV (iframe-based PCI fields) -->
-                <div class="grid grid-cols-12 gap-4">
-                  <div class="col-span-12 sm:col-span-5">
-                    <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1.5">
-                      Número de Tarjeta
-                    </label>
-                    <div id="form-checkout__cardNumber" class="cardform-field w-full min-h-[46px] px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 transition-all" />
-                  </div>
-                  <div class="col-span-6 sm:col-span-3">
-                    <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1.5">
-                      Vencimiento
-                    </label>
-                    <div id="form-checkout__expirationDate" class="cardform-field w-full min-h-[46px] px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 transition-all" />
-                  </div>
-                  <div class="col-span-6 sm:col-span-4">
-                    <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1.5">
-                      Código de Seguridad
-                    </label>
-                    <div class="flex gap-3">
-                      <div id="form-checkout__securityCode" class="cardform-field flex-1 min-h-[46px] px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500 transition-all" />
-                      <div class="hidden sm:flex items-center justify-center w-10 h-[46px] bg-gray-50 border border-gray-100 rounded-xl text-[9px] font-bold text-gray-400">CVV</div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Row 2: Cardholder Name + Email -->
-                <div class="grid grid-cols-12 gap-4">
-                  <div class="col-span-12 sm:col-span-7">
-                    <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1.5">
-                      Nombre en la Tarjeta
-                    </label>
-                    <input
-                      id="form-checkout__cardholderName"
-                      class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-                      placeholder="Como aparece en la tarjeta"
-                    />
-                  </div>
-                  <div class="col-span-12 sm:col-span-5">
-                    <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1.5">
-                      E-mail del Titular
-                    </label>
-                    <input
-                      id="form-checkout__cardholderEmail"
-                      type="email"
-                      class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-                      placeholder="tu@email.com"
-                      :value="address.contact_email"
-                    />
-                  </div>
-                </div>
-
-                <!-- Row 3: Issuer + Installments (auto-populated by cardForm) -->
-                <div class="grid grid-cols-12 gap-4">
-                  <div class="col-span-6 sm:col-span-4">
-                    <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1.5">
-                      Banco Emisor
-                    </label>
-                    <select id="form-checkout__issuer" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none transition-all" />
-                  </div>
-                  <div class="col-span-6 sm:col-span-4">
-                    <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1.5">
-                      Cuotas
-                    </label>
-                    <select id="form-checkout__installments" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none transition-all" />
-                  </div>
-                  <div class="col-span-12 sm:col-span-4">
-                    <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1.5">
-                      Tipo de Documento
-                    </label>
-                    <select id="form-checkout__identificationType" class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-900 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none appearance-none transition-all" />
-                  </div>
-                </div>
-
-                <!-- Row 4: Document Number -->
-                <div class="grid grid-cols-12 gap-4">
-                  <div class="col-span-12 sm:col-span-5">
-                    <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1.5">
-                      Nº de Documento
-                    </label>
-                    <input
-                      id="form-checkout__identificationNumber"
-                      class="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
-                      placeholder="Sin puntos ni espacios"
-                    />
-                  </div>
-                </div>
-
-                <!-- Progress bar (animated during BIN/installments fetch) -->
-                <progress value="0" class="cardform-progress-bar w-full h-1 rounded-full appearance-none [&::-webkit-progress-bar]:bg-gray-100 [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-value]:bg-primary-500 [&::-webkit-progress-value]:rounded-full transition-all" />
-
-                <!-- Pay button -->
-                <div class="flex items-center justify-between pt-4">
-                  <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    Pago seguro vía MercadoPago
-                  </p>
-                  <button
-                    type="submit"
-                    id="form-checkout__submit"
-                    :disabled="payLoading || !mpReady"
-                    class="inline-flex items-center gap-2 px-8 py-3.5 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 disabled:opacity-40 disabled:cursor-not-allowed"
-                    :class="payLoading ? 'bg-gray-400 text-white' : 'bg-black text-white hover:bg-primary-500 shadow-lg shadow-black/10 hover:shadow-primary-500/30'"
-                  >
-                    <svg v-if="payLoading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    {{ payLoading ? 'Procesando…' : `Pagar ${cart.total}` }}
-                  </button>
-                </div>
-              </form>
+              <!-- Card Payment Brick renders its own form -->
+              <div id="cardPaymentBrick_container" />
             </div>
           </div>
 
@@ -853,20 +637,3 @@ onUnmounted(() => {
     </div>
   </section>
 </template>
-
-<style scoped>
-/* CardForm iframe field containers */
-.cardform-field {
-  display: flex;
-  align-items: center;
-}
-.cardform-field :deep(iframe) {
-  width: 100%;
-  height: 24px;
-  border: 0;
-}
-/* Progress bar animation */
-.cardform-progress-bar {
-  transition: width 0.3s ease;
-}
-</style>

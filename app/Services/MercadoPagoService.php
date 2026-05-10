@@ -25,7 +25,7 @@ class MercadoPagoService
      * @param  float  $amount  Amount in currency units (NOT centavos)
      * @param  string  $token  Card token from mp.cardToken.create()
      * @param  string  $paymentMethodId  e.g. "visa"
-     * @param  string  $issuerId  Bank issuer id
+     * @param  string  $paymentTypeId  Payment type: credit_card or debit_card (from Brick onSubmit additionalData.paymentTypeId)
      * @param  string  $email  Payer email
      * @param  int  $installments  Number of installments
      * @param  string  $externalReference  Order reference for tracking
@@ -37,7 +37,7 @@ class MercadoPagoService
         float $amount,
         string $token,
         string $paymentMethodId,
-        string $issuerId,
+        string $paymentTypeId,
         string $email,
         int $installments = 1,
         ?string $externalReference = null,
@@ -59,7 +59,7 @@ class MercadoPagoService
                         'amount' => (string) number_format($amount, 2, '.', ''),
                         'payment_method' => [
                             'id' => $paymentMethodId,
-                            'type' => 'credit_card',
+                            'type' => $paymentTypeId,
                             'token' => $token,
                             'installments' => $installments,
                         ],

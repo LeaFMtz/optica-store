@@ -20,7 +20,7 @@ class CheckoutPaymentController extends Controller
         $validated = $request->validate([
             'token' => ['required', 'string'],
             'payment_method_id' => ['required', 'string'],
-            'issuer_id' => ['nullable', 'string'],
+            'payment_type_id' => ['nullable', 'string', 'in:credit_card,debit_card'],
             'installments' => ['nullable', 'integer', 'min:1'],
             'payer' => ['nullable', 'array'],
             'payer.email' => ['nullable', 'email'],
@@ -55,7 +55,7 @@ class CheckoutPaymentController extends Controller
                 ->withData([
                     'token' => $validated['token'],
                     'payment_method_id' => $validated['payment_method_id'],
-                    'issuer_id' => $validated['issuer_id'] ?? '',
+                    'payment_type_id' => $validated['payment_type_id'] ?? 'credit_card',
                     'installments' => $validated['installments'] ?? 1,
                     'payer_email' => $payerEmail,
                 ])
@@ -71,21 +71,18 @@ class CheckoutPaymentController extends Controller
             // Payment approved/accredited — create the order
             $order = CartSession::createOrder(forget: false);
 
-            // Persist the MercadoPago order ID and status
-            $existing = $order->meta ? (array) $order->meta : [];
-            $order->meta = array_merge($existing, [
-                'mp_order_id' => $driver->lastOrderId,
-            ]);
+            // Build meta as a plain array, then assign once
+            $meta = $order->meta ? $order->meta->toArray() : [];
+            $meta['mp_order_id'] = $driver->lastOrderId;
 
-            // Only set payment-received if truly accredited (not processing)
             if ($result->message === 'accredited') {
-                $order->meta = array_merge($order->meta, ['mp_status' => 'accredited']);
+                $meta['mp_status'] = 'accredited';
                 $order->status = 'payment-received';
             } else {
-                // processing → leave as awaiting-payment, webhook will update
-                $order->meta = array_merge($order->meta, ['mp_status' => 'processing']);
+                $meta['mp_status'] = 'processing';
             }
 
+            $order->meta = $meta;
             $order->save();
 
             CartSession::forget();

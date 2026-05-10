@@ -38,7 +38,7 @@ class MercadoPagoPayment extends AbstractPayment
 
         $token = $this->data['token'] ?? null;
         $paymentMethodId = $this->data['payment_method_id'] ?? null;
-        $issuerId = $this->data['issuer_id'] ?? '';
+        $paymentTypeId = $this->data['payment_type_id'] ?? 'credit_card';
         $installments = (int) ($this->data['installments'] ?? 1);
         $email = $this->data['payer_email'] ?? $this->cart->user?->email ?? '';
 
@@ -57,7 +57,7 @@ class MercadoPagoPayment extends AbstractPayment
                 amount: $amount,
                 token: $token,
                 paymentMethodId: $paymentMethodId,
-                issuerId: (string) $issuerId,
+                paymentTypeId: $paymentTypeId,
                 email: $email,
                 installments: $installments,
                 externalReference: $this->cart->reference ?? null,
