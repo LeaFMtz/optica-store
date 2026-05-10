@@ -85,6 +85,20 @@ class CheckoutPaymentController extends Controller
             $order->meta = $meta;
             $order->save();
 
+            // Create a payment transaction so Lunar shows the correct paid amount
+            $order->transactions()->create([
+                'success' => $result->message === 'accredited',
+                'type' => 'capture',
+                'driver' => 'mercadopago',
+                'amount' => $cart->total->value,
+                'reference' => $driver->lastOrderId,
+                'status' => $result->message === 'accredited' ? 'settled' : 'pending',
+                'card_type' => $validated['payment_type_id'] ?? 'credit_card',
+                'meta' => [
+                    'mp_order_id' => $driver->lastOrderId,
+                ],
+            ]);
+
             CartSession::forget();
 
             return response()->json([
