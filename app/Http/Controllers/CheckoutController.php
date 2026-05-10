@@ -15,6 +15,23 @@ use Lunar\Models\ProductVariant;
 
 class CheckoutController extends Controller
 {
+    private function hasInsufficientStock(iterable $lines): bool
+    {
+        foreach ($lines as $line) {
+            if ($line->purchasable_type !== 'product_variant') {
+                continue;
+            }
+
+            $variant = ProductVariant::find($line->purchasable_id);
+
+            if ($variant && !$variant->canBeFulfilledAtQuantity($line->quantity)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Show the checkout page.
      */
@@ -80,6 +97,7 @@ class CheckoutController extends Controller
             ])->values()->all(),
             'sub_total' => $cart->subTotal->formatted(),
             'total' => $cart->total->formatted(),
+            'total_raw' => $cart->total->value / 100,  // float in ARS for MP Brick
             'tax_breakdown' => $cart->taxBreakdown->amounts->map(fn ($tax) => [
                 'description' => $tax->description,
                 'price' => $tax->price->formatted(),
@@ -96,22 +114,5 @@ class CheckoutController extends Controller
             'countries' => $countries,
             'hasDeliveryShipping' => $hasDeliveryShipping,
         ]);
-    }
-
-    private function hasInsufficientStock(iterable $lines): bool
-    {
-        foreach ($lines as $line) {
-            if ($line->purchasable_type !== 'product_variant') {
-                continue;
-            }
-
-            $variant = ProductVariant::find($line->purchasable_id);
-
-            if ($variant && ! $variant->canBeFulfilledAtQuantity($line->quantity)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
