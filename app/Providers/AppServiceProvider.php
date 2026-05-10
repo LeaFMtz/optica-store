@@ -13,16 +13,17 @@ use App\Filament\Resources\PrescriptionFieldResource;
 use App\Filament\Resources\PrescriptionTypeResource;
 use App\Filament\Resources\ProductResourceExtension;
 use App\Filament\Support\FieldTypes\ImageFileField;
-use Lunar\Admin\Filament\Resources\OrderResource\Pages\Components\OrderItemsTable;
-use Lunar\Admin\Filament\Resources\OrderResource\Pages\ManageOrder;
-
 use App\Models\Product as AppProduct;
 use App\Modifiers\ShippingModifier;
+use App\PaymentTypes\MercadoPagoPayment;
 use Illuminate\Support\ServiceProvider;
+use Lunar\Admin\Filament\Resources\OrderResource\Pages\Components\OrderItemsTable;
+use Lunar\Admin\Filament\Resources\OrderResource\Pages\ManageOrder;
 use Lunar\Admin\Support\Facades\AttributeData;
 use Lunar\Admin\Support\Facades\LunarPanel;
 use Lunar\Base\ShippingModifiers;
 use Lunar\Facades\ModelManifest;
+use Lunar\Facades\Payments;
 use Lunar\Facades\Telemetry;
 use Lunar\FieldTypes\File as FileFieldType;
 use Lunar\Models\Contracts\Product;
@@ -82,5 +83,7 @@ class AppServiceProvider extends ServiceProvider
         );
 
         Telemetry::optOut();
+
+        Payments::extend('mercadopago', fn () => app(MercadoPagoPayment::class));
     }
 }
