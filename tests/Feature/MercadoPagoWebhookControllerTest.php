@@ -19,7 +19,7 @@ class MercadoPagoWebhookControllerTest extends TestCase
      */
     public function test_missing_signature_returns_400(): void
     {
-        $response = $this->postJson('/webhooks/mercadopago?topic=payment&data_id=123');
+        $response = $this->postJson('/webhooks/mercadopago?topic=order&data_id=ORD-TEST');
 
         $response->assertStatus(400);
     }
@@ -30,9 +30,12 @@ class MercadoPagoWebhookControllerTest extends TestCase
     public function test_invalid_signature_returns_400(): void
     {
         $response = $this->postJson(
-            '/webhooks/mercadopago?topic=payment&data_id=123',
+            '/webhooks/mercadopago?topic=order&data_id=ORD-TEST',
             [],
-            ['x-signature' => 'ts=123456789,v1=invalidsignaturehash'],
+            [
+                'x-signature' => 'ts=123456789,v1=invalidsignaturehash',
+                'x-request-id' => 'req-abc-123',
+            ],
         );
 
         $response->assertStatus(400);
@@ -44,13 +47,17 @@ class MercadoPagoWebhookControllerTest extends TestCase
     public function test_unknown_topic_returns_200(): void
     {
         $ts = (string) time();
-        $dataId = '456';
-        $signature = $this->buildSignature($dataId, $ts);
+        $dataId = 'ORD-UH56Y7';
+        $requestId = 'req-unknown-1';
+        $signature = $this->buildSignature($dataId, $requestId, $ts);
 
         $response = $this->postJson(
             "/webhooks/mercadopago?topic=merchant_order&data_id={$dataId}",
             [],
-            ['x-signature' => $signature],
+            [
+                'x-signature' => $signature,
+                'x-request-id' => $requestId,
+            ],
         );
 
         $response->assertStatus(200);
@@ -58,31 +65,35 @@ class MercadoPagoWebhookControllerTest extends TestCase
     }
 
     /**
-     * A valid signature with payment topic is accepted (200).
+     * A valid signature with order topic is accepted (200).
      * The MP service is replaced with a stub to avoid real API calls.
      */
-    public function test_valid_signature_payment_topic_returns_200(): void
+    public function test_valid_signature_order_topic_returns_200(): void
     {
         $ts = (string) time();
-        $dataId = '789';
-        $signature = $this->buildSignature($dataId, $ts);
+        $dataId = 'ORD-7L89YQ';
+        $requestId = 'req-webhook-789';
+        $signature = $this->buildSignature($dataId, $requestId, $ts);
 
         // Stub MercadoPagoService to avoid real API calls
         $this->instance(MercadoPagoService::class, new class extends MercadoPagoService
         {
-            public function getPayment(int $paymentId): array
+            public function getOrder(string $orderId): array
             {
                 return [
-                    'id' => $paymentId,
-                    'status' => 'approved',
+                    'id' => $orderId,
+                    'status' => 'processed',
                 ];
             }
         });
 
         $response = $this->postJson(
-            "/webhooks/mercadopago?topic=payment&data_id={$dataId}",
+            "/webhooks/mercadopago?topic=order&data_id={$dataId}",
             [],
-            ['x-signature' => $signature],
+            [
+                'x-signature' => $signature,
+                'x-request-id' => $requestId,
+            ],
         );
 
         // No matching order in DB → still returns 200 (no-op, not an error)
@@ -96,13 +107,14 @@ class MercadoPagoWebhookControllerTest extends TestCase
     }
 
     /**
-     * Build a valid x-signature header value for a given data_id.
-     * Note: MP uses "data.id" in the URL but PHP converts dots → underscores.
-     * The middleware extracts data_id from the raw query string after the same normalization.
+     * Build a valid x-signature header value for Orders API webhook.
+     *
+     * Signed string format: "id:{dataID};request-id:{xRequestId};ts:{ts};"
+     * Note: data.id must be lowercase per MP Orders API docs.
      */
-    private function buildSignature(string $dataId, string $ts): string
+    private function buildSignature(string $dataId, string $requestId, string $ts): string
     {
-        $signedString = "ts:{$ts};v1:{$dataId}";
+        $signedString = sprintf('id:%s;request-id:%s;ts:%s;', strtolower($dataId), $requestId, $ts);
         $hash = hash_hmac('sha256', $signedString, $this->secret);
 
         return "ts={$ts},v1={$hash}";

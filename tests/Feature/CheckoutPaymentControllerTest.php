@@ -82,9 +82,9 @@ class CheckoutPaymentControllerTest extends TestCase
     }
 
     /**
-     * When the MP API throws a RuntimeException the controller returns 500.
+     * When the MP API throws a RuntimeException the controller returns 422 (rejected).
      */
-    public function test_mp_api_exception_returns_500(): void
+    public function test_mp_api_exception_returns_422(): void
     {
         $user = User::factory()->create();
 
@@ -119,13 +119,14 @@ class CheckoutPaymentControllerTest extends TestCase
         // Stub the MP service to throw an API exception
         $this->instance(MercadoPagoService::class, new class extends MercadoPagoService
         {
-            public function charge(
+            public function createOrder(
                 float $amount,
                 string $token,
                 string $paymentMethodId,
                 string $issuerId,
                 string $email,
                 int $installments = 1,
+                ?string $externalReference = null,
             ): array {
                 throw new \RuntimeException('MercadoPago API error: connection refused');
             }
@@ -136,18 +137,15 @@ class CheckoutPaymentControllerTest extends TestCase
             'payment_method_id' => 'visa',
         ]);
 
-        // The driver catches RuntimeException and returns success:false,
-        // which means the controller returns 422 (rejected), not 500.
-        // A 500 only occurs for unexpected Throwable outside the driver.
-        // The authorize() method itself catches RuntimeException → returns PaymentAuthorize(success:false).
-        // Therefore the controller returns 422 (pago rechazado).
+        // The driver catches RuntimeException → returns PaymentAuthorize(success:false)
+        // Controller returns 422 (rejected)
         $response->assertStatus(422);
     }
 
     /**
-     * When the MP API returns 'approved', the order is created and mp_payment_id is stored in meta.
+     * When the MP Orders API returns 'processed', the order is created and mp_order_id is stored in meta.
      */
-    public function test_approved_payment_creates_order_with_payment_id(): void
+    public function test_approved_payment_creates_order_with_order_id(): void
     {
         $user = User::factory()->create();
 
@@ -176,20 +174,21 @@ class CheckoutPaymentControllerTest extends TestCase
             'type' => 'billing',
         ]);
 
-        // Stub MercadoPagoService to return an approved response
+        // Stub MercadoPagoService to return a processed order response
         $this->instance(MercadoPagoService::class, new class extends MercadoPagoService
         {
-            public function charge(
+            public function createOrder(
                 float $amount,
                 string $token,
                 string $paymentMethodId,
                 string $issuerId,
                 string $email,
                 int $installments = 1,
+                ?string $externalReference = null,
             ): array {
                 return [
-                    'id' => 9988776,
-                    'status' => 'approved',
+                    'id' => 'ORD-9988776',
+                    'status' => 'processed',
                     'status_detail' => 'accredited',
                 ];
             }
@@ -216,9 +215,9 @@ class CheckoutPaymentControllerTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonFragment(['reference' => 'ORD-TEST-001']);
 
-        // Verify mp_payment_id was persisted in order meta
+        // Verify mp_order_id was persisted in order meta
         $order->refresh();
         $meta = (array) $order->meta;
-        $this->assertEquals(9988776, $meta['mp_payment_id']);
+        $this->assertEquals('ORD-9988776', $meta['mp_order_id']);
     }
 }

@@ -3,11 +3,9 @@
 declare(strict_types=1);
 
 use App\Models\Banner;
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Schema;
+use Lunar\Base\Migration;
 
 return new class extends Migration
 {
@@ -34,10 +32,6 @@ return new class extends Migration
                 }
             });
         });
-
-        Schema::table('banners', function (Blueprint $table) {
-            $table->dropColumn('image_path');
-        });
     }
 
     /**
@@ -45,10 +39,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('banners', function (Blueprint $table) {
-            $table->string('image_path')->nullable();
-        });
-
         Banner::all()->each(function (Banner $banner) {
             $path = $banner->getFirstMediaPath('image');
 

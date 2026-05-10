@@ -8,20 +8,21 @@ use App\Services\MercadoPagoService;
 use Lunar\Base\DataTransferObjects\PaymentAuthorize;
 use Lunar\Base\DataTransferObjects\PaymentCapture;
 use Lunar\Base\DataTransferObjects\PaymentRefund;
+use Lunar\Models\Contracts\Transaction;
 use Lunar\PaymentTypes\AbstractPayment;
 
 class MercadoPagoPayment extends AbstractPayment
 {
     /**
-     * The MercadoPago payment ID returned after a successful charge.
+     * The MercadoPago order ID returned after a successful order creation.
      * Set by authorize() so the controller can persist it on the order.
      */
-    public ?int $lastPaymentId = null;
+    public ?string $lastOrderId = null;
 
     public function __construct(private readonly MercadoPagoService $mpService) {}
 
     /**
-     * Authorize the payment by charging via MercadoPago.
+     * Authorize the payment by creating a MercadoPago order.
      *
      * Expects $this->data to contain: token, payment_method_id, issuer_id, installments.
      * Expects $this->cart to be set with a valid total.
@@ -52,13 +53,14 @@ class MercadoPagoPayment extends AbstractPayment
         $amount = $this->cart->total->value / 100;
 
         try {
-            $response = $this->mpService->charge(
+            $response = $this->mpService->createOrder(
                 amount: $amount,
                 token: $token,
                 paymentMethodId: $paymentMethodId,
                 issuerId: (string) $issuerId,
                 email: $email,
                 installments: $installments,
+                externalReference: $this->cart->reference ?? null,
             );
         } catch (\RuntimeException $e) {
             return new PaymentAuthorize(
@@ -68,20 +70,37 @@ class MercadoPagoPayment extends AbstractPayment
         }
 
         $status = $response['status'] ?? 'rejected';
-        $paymentId = $response['id'] ?? null;
+        $statusDetail = $response['status_detail'] ?? 'unknown';
+        $orderId = $response['id'] ?? null;
 
-        if ($status === 'approved' && $paymentId) {
-            $this->lastPaymentId = (int) $paymentId;
+        if (!$orderId) {
+            return new PaymentAuthorize(
+                success: false,
+                message: 'No order ID returned from MercadoPago.',
+            );
+        }
 
+        $this->lastOrderId = (string) $orderId;
+
+        // processed + accredited → payment fully approved and captured
+        if ($status === 'processed' && $statusDetail === 'accredited') {
             return new PaymentAuthorize(
                 success: true,
-                message: 'approved',
+                message: 'accredited',
                 paymentType: 'mercadopago',
             );
         }
 
-        $statusDetail = $response['status_detail'] ?? 'payment_rejected';
+        // processing → payment is async, webhook will update later
+        if ($status === 'processing') {
+            return new PaymentAuthorize(
+                success: true,
+                message: 'pending',
+                paymentType: 'mercadopago',
+            );
+        }
 
+        // Any other status (failed, canceled, expired, rejected) → not approved
         return new PaymentAuthorize(
             success: false,
             message: $statusDetail,
@@ -92,7 +111,7 @@ class MercadoPagoPayment extends AbstractPayment
     /**
      * Capture is not supported — MP charges immediately on authorize.
      */
-    public function capture(\Lunar\Models\Contracts\Transaction $transaction, $amount = null): PaymentCapture
+    public function capture(Transaction $transaction, $amount = null): PaymentCapture
     {
         return new PaymentCapture(
             success: false,
@@ -103,7 +122,7 @@ class MercadoPagoPayment extends AbstractPayment
     /**
      * Refunds are not supported in Phase 1.
      */
-    public function refund(\Lunar\Models\Contracts\Transaction $transaction, int $amount, $notes = null): PaymentRefund
+    public function refund(Transaction $transaction, int $amount, $notes = null): PaymentRefund
     {
         return new PaymentRefund(
             success: false,

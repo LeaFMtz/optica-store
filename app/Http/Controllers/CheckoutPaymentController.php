@@ -40,7 +40,9 @@ class CheckoutPaymentController extends Controller
             return response()->json(['message' => 'Debe seleccionar una opción de envío.'], 422);
         }
 
+        // payer.email may come as nested (from frontend form) or as top-level email
         $payerEmail = $validated['payer']['email']
+            ?? $request->input('email', '')
             ?? $cart->shippingAddress->contact_email
             ?? '';
 
@@ -66,17 +68,25 @@ class CheckoutPaymentController extends Controller
                 ], 422);
             }
 
-            // Payment approved — create the order
+            // Payment approved/accredited — create the order
             $order = CartSession::createOrder(forget: false);
 
-            // Persist the MercadoPago payment ID for webhook reconciliation
-            if ($driver->lastPaymentId !== null) {
-                $existing = $order->meta ? (array) $order->meta : [];
-                $order->meta = array_merge($existing, [
-                    'mp_payment_id' => $driver->lastPaymentId,
-                ]);
-                $order->save();
+            // Persist the MercadoPago order ID and status
+            $existing = $order->meta ? (array) $order->meta : [];
+            $order->meta = array_merge($existing, [
+                'mp_order_id' => $driver->lastOrderId,
+            ]);
+
+            // Only set payment-received if truly accredited (not processing)
+            if ($result->message === 'accredited') {
+                $order->meta = array_merge($order->meta, ['mp_status' => 'accredited']);
+                $order->status = 'payment-received';
+            } else {
+                // processing → leave as awaiting-payment, webhook will update
+                $order->meta = array_merge($order->meta, ['mp_status' => 'processing']);
             }
+
+            $order->save();
 
             CartSession::forget();
 

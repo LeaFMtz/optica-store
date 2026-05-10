@@ -22,51 +22,55 @@ class MercadoPagoController extends Controller
     {
         $topic = $request->query('topic') ?? $request->input('type', '');
 
-        // Only process payment notifications
-        if ($topic !== 'payment') {
+        // Only process order notifications (Orders API uses topic=order)
+        if ($topic !== 'order') {
             return response()->json(['message' => 'Ignored.'], 200);
         }
 
         // PHP converts dots to underscores in $_GET, so parse raw query string
         $rawQuery = $request->server('QUERY_STRING', '');
         parse_str(str_replace('.', '_', $rawQuery), $queryParams);
-        $dataId = (int) ($queryParams['data_id'] ?? 0);
+        $dataId = (string) ($queryParams['data_id'] ?? '');
 
         if (!$dataId) {
             return response()->json(['message' => 'No data.id provided.'], 200);
         }
 
+        // Orders API uses string IDs (alphanumeric), not integers like Payments API
         try {
-            $payment = $this->mpService->getPayment($dataId);
+            $order = $this->mpService->getOrder($dataId);
         } catch (\RuntimeException) {
             // Log and return 200 so MP doesn't retry infinitely
-            return response()->json(['message' => 'Could not fetch payment.'], 200);
+            return response()->json(['message' => 'Could not fetch order.'], 200);
         }
 
-        $status = $payment['status'] ?? null;
-        $paymentId = $payment['id'] ?? $dataId;
+        $status = $order['status'] ?? null;
+        $mpOrderId = $order['id'] ?? $dataId;
 
-        // Find Lunar order by mp_payment_id stored in meta
-        $order = Order::query()
-            ->whereRaw("JSON_EXTRACT(meta, '$.mp_payment_id') = ?", [$paymentId])
+        // Find Lunar order by mp_order_id stored in meta
+        $lunarOrder = Order::query()
+            ->whereRaw("JSON_EXTRACT(meta, '$.mp_order_id') = ?", [$mpOrderId])
             ->first();
 
-        if (!$order) {
+        if (!$lunarOrder) {
             return response()->json(['message' => 'Order not found.'], 200);
         }
 
+        // Map Orders API status to Lunar status
+        // processed → payment-received (approved)
+        // failed/canceled/expired → payment-offline
         $lunarStatus = match ($status) {
-            'approved' => 'payment-received',
-            'rejected', 'cancelled' => 'payment-offline',  // treat as offline/failed
+            'processed' => 'payment-received',
+            'failed', 'canceled', 'expired' => 'payment-offline',
             default => null,
         };
 
         if ($lunarStatus) {
-            $meta = $order->meta ? $order->meta->toArray() : [];
-            $meta['mp_payment_id'] = $paymentId;
+            $meta = $lunarOrder->meta ? $lunarOrder->meta->toArray() : [];
+            $meta['mp_order_id'] = $mpOrderId;
             $meta['mp_status'] = $status;
 
-            $order->update([
+            $lunarOrder->update([
                 'status' => $lunarStatus,
                 'meta' => $meta,
             ]);

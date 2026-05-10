@@ -4,95 +4,140 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use MercadoPago\Client\Payment\PaymentClient;
-use MercadoPago\MercadoPagoConfig;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
+use RuntimeException;
 
+/**
+ * MercadoPago Orders API service using Laravel Http facade.
+ *
+ * Replaces mercadopago/dx-php SDK with direct HTTP calls to
+ * POST /v1/orders and GET /v1/orders/{id}.
+ */
 class MercadoPagoService
 {
+    private const API_BASE = 'https://api.mercadopago.com';
+
     /**
-     * Charge a payment via the MercadoPago API.
+     * Create a MercadoPago order with automatic processing.
      *
-     * @param  float  $amount  Amount in ARS (NOT centavos — already converted)
-     * @param  string  $token  Card token from the Payment Brick
+     * @param  float  $amount  Amount in currency units (NOT centavos)
+     * @param  string  $token  Card token from mp.cardToken.create()
      * @param  string  $paymentMethodId  e.g. "visa"
      * @param  string  $issuerId  Bank issuer id
      * @param  string  $email  Payer email
      * @param  int  $installments  Number of installments
-     * @return array<string, mixed> Raw MP API response array
+     * @param  string  $externalReference  Order reference for tracking
+     * @return array<string, mixed> Raw MP Orders API response
      *
-     * @throws \RuntimeException on network/5xx errors
+     * @throws RuntimeException on network errors or API rejection
      */
-    public function charge(
+    public function createOrder(
         float $amount,
         string $token,
         string $paymentMethodId,
         string $issuerId,
         string $email,
         int $installments = 1,
+        ?string $externalReference = null,
     ): array {
-        $this->configure();
+        $accessToken = $this->getAccessToken();
 
-        $client = new PaymentClient;
-
-        $request = [
-            'transaction_amount' => $amount,
-            'token' => $token,
-            'description' => 'Compra en Óptica Store',
-            'installments' => $installments,
-            'payment_method_id' => $paymentMethodId,
-            'issuer_id' => (int) $issuerId,
+        $payload = [
+            'type' => 'online',
+            'processing_mode' => 'automatic',
+            'capture_mode' => 'automatic',
+            'external_reference' => $externalReference ?: 'order-'.Str::uuid(),
+            'total_amount' => (string) number_format($amount, 2, '.', ''),
             'payer' => [
                 'email' => $email,
+            ],
+            'transactions' => [
+                'payments' => [
+                    [
+                        'amount' => (string) number_format($amount, 2, '.', ''),
+                        'payment_method' => [
+                            'id' => $paymentMethodId,
+                            'type' => 'credit_card',
+                            'token' => $token,
+                            'installments' => $installments,
+                        ],
+                    ],
+                ],
             ],
         ];
 
         try {
-            $payment = $client->create($request);
-        } catch (\Throwable $e) {
-            throw new \RuntimeException(
-                'MercadoPago API error: '.$e->getMessage(),
+            $response = Http::withToken($accessToken)
+                ->withHeader('X-Idempotency-Key', (string) Str::uuid())
+                ->timeout(15)
+                ->post(self::API_BASE.'/v1/orders', $payload);
+
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    'MercadoPago API error: '.$response->status().' - '.$response->body(),
+                    $response->status(),
+                );
+            }
+
+            return $response->json();
+        } catch (ConnectionException $e) {
+            throw new RuntimeException(
+                'MercadoPago connection error: '.$e->getMessage(),
                 0,
                 $e,
             );
         }
-
-        return (array) $payment;
     }
 
     /**
-     * Fetch a payment by ID from the MercadoPago API.
+     * Retrieve an order by ID from the MercadoPago Orders API.
      *
+     * @param  string  $orderId  The MP order ID
      * @return array<string, mixed>
      *
-     * @throws \RuntimeException on network/5xx errors
+     * @throws RuntimeException on network errors
      */
-    public function getPayment(int $paymentId): array
+    public function getOrder(string $orderId): array
     {
-        $this->configure();
-
-        $client = new PaymentClient;
+        $accessToken = $this->getAccessToken();
 
         try {
-            $payment = $client->get($paymentId);
-        } catch (\Throwable $e) {
-            throw new \RuntimeException(
-                'MercadoPago API error fetching payment: '.$e->getMessage(),
+            $response = Http::withToken($accessToken)
+                ->timeout(15)
+                ->get(self::API_BASE."/v1/orders/{$orderId}");
+
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    'MercadoPago API error fetching order: '.$response->status(),
+                    $response->status(),
+                );
+            }
+
+            return $response->json();
+        } catch (ConnectionException $e) {
+            throw new RuntimeException(
+                'MercadoPago connection error: '.$e->getMessage(),
                 0,
                 $e,
             );
         }
-
-        return (array) $payment;
     }
 
     /**
-     * Configure the MP SDK access token lazily (only when making API calls).
-     * This avoids failures during container bootstrapping when the env var is null (e.g. tests).
+     * Check if Orders API mode is enabled via feature flag.
      */
-    private function configure(): void
+    public function isOrdersModeEnabled(): bool
     {
-        MercadoPagoConfig::setAccessToken(
-            (string) config('services.mercadopago.access_token', ''),
-        );
+        return config('services.mercadopago.api_mode', 'orders') === 'orders';
+    }
+
+    /**
+     * Get the access token lazily from config.
+     */
+    private function getAccessToken(): string
+    {
+        return (string) config('services.mercadopago.access_token', '');
     }
 }

@@ -13,9 +13,11 @@ class VerifyMercadoPagoSignature
     /**
      * Verify the MercadoPago x-signature header before processing webhooks.
      *
-     * MP signature format: "ts=TIMESTAMP,v1=HASH"
-     * Signed string: "ts:{ts};v1:{data_id}"
-     * where data_id comes from the query param "data.id".
+     * Orders API signature format: "ts=TIMESTAMP,v1=HASH"
+     * Signed string: "id:{dataID};request-id:{xRequestId};ts:{ts};"
+     *
+     * Note: data.id from the query string must be used in **lowercase** for lookup.
+     * The x-request-id header is required for Orders API signature verification.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -39,12 +41,15 @@ class VerifyMercadoPagoSignature
         $ts = $parts['ts'];
         $receivedHash = $parts['v1'];
 
-        // data.id comes from query param (MP sends it as part of the notification URL).
-        // PHP converts dots to underscores in query params, so we parse the raw query string.
+        // Extract data.id from raw query string (PHP converts dots to underscores)
         $dataId = $this->extractDataId($request);
 
-        // Reconstruct the signed string per MP docs: "ts:{ts};v1:{data_id}"
-        $signedString = "ts:{$ts};v1:{$dataId}";
+        // Extract x-request-id header (required for Orders API)
+        $requestId = $request->header('x-request-id', '');
+
+        // Orders API signed string: "id:{dataID};request-id:{xRequestId};ts:{ts};"
+        // data.id must be lowercase per MP docs
+        $signedString = sprintf('id:%s;request-id:%s;ts:%s;', strtolower($dataId), $requestId, $ts);
 
         $secret = config('services.mercadopago.webhook_secret', '');
         $expectedHash = hash_hmac('sha256', $signedString, $secret);
