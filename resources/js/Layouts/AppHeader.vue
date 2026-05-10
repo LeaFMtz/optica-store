@@ -31,7 +31,7 @@ function closeMobileMenu() {
 
 <template>
   <!-- Top bar: secondary links + auth -->
-  <div class="hidden lg:block bg-primary-500 text-white text-xs py-1.5 w-full relative z-[60]">
+  <div class="hidden lg:block bg-primary-500 text-white text-xs py-1.5 w-full relative z-[50]">
     <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
       <!-- Secondary nav links (desktop only) -->
       <nav class="hidden lg:flex items-center gap-4">
@@ -63,7 +63,7 @@ function closeMobileMenu() {
   </div>
 
   <!-- Main header -->
-  <header class="w-full bg-black text-white sticky top-0 z-50">
+  <header class="w-full bg-black text-white sticky top-0 z-[60]">
     <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
 
       <!-- Desktop: search | logo | cart -->
