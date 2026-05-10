@@ -128,7 +128,7 @@ function childrenOf(parentId) {
   <Transition name="backdrop">
     <div
       v-if="isOpen"
-      class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[68]"
       @click="$emit('close')"
     />
   </Transition>
@@ -137,7 +137,7 @@ function childrenOf(parentId) {
   <Transition name="slide">
     <div
       v-if="isOpen"
-      class="fixed top-0 right-0 h-full w-full max-w-md bg-white z-50 flex flex-col shadow-2xl"
+      class="fixed top-0 right-0 h-full w-full max-w-md bg-white z-[70] flex flex-col shadow-2xl"
     >
       <!-- Header -->
       <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100">
