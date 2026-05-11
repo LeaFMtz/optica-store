@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\PaymentTypes\MercadoPagoPayment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Lunar\Facades\CartSession;
 use Lunar\Facades\Payments;
 
@@ -50,6 +51,16 @@ class CheckoutPaymentController extends Controller
             /** @var MercadoPagoPayment $driver */
             $driver = Payments::driver('mercadopago');
 
+            // Ensure the cart has a stable external_reference for idempotency.
+            // We store it in cart meta so retries reuse the same key, preventing
+            // duplicate charges via MercadoPago's X-Idempotency-Key header.
+            $cartMeta = $cart->meta ? $cart->meta->toArray() : [];
+            if (empty($cartMeta['mp_external_reference'])) {
+                $cartMeta['mp_external_reference'] = Str::uuid()->toString();
+                $cart->meta = $cartMeta;
+                $cart->save();
+            }
+
             $result = $driver
                 ->cart($cart)
                 ->withData([
@@ -58,6 +69,7 @@ class CheckoutPaymentController extends Controller
                     'payment_type_id' => $validated['payment_type_id'] ?? 'credit_card',
                     'installments' => $validated['installments'] ?? 1,
                     'payer_email' => $payerEmail,
+                    'external_reference' => $cartMeta['mp_external_reference'],
                 ])
                 ->authorize();
 
@@ -96,6 +108,7 @@ class CheckoutPaymentController extends Controller
                 'card_type' => $validated['payment_type_id'] ?? 'credit_card',
                 'meta' => [
                     'mp_order_id' => $driver->lastOrderId,
+                    'mp_payment_id' => $driver->lastPaymentId,
                 ],
             ]);
 
