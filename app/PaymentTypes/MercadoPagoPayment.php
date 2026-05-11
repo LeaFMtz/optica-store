@@ -9,6 +9,7 @@ use Lunar\Base\DataTransferObjects\PaymentAuthorize;
 use Lunar\Base\DataTransferObjects\PaymentCapture;
 use Lunar\Base\DataTransferObjects\PaymentRefund;
 use Lunar\Models\Contracts\Transaction;
+use Lunar\Models\Order;
 use Lunar\PaymentTypes\AbstractPayment;
 
 class MercadoPagoPayment extends AbstractPayment
@@ -18,6 +19,12 @@ class MercadoPagoPayment extends AbstractPayment
      * Set by authorize() so the controller can persist it on the order.
      */
     public ?string $lastOrderId = null;
+
+    /**
+     * The MercadoPago payment ID from the order's first transaction.
+     * Needed for refunds via Payments API (Orders API refund only works in manual mode).
+     */
+    public ?string $lastPaymentId = null;
 
     public function __construct(private readonly MercadoPagoService $mpService) {}
 
@@ -53,6 +60,15 @@ class MercadoPagoPayment extends AbstractPayment
         $amount = $this->cart->total->value / 100;
 
         try {
+            $externalReference = $this->data['external_reference'] ?? null;
+
+            if ($externalReference === null) {
+                return new PaymentAuthorize(
+                    success: false,
+                    message: 'No external reference provided for payment.',
+                );
+            }
+
             $response = $this->mpService->createOrder(
                 amount: $amount,
                 token: $token,
@@ -60,7 +76,7 @@ class MercadoPagoPayment extends AbstractPayment
                 paymentTypeId: $paymentTypeId,
                 email: $email,
                 installments: $installments,
-                externalReference: $this->cart->reference ?? null,
+                externalReference: $externalReference,
             );
         } catch (\RuntimeException $e) {
             return new PaymentAuthorize(
@@ -81,6 +97,9 @@ class MercadoPagoPayment extends AbstractPayment
         }
 
         $this->lastOrderId = (string) $orderId;
+
+        // Extract payment ID for refunds (Payments API needs it)
+        $this->lastPaymentId = $response['transactions']['payments'][0]['id'] ?? null;
 
         // processed + accredited → payment fully approved and captured
         if ($status === 'processed' && $statusDetail === 'accredited') {
@@ -120,13 +139,65 @@ class MercadoPagoPayment extends AbstractPayment
     }
 
     /**
-     * Refunds are not supported in Phase 1.
+     * Refund a transaction via MercadoPago.
+     *
+     * Total refund: Orders API POST /v1/orders/{id}/refund (empty body).
+     * Partial refund: Payments API POST /v1/payments/{id}/refunds.
+     *
+     * @param  int  $amount  Amount in centavos (Lunar internal format)
+     * @param  mixed  $notes
      */
     public function refund(Transaction $transaction, int $amount, $notes = null): PaymentRefund
     {
-        return new PaymentRefund(
-            success: false,
-            message: 'Refunds via MercadoPago are not supported in Phase 1.',
-        );
+        $mpOrderId = $transaction->meta['mp_order_id'] ?? null;
+
+        if ($mpOrderId === null) {
+            return new PaymentRefund(
+                success: false,
+                message: 'Missing mp_order_id in transaction meta.',
+            );
+        }
+
+        try {
+            $result = $this->mpService->refundOrder($mpOrderId);
+
+            $refundStatus = $result['status'] ?? 'rejected';
+
+            if ($refundStatus === 'refunded') {
+                // Lunar determines refund status by looking for refund-type
+                // transactions — auto-create one after successful MP refund.
+                $orderId = $transaction->order_id ?? null;
+
+                if ($orderId) {
+                    $order = \Lunar\Models\Order::find($orderId);
+
+                    if ($order) {
+                        $order->transactions()->create([
+                            'success' => true,
+                            'type' => 'refund',
+                            'driver' => 'mercadopago',
+                            'amount' => $amount ?: $transaction->amount,
+                            'reference' => $mpOrderId,
+                            'status' => 'settled',
+                            'card_type' => $transaction->card_type,
+                            'meta' => (array) ($transaction->meta ?? []),
+                            'notes' => $notes,
+                        ]);
+                    }
+                }
+
+                return new PaymentRefund(success: true);
+            }
+
+            return new PaymentRefund(
+                success: false,
+                message: 'Refund was not approved by MercadoPago.',
+            );
+        } catch (\RuntimeException $e) {
+            return new PaymentRefund(
+                success: false,
+                message: $e->getMessage(),
+            );
+        }
     }
 }

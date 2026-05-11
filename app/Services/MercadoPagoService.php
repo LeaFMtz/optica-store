@@ -6,7 +6,6 @@ namespace App\Services;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
@@ -39,8 +38,8 @@ class MercadoPagoService
         string $paymentMethodId,
         string $paymentTypeId,
         string $email,
-        int $installments = 1,
-        ?string $externalReference = null,
+        int $installments,
+        string $externalReference,
     ): array {
         $accessToken = $this->getAccessToken();
 
@@ -48,7 +47,7 @@ class MercadoPagoService
             'type' => 'online',
             'processing_mode' => 'automatic',
             'capture_mode' => 'automatic',
-            'external_reference' => $externalReference ?: 'order-'.Str::uuid(),
+            'external_reference' => $externalReference,
             'total_amount' => (string) number_format($amount, 2, '.', ''),
             'payer' => [
                 'email' => $email,
@@ -70,7 +69,7 @@ class MercadoPagoService
 
         try {
             $response = Http::withToken($accessToken)
-                ->withHeader('X-Idempotency-Key', (string) Str::uuid())
+                ->withHeader('X-Idempotency-Key', hash('sha256', $externalReference))
                 ->timeout(15)
                 ->post(self::API_BASE.'/v1/orders', $payload);
 
@@ -131,6 +130,87 @@ class MercadoPagoService
     public function isOrdersModeEnabled(): bool
     {
         return config('services.mercadopago.api_mode', 'orders') === 'orders';
+    }
+
+    /**
+     * Total refund of an order via the MercadoPago Orders API.
+     *
+     * POST /v1/orders/{orderId}/refund — empty body only.
+     * The Orders API refund endpoint does NOT accept amount/transaction_id
+     * parameters (reserved for "manual" processing_mode orders).
+     *
+     * @return array<string, mixed>
+     *
+     * @throws RuntimeException on network errors or API rejection
+     */
+    public function refundOrder(string $orderId): array
+    {
+        $accessToken = $this->getAccessToken();
+
+        try {
+            $response = Http::withToken($accessToken)
+                ->withHeader('X-Idempotency-Key', hash('sha256', $orderId.':refund:total'))
+                ->timeout(15)
+                ->withBody('{}', 'application/json')
+                ->post(self::API_BASE.'/v1/orders/'.$orderId.'/refund');
+
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    'MercadoPago API error: '.$response->status().' - '.$response->body(),
+                    $response->status(),
+                );
+            }
+
+            return $response->json();
+        } catch (ConnectionException $e) {
+            throw new RuntimeException(
+                'MercadoPago connection error: '.$e->getMessage(),
+                0,
+                $e,
+            );
+        }
+    }
+
+    /**
+     * Partial refund via the MercadoPago Payments API.
+     *
+     * POST /v1/payments/{paymentId}/refunds
+     * Used for partial refunds because the Orders API refund endpoint
+     * does not accept per-transaction amount parameters in automatic mode.
+     *
+     * @param  string  $paymentId  The MP payment ID (e.g. "pay_01JC...")
+     * @param  float  $amount  Amount to refund in currency units
+     * @return array<string, mixed>
+     *
+     * @throws RuntimeException on network errors or API rejection
+     */
+    public function refundPayment(string $paymentId, float $amount): array
+    {
+        $accessToken = $this->getAccessToken();
+
+        try {
+            $response = Http::withToken($accessToken)
+                ->withHeader('X-Idempotency-Key', hash('sha256', $paymentId.':refund:'.$amount))
+                ->timeout(15)
+                ->post(self::API_BASE.'/v1/payments/'.$paymentId.'/refunds', [
+                    'amount' => $amount,
+                ]);
+
+            if ($response->failed()) {
+                throw new RuntimeException(
+                    'MercadoPago API error: '.$response->status().' - '.$response->body(),
+                    $response->status(),
+                );
+            }
+
+            return $response->json();
+        } catch (ConnectionException $e) {
+            throw new RuntimeException(
+                'MercadoPago connection error: '.$e->getMessage(),
+                0,
+                $e,
+            );
+        }
     }
 
     /**
