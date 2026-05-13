@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { router } from '@inertiajs/vue3'
+import { ref, computed, watch, onUnmounted } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
 import StorefrontLayout from '@/Layouts/StorefrontLayout.vue'
 import AppButton from '@/Components/AppButton.vue'
 import AppInput from '@/Components/AppInput.vue'
@@ -14,6 +14,8 @@ const props = defineProps({
   countries: { type: Array, default: () => [] },
   hasDeliveryShipping: { type: Boolean, required: true },
 })
+
+const page = usePage()
 
 // ─── Steps ────────────────────────────────────────────────────────────────────
 // Always: 1 = facturación, 2 = envío, 3 = dirección (delivery only), confirm = 3 or 4
@@ -30,8 +32,8 @@ const showAddressStep = computed(() =>
 const confirmStep = computed(() => (showAddressStep.value ? 4 : 3))
 
 const stepLabels = computed(() => {
-  if (showAddressStep.value) return ['Facturación', 'Envío', 'Dirección', 'Confirmar']
-  return ['Facturación', 'Envío', 'Confirmar']
+  if (showAddressStep.value) return ['Facturación', 'Envío', 'Dirección', 'Pago']
+  return ['Facturación', 'Envío', 'Pago']
 })
 
 const currentStep = ref(props.savedAddress ? 2 : 1)
@@ -62,9 +64,12 @@ const selectedShipping = ref(props.shippingOptions[0]?.identifier ?? null)
 const shippingErrors = ref({})
 const shippingLoading = ref(false)
 
-// ─── Place order ──────────────────────────────────────────────────────────────
-const placeLoading = ref(false)
-const placeError = ref(null)
+// ─── Payment — Card Payment Brick ─────────────────────────────────────────────
+const payLoading = ref(false)
+const paymentError = ref(null)
+const mpReady = ref(false)
+
+let cardPaymentBrickController = null
 
 // ─── Cart totals (may update after shipping chosen) ───────────────────────────
 const cartTotal = ref(props.cart.total)
@@ -162,19 +167,127 @@ async function submitAddress() {
   }
 }
 
-// ─── Step 3: place order ──────────────────────────────────────────────────────
-async function placeOrder() {
-  placeError.value = null
-  placeLoading.value = true
+// ─── Card Payment Brick (designed for Orders API) ────────────────────────────
+
+const mpPublicKey = computed(() => page.props.mpPublicKey)
+
+function loadMpSdk() {
+  return new Promise((resolve, reject) => {
+    if (window.MercadoPago) {
+      resolve()
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://sdk.mercadopago.com/js/v2'
+    script.onload = resolve
+    script.onerror = reject
+    document.head.appendChild(script)
+  })
+}
+
+async function mountCardPaymentBrick() {
+  paymentError.value = null
+
+  if (!mpPublicKey.value) {
+    paymentError.value = 'Clave pública de MercadoPago no disponible.'
+    return
+  }
+
   try {
-    const result = await jsonPost('/checkout/place', {})
-    router.visit(`/checkout/success?order=${encodeURIComponent(result.reference)}`)
+    await loadMpSdk()
+
+    const mp = new window.MercadoPago(mpPublicKey.value, { locale: 'es-AR' })
+    const bricksBuilder = mp.bricks()
+
+    cardPaymentBrickController = await bricksBuilder.create(
+      'cardPayment',
+      'cardPaymentBrick_container',
+      {
+        initialization: {
+          amount: props.cart.total_raw,
+          payer: {
+            email: address.value.contact_email || '',
+          },
+        },
+        customization: {
+          visual: {
+            style: { theme: 'default' },
+          },
+          paymentMethods: {
+            creditCard: 'all',
+            debitCard: 'all',
+          },
+        },
+        callbacks: {
+          onReady: () => {
+            mpReady.value = true
+          },
+          onSubmit: (formData, additionalData) => {
+            payLoading.value = true
+            paymentError.value = null
+
+            return new Promise((resolve) => {
+              jsonPost('/checkout/payment', {
+                token: formData.token,
+                payment_method_id: formData.payment_method_id,
+                installments: formData.installments,
+                payment_type_id: additionalData?.paymentTypeId ?? 'credit_card',
+                payer: {
+                  email: formData.payer?.email || address.value.contact_email,
+                  identification: formData.payer?.identification || {},
+                },
+              })
+                .then((result) => {
+                  paymentError.value = null
+                  router.visit(`/checkout/success?order=${encodeURIComponent(result.reference)}`)
+                  resolve()
+                })
+                .catch((err) => {
+                  if (err.status === 422) {
+                    paymentError.value = err.data?.message ?? 'Pago rechazado. Verificá los datos de tu tarjeta.'
+                  } else {
+                    paymentError.value = err.data?.message ?? 'Error al procesar el pago. Intentá de nuevo más tarde.'
+                  }
+                  resolve() // always resolve so Brick re-enables the button
+                })
+                .finally(() => {
+                  payLoading.value = false
+                })
+            })
+          },
+          onError: (error) => {
+            console.error('Card Payment Brick error:', error)
+            paymentError.value = 'Error en el formulario de pago. Intentá de nuevo.'
+          },
+        },
+      },
+    )
   } catch (err) {
-    placeError.value = err.data?.message ?? 'Error al procesar el pedido. Intentá de nuevo.'
-  } finally {
-    placeLoading.value = false
+    console.error('Error mounting Card Payment Brick:', err)
+    paymentError.value = 'No se pudo cargar el formulario de pago.'
   }
 }
+
+function destroyBrick() {
+  if (cardPaymentBrickController) {
+    try { cardPaymentBrickController.unmount() } catch { /* ignore */ }
+    cardPaymentBrickController = null
+  }
+  mpReady.value = false
+}
+
+watch(currentStep, (step) => {
+  if (step === confirmStep.value && !cardPaymentBrickController) {
+    setTimeout(() => mountCardPaymentBrick(), 100)
+  } else if (step !== confirmStep.value && cardPaymentBrickController) {
+    destroyBrick()
+    paymentError.value = null
+  }
+})
+
+onUnmounted(() => {
+  destroyBrick()
+})
 </script>
 
 <template>
@@ -494,36 +607,28 @@ async function placeOrder() {
             </div>
           </div>
 
-          <!-- ─── Confirm order ────────────────────────────────────────────── -->
+          <!-- ─── Payment step: Card Payment Brick ────────────────────────────── -->
           <div v-if="currentStep >= confirmStep" class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-            <div class="h-16 px-8 border-b border-gray-50 bg-gray-50/50 flex items-center">
+            <div class="h-16 px-8 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
               <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
-                Confirmar Pedido
+                Pago
                 <span class="h-1 w-1 rounded-full bg-primary-500" />
               </h3>
+              <span v-if="!mpReady" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-pulse">
+                Cargando formulario…
+              </span>
             </div>
 
             <div class="p-8">
-              <p class="text-xs font-bold text-gray-600 mb-6 leading-relaxed">
-                Revisá tu pedido antes de confirmar. Nos pondremos en contacto para coordinar la entrega.
-              </p>
-
               <div
-                v-if="placeError"
+                v-if="paymentError"
                 class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-[10px] font-bold text-red-600 uppercase tracking-widest"
               >
-                {{ placeError }}
+                {{ paymentError }}
               </div>
 
-              <AppButton
-                variant="secondary"
-                size="lg"
-                :disabled="placeLoading"
-                class="w-full"
-                @click="placeOrder"
-              >
-                {{ placeLoading ? 'Procesando pedido...' : 'Confirmar Pedido' }}
-              </AppButton>
+              <!-- Card Payment Brick renders its own form -->
+              <div id="cardPaymentBrick_container" />
             </div>
           </div>
 

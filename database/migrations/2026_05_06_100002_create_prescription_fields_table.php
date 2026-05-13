@@ -23,31 +23,20 @@ return new class extends Migration
 
         Schema::create($this->prefix.'prescription_type_prescription_field', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('prescription_type_id');
-            $table->unsignedBigInteger('prescription_field_id');
+            $table->foreignId('prescription_type_id')
+                ->constrained($this->prefix.'prescription_types')
+                ->cascadeOnDelete();
+            $table->foreignId('prescription_field_id')
+                ->constrained($this->prefix.'prescription_fields')
+                ->cascadeOnDelete();
             $table->unsignedInteger('sort_order')->default(0);
 
-            $table->foreign('prescription_type_id', 'opt_pt_pf_type_fk')
-                ->references('id')->on($this->prefix.'prescription_types')
-                ->cascadeOnDelete();
-            $table->foreign('prescription_field_id', 'opt_pt_pf_field_fk')
-                ->references('id')->on($this->prefix.'prescription_fields')
-                ->cascadeOnDelete();
-
-            $table->unique(['prescription_type_id', 'prescription_field_id'], 'opt_pt_pf_unique');
-        });
-
-        Schema::table($this->prefix.'prescription_types', function (Blueprint $table) {
-            $table->dropColumn('prescription_fields');
+            $table->unique(['prescription_type_id', 'prescription_field_id']);
         });
     }
 
     public function down(): void
     {
-        Schema::table($this->prefix.'prescription_types', function (Blueprint $table) {
-            $table->json('prescription_fields')->nullable();
-        });
-
         Schema::dropIfExists($this->prefix.'prescription_type_prescription_field');
         Schema::dropIfExists($this->prefix.'prescription_fields');
     }

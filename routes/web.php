@@ -10,6 +10,7 @@ use App\Http\Controllers\CartController;
 use App\Http\Controllers\CatalogController;
 use App\Http\Controllers\CheckoutAddressController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\CheckoutPaymentController;
 use App\Http\Controllers\CheckoutPlaceController;
 use App\Http\Controllers\CheckoutShippingController;
 use App\Http\Controllers\CheckoutSuccessController;
@@ -21,6 +22,8 @@ use App\Http\Controllers\LensConfigurationController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RefundPolicyController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\Webhooks\MercadoPagoController as MercadoPagoWebhookController;
+use App\Http\Middleware\VerifyMercadoPagoSignature;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -63,12 +66,18 @@ Route::prefix('cart')->name('cart.')->group(function () {
 // Route::get('checkout', CheckoutPage::class)->name('checkout.view');  // Wave 6: replaced
 Route::get('checkout', CheckoutController::class)->name('checkout.view');
 
-// Checkout JSON endpoints (web middleware for session/CSRF)
+// Checkout JSON endpoints — guest-accessible save steps, auth required for payment
 Route::prefix('checkout')->name('checkout.')->group(function () {
     Route::post('/address', CheckoutAddressController::class)->name('address');
     Route::post('/shipping', CheckoutShippingController::class)->name('shipping');
-    Route::post('/place', CheckoutPlaceController::class)->name('place');
+    Route::post('/place', CheckoutPlaceController::class)->name('place');  // deprecated: kept for rollback safety
+    Route::post('/payment', CheckoutPaymentController::class)->name('payment');
 });
+
+// MercadoPago webhook — no CSRF (excluded in VerifyCsrfToken), signature verified via middleware
+Route::post('/webhooks/mercadopago', MercadoPagoWebhookController::class)
+    ->middleware(VerifyMercadoPagoSignature::class)
+    ->name('webhooks.mercadopago');
 
 // Route::get('checkout/success', CheckoutSuccessPage::class)->name('checkout-success.view');  // Wave 6: replaced
 Route::get('checkout/success', CheckoutSuccessController::class)->name('checkout-success.view');

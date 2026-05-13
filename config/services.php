@@ -38,4 +38,11 @@ return [
         'key' => env('STRIPE_SECRET'),
     ],
 
+    'mercadopago' => [
+        'public_key' => env('MERCADOPAGO_PUBLIC_KEY'),
+        'access_token' => env('MERCADOPAGO_ACCESS_TOKEN'),
+        'webhook_secret' => env('MERCADOPAGO_WEBHOOK_SECRET'),
+        'api_mode' => env('MERCADOPAGO_API_MODE', 'orders'),
+    ],
+
 ];

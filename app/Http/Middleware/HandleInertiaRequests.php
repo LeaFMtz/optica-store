@@ -54,6 +54,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'mpPublicKey' => config('services.mercadopago.public_key'),
             'navCollections' => fn () => Collection::whereNull('parent_id')
                 ->with('urls')
                 ->get()

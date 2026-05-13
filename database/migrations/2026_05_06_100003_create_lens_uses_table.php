@@ -10,18 +10,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create($this->prefix.'prescription_types', function (Blueprint $table) {
+        Schema::create($this->prefix.'lens_uses', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->boolean('requires_prescription')->default(false);
-            $table->json('prescription_fields')->nullable();
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->foreignId('prescription_type_id')
+                ->nullable()
+                ->constrained($this->prefix.'prescription_types')
+                ->nullOnDelete();
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists($this->prefix.'prescription_types');
+        Schema::dropIfExists($this->prefix.'lens_uses');
     }
 };

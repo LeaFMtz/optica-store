@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      target: dev
+      args:
+        WITH_DEV_DEPS: "true"
+    environment:
+      - DB_CONNECTION=${DB_CONNECTION}
+      - APP_ENV=${APP_ENV}
+      - DB_FOREIGN_KEYS=${DB_FOREIGN_KEYS:-false}
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/var/www/html:z
