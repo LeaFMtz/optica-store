@@ -1,24 +1,7 @@
 # ----------------------------------------------------
 # ETAPA 1: BASE (Debian Bookworm Slim + PHP 8.4 via Sury)
 # ----------------------------------------------------
-FROM debian:bookworm-slim AS base
-
-ENV COMPOSER_ALLOW_SUPERUSER=1 \
-    DEBIAN_FRONTEND=noninteractive
-
-RUN mkdir -p /etc/apt/keyrings /run/php \
-    && apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
-    && curl -sSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /etc/apt/keyrings/sury.gpg \
-    && echo "deb [signed-by=/etc/apt/keyrings/sury.gpg] https://packages.sury.org/php bookworm main" \
-       > /etc/apt/sources.list.d/sury-php.list \
-    && apt-get update && apt-get install -y --no-install-recommends \
-       php8.4-fpm php8.4-curl php8.4-gd php8.4-mbstring php8.4-mysql php8.4-xml php8.4-zip \
-       php8.4-intl php8.4-opcache php8.4-bcmath php8.4-exif \
-       php8.4-sockets php8.4-redis \
-       nginx supervisor unzip \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-COPY --from=docker.io/library/composer:2.9.5 /usr/bin/composer /usr/local/bin/composer
+FROM gustavoadriang/php-8.4-fpm-nginx-supervisor-slim:latest AS base
 
 # ----------------------------------------------------
 # ETAPA 2: BUILD (PHP PROD)
@@ -86,11 +69,11 @@ RUN apt-get update && apt-get install -y curl ca-certificates gnupg \
     && node -v
 
 RUN apt-get install -y --no-install-recommends \
-    mariadb-client bash openssh-client php8.4-xdebug \
+    mariadb-client bash openssh-client php8.4-xdebug php8.4-sqlite3 \
     libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
     libxkbcommon0 libxcomposite1 libxdamage1 libxext6 libxfixes3 \
     libxrandr2 libgbm1 libasound2 libpango-1.0-0 libcairo2 \
-    ripgrep fd-find sd \
+    ripgrep fd-find sd sqlite3 \
     && npm install -g corepack && corepack enable \
     && corepack prepare pnpm@latest --activate \
     && pnpm install playwright \

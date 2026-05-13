@@ -8,28 +8,19 @@ use Lunar\Base\Migration;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create($this->prefix.'lens_types', function (Blueprint $table) {
+        Schema::create($this->prefix.'prescription_types', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('lens_use_id')
-                ->constrained($this->prefix.'lens_uses')
-                ->cascadeOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->unsignedInteger('sort_order')->default(0);
+            $table->boolean('requires_prescription')->default(false);
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists($this->prefix.'lens_types');
+        Schema::dropIfExists($this->prefix.'prescription_types');
     }
 };
