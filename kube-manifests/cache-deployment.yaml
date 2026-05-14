@@ -1,27 +1,41 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose convert -f docker-compose.yml -f docker-compose.override-production.yml --out ./kubernetes
-    kompose.version: 1.32.0 (765fde254)
+  name: cache
   labels:
     io.kompose.service: cache
-  name: cache
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       io.kompose.service: cache
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert -f docker-compose.yml -f docker-compose.override-production.yml --out ./kubernetes
-        kompose.version: 1.32.0 (765fde254)
       labels:
         io.kompose.network/optica-store-optica-network: "true"
         io.kompose.service: cache
     spec:
+      nodeSelector:
+        area: optica-guzman
       containers:
-        - image: redis:7.4-alpine
-          name: optica-redis
+        - name: optica-redis
+          image: redis:7.4-alpine
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 10
       restartPolicy: Always

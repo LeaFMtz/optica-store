@@ -6,6 +6,11 @@ metadata:
     io.kompose.service: app
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       io.kompose.service: app
@@ -15,35 +20,35 @@ spec:
         io.kompose.network/optica-store-optica-network: "true"
         io.kompose.service: app
     spec:
-      # --- PASO 1: ASEGURAR NODO ARGENTINA ---
       nodeSelector:
         area: optica-guzman
-
       containers:
         - name: optica-app
-          image: ghcr.io/leafmtz/optica-app:latest # El CI cambiará ":latest" por el SHA
+          image: ghcr.io/leafmtz/optica-app:latest
           imagePullPolicy: Always
           command: ["/var/www/html/docker/entrypoint.sh"]
           args:
             ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
-
-          # --- PASO 2: CARGAR VARIABLES DE GOLPE ---
           envFrom:
             - configMapRef:
-                name: env # Esto carga todas las variables del ConfigMap de una
-
+                name: env
           ports:
-            - containerPort: 80 # Puerto interno de Nginx/Apache en el pod
-
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "1100m"
+              memory: "512Mi"
+            limits:
+              cpu: "2000m"
+              memory: "1Gi"
           livenessProbe:
             exec:
               command:
                 - curl
                 - -f
                 - http://localhost:80
-            initialDelaySeconds: 10
-            periodSeconds: 5
+            initialDelaySeconds: 15
+            periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 5
-
       restartPolicy: Always
