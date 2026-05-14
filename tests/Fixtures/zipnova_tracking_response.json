@@ -1,0 +1,21 @@
+{
+  "id": "789012",
+  "status": "in_transit",
+  "events": [
+    {
+      "date": "2026-05-14T12:00:00Z",
+      "description": "Envío creado",
+      "location": "Buenos Aires"
+    },
+    {
+      "date": "2026-05-14T15:30:00Z",
+      "description": "Retirado por el transporte",
+      "location": "Buenos Aires"
+    },
+    {
+      "date": "2026-05-15T09:00:00Z",
+      "description": "En tránsito hacia destino",
+      "location": "Rosario"
+    }
+  ]
+}

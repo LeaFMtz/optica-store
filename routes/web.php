@@ -8,6 +8,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\RegisterStoreController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CatalogController;
+use App\Http\Controllers\ShippingQuoteController;
 use App\Http\Controllers\CheckoutAddressController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CheckoutPaymentController;
@@ -73,6 +74,9 @@ Route::prefix('checkout')->name('checkout.')->group(function () {
     Route::post('/place', CheckoutPlaceController::class)->name('place');  // deprecated: kept for rollback safety
     Route::post('/payment', CheckoutPaymentController::class)->name('payment');
 });
+
+// Shipping quote — no auth required, uses XSRF-TOKEN cookie pattern
+Route::post('/api/shipping/quote', ShippingQuoteController::class)->name('api.shipping.quote');
 
 // MercadoPago webhook — no CSRF (excluded in VerifyCsrfToken), signature verified via middleware
 Route::post('/webhooks/mercadopago', MercadoPagoWebhookController::class)

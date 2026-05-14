@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Jobs\CreateZipnovaShipment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Lunar\Facades\CartSession;
@@ -57,6 +58,8 @@ class CheckoutPlaceController extends Controller
 
         // createOrder(forget: true) converts the cart into an order and clears the session.
         $order = CartSession::createOrder(forget: false);
+
+        CreateZipnovaShipment::dispatch($order);
 
         CartSession::forget();
 

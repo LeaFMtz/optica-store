@@ -5,6 +5,7 @@ import AppButton from '@/Components/AppButton.vue'
 import Breadcrumb from '@/Components/Breadcrumb.vue'
 import Badge from '@/Components/Badge.vue'
 import ProductCard from '@/Components/ProductCard.vue'
+import ShippingQuoter from '@/Components/ShippingQuoter.vue'
 
 defineOptions({ layout: StorefrontLayout })
 
@@ -622,6 +623,14 @@ function formatPrice(cents) {
                   {{ cartError }}
                 </div>
               </div>
+            </div>
+
+            <!-- Shipping quoter -->
+            <div class="pt-6 border-t border-gray-100">
+              <ShippingQuoter
+                :product-weight="Math.max(10, product.weight ?? 10)"
+                :cart-mode="false"
+              />
             </div>
 
             <!-- Description -->

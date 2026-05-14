@@ -1,0 +1,29 @@
+{
+  "status": "success",
+  "all_results": [
+    {
+      "service_type": "OCA_STANDARD",
+      "carrier_name": "OCA",
+      "service_name": "OCA Estándar",
+      "price": 180000,
+      "currency": "ARS",
+      "estimated_days": 5
+    },
+    {
+      "service_type": "ANDREANI_STANDARD",
+      "carrier_name": "Andreani",
+      "service_name": "Andreani Estándar",
+      "price": 195000,
+      "currency": "ARS",
+      "estimated_days": 4
+    },
+    {
+      "service_type": "CORREO_ARGENTINO",
+      "carrier_name": "Correo Argentino",
+      "service_name": "Correo Argentino Clásico",
+      "price": 120000,
+      "currency": "ARS",
+      "estimated_days": 7
+    }
+  ]
+}

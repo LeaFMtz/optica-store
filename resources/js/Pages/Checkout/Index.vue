@@ -4,6 +4,7 @@ import { router, usePage } from '@inertiajs/vue3'
 import StorefrontLayout from '@/Layouts/StorefrontLayout.vue'
 import AppButton from '@/Components/AppButton.vue'
 import AppInput from '@/Components/AppInput.vue'
+import ShippingQuoter from '@/Components/ShippingQuoter.vue'
 
 defineOptions({ layout: StorefrontLayout })
 
@@ -63,6 +64,22 @@ const addressLoading = ref(false)
 const selectedShipping = ref(props.shippingOptions[0]?.identifier ?? null)
 const shippingErrors = ref({})
 const shippingLoading = ref(false)
+
+// ─── Zipnova dynamic options ──────────────────────────────────────────────────
+const zipnovaOptions = ref([])
+
+function onZipnovaSelected(option) {
+  if (!zipnovaOptions.value.find(o => o.identifier === option.identifier)) {
+    zipnovaOptions.value.push(option)
+  }
+  selectedShipping.value = option.identifier
+}
+
+function onZipnovaLocationChanged({ postcode, city, state }) {
+  address.value.postcode = postcode
+  address.value.city = city
+  address.value.state = state
+}
 
 // ─── Payment — Card Payment Brick ─────────────────────────────────────────────
 const payLoading = ref(false)
@@ -497,10 +514,21 @@ onUnmounted(() => {
               <div v-if="shippingErrors._general" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-[10px] font-bold text-red-600 uppercase tracking-widest">
                 {{ shippingErrors._general[0] }}
               </div>
-              <div v-if="shippingOptions.length === 0" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+
+              <!-- Zipnova CP quoter — shown above the static RETLOC option -->
+              <div class="mb-6 pb-6 border-b border-gray-100">
+                <ShippingQuoter
+                  :cart-mode="true"
+                  @option-selected="onZipnovaSelected"
+                  @location-changed="onZipnovaLocationChanged"
+                />
+              </div>
+
+              <div v-if="shippingOptions.length === 0 && zipnovaOptions.length === 0" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                 No hay opciones de envío disponibles.
               </div>
               <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <!-- Static shipping options (RETLOC) -->
                 <div v-for="option in shippingOptions" :key="option.identifier">
                   <input :id="option.identifier" v-model="selectedShipping" class="hidden peer" type="radio" :value="option.identifier" name="shippingOption">
                   <label
@@ -509,6 +537,25 @@ onUnmounted(() => {
                   >
                     <p class="text-gray-900">{{ option.name }}</p>
                     <p class="text-primary-500">{{ option.price }}</p>
+                  </label>
+                </div>
+
+                <!-- Dynamic Zipnova options (added by ShippingQuoter) -->
+                <div v-for="option in zipnovaOptions" :key="option.identifier">
+                  <input :id="option.identifier" v-model="selectedShipping" class="hidden peer" type="radio" :value="option.identifier" name="shippingOption">
+                  <label
+                    :for="option.identifier"
+                    class="flex items-center justify-between p-5 text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-primary-500 hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-primary-500/20 transition-all duration-300"
+                  >
+                    <div>
+                      <p class="text-gray-900">{{ option.name }}</p>
+                      <p class="text-gray-400 font-bold normal-case tracking-normal text-[9px] mt-0.5">
+                        {{ option.estimated_days }} días hábiles
+                      </p>
+                    </div>
+                    <p class="text-primary-500">
+                      {{ new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format((option.price ?? 0) / 100) }}
+                    </p>
                   </label>
                 </div>
               </div>
