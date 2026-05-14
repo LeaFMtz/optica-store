@@ -36,6 +36,7 @@ jobs:
           target: prod
           push: true
           tags: ghcr.io/${{ env.REPO_LC }}/optica-app:latest
+          build-args: WITH_ASSETS=empty_assets
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -46,5 +47,6 @@ jobs:
           target: worker
           push: true
           tags: ghcr.io/${{ env.REPO_LC }}/optica-worker:latest
+          build-args: WITH_ASSETS=empty_assets
           cache-from: type=gha
           cache-to: type=gha,mode=max

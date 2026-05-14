@@ -69,7 +69,7 @@ class MercadoPagoService
 
         try {
             $response = Http::withToken($accessToken)
-                ->withHeader('X-Idempotency-Key', hash('sha256', $externalReference))
+                ->withHeader('X-Idempotency-Key', bin2hex(random_bytes(32)))
                 ->timeout(15)
                 ->post(self::API_BASE.'/v1/orders', $payload);
 
@@ -149,7 +149,7 @@ class MercadoPagoService
 
         try {
             $response = Http::withToken($accessToken)
-                ->withHeader('X-Idempotency-Key', hash('sha256', $orderId.':refund:total'))
+                ->withHeader('X-Idempotency-Key', bin2hex(random_bytes(32)))
                 ->timeout(15)
                 ->withBody('{}', 'application/json')
                 ->post(self::API_BASE.'/v1/orders/'.$orderId.'/refund');
@@ -190,7 +190,7 @@ class MercadoPagoService
 
         try {
             $response = Http::withToken($accessToken)
-                ->withHeader('X-Idempotency-Key', hash('sha256', $paymentId.':refund:'.$amount))
+                ->withHeader('X-Idempotency-Key', bin2hex(random_bytes(32)))
                 ->timeout(15)
                 ->post(self::API_BASE.'/v1/payments/'.$paymentId.'/refunds', [
                     'amount' => $amount,

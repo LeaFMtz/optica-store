@@ -24,6 +24,7 @@ if [ "$APP_ENV" = "local" ]; then
 
     [ ! -d vendor ] && composer install --no-interaction
     [ ! -d node_modules ] && command -v pnpm >/dev/null && pnpm install
+    [ -d public/build ] && rm -rf public/build
 
     php artisan key:generate 
     php artisan optimize:clear
