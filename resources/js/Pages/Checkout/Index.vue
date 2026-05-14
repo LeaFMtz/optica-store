@@ -75,10 +75,8 @@ function onZipnovaSelected(option) {
   selectedShipping.value = option.identifier
 }
 
-function onZipnovaLocationChanged({ postcode, city, state }) {
-  address.value.postcode = postcode
-  address.value.city = city
-  address.value.state = state
+function onZipnovaPostcodeChanged(pc) {
+  address.value.postcode = pc
 }
 
 // ─── Payment — Card Payment Brick ─────────────────────────────────────────────
@@ -520,7 +518,7 @@ onUnmounted(() => {
                 <ShippingQuoter
                   :cart-mode="true"
                   @option-selected="onZipnovaSelected"
-                  @location-changed="onZipnovaLocationChanged"
+                  @postcode-changed="onZipnovaPostcodeChanged"
                 />
               </div>
 
