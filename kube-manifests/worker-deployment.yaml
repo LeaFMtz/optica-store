@@ -21,7 +21,7 @@ spec:
         area: optica-guzman
       containers:
         - name: optica-worker
-          image: ghcr.io/leafmtz/optica-app:latest
+          image: ghcr.io/leafmtz/optica-app:f4dd0aedb797b0f4c8f97adefea37a584890ac5e
           imagePullPolicy: Always
           command: ["/var/www/html/docker/entrypoint.sh"]
           args:
