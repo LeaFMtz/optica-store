@@ -60,7 +60,7 @@ jobs:
         run: |
           # Usamos un delimitador diferente en sed por las dudas con las slashes
           sed -i "s|image: ghcr.io/${{ env.REPO_LC }}/optica-app:.*|image: ghcr.io/${{ env.REPO_LC }}/optica-app:${{ github.sha }}|g" kube-manifests/app-deployment.yaml
-          sed -i "s|image: ghcr.io/${{ env.REPO_LC }}/optica-worker:.*|image: ghcr.io/${{ env.REPO_LC }}/optica-worker:${{ github.sha }}|g" kube-manifests/worker-deployment.yaml
+          sed -i "s|image: ghcr.io/${{ env.REPO_LC }}/optica-app:.*|image: ghcr.io/${{ env.REPO_LC }}/optica-app:${{ github.sha }}|g" kube-manifests/worker-deployment.yaml
 
       - name: Commit and push changes
         uses: stefanzweifel/git-auto-commit-action@v5
