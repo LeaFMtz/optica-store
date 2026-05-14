@@ -1,17 +1,37 @@
 services:
+  app:
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  worker:
+    image: ghcr.io/leafmtz/optica-worker:latest
+    env_file:
+      - .env
+    container_name: optica_app
+    restart: unless-stopped
+    entrypoint: ["/var/www/html/docker/entrypoint.sh"]
+    command: ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      - db
+
   db:
     image: mysql:8.4.8
     container_name: optica_db
     restart: unless-stopped
-    environment:
-      - MYSQL_DATABASE=${DB_DATABASE}
-      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
       - optica_network
 
-  redis:
+  cache:
     image: redis:7.4-alpine
     container_name: optica_redis
     restart: unless-stopped

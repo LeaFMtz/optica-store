@@ -32,7 +32,6 @@ logs/
 node_modules
 vendor
 .pnpm-store
-pnpm-lock.yaml
 
 # --- Testing & CI/CD ---
 tests

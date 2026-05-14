@@ -1,10 +1,24 @@
-# ----------------------------------------------------
-# ETAPA 1: BASE (Debian Bookworm Slim + PHP 8.4 via Sury)
-# ----------------------------------------------------
+FROM node:24-slim AS node_builder
+
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+
+COPY . . 
+
+RUN pnpm install --frozen-lockfile
+
+RUN pnpm run build
+
+# -------------------------------
+
 FROM gustavoadriang/php-8.4-fpm-nginx-supervisor-slim:latest AS base
+WORKDIR /var/www/html
 
 # ----------------------------------------------------
-# ETAPA 2: BUILD (PHP PROD)
+# ETAPA 1: BUILD (PHP PROD)
 # ----------------------------------------------------
 FROM base AS build
 WORKDIR /var/www/html
@@ -20,6 +34,7 @@ FROM base AS prod
 WORKDIR /var/www/html
 
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
+COPY --from=node_builder /app/public/build /var/www/html/public/build/
 
 COPY docker/php.ini /etc/php/8.4/fpm/conf.d/99-app.ini
 
@@ -45,6 +60,7 @@ FROM base AS worker
 WORKDIR /var/www/html
 
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
+COPY --from=node_builder /app/public/build /var/www/html/public/build/
 
 COPY docker/php-worker.ini /etc/php/8.4/cli/conf.d/99-app.ini
 
@@ -75,7 +91,7 @@ RUN apt-get install -y --no-install-recommends \
     libxrandr2 libgbm1 libasound2 libpango-1.0-0 libcairo2 \
     ripgrep fd-find sd sqlite3 \
     && npm install -g corepack && corepack enable \
-    && corepack prepare pnpm@latest --activate \
+    && corepack prepare pnpm@10.32.1 --activate \
     && pnpm install playwright \
     && npx playwright install --with-deps chromium \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
