@@ -1,12 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: kompose convert -f docker-compose.yml -f docker-compose.override-production.yml --out ./kubernetes
-    kompose.version: 1.32.0 (765fde254)
+  name: optica-app
   labels:
     io.kompose.service: app
-  name: app
 spec:
   replicas: 1
   selector:
@@ -14,295 +11,39 @@ spec:
       io.kompose.service: app
   template:
     metadata:
-      annotations:
-        kompose.cmd: kompose convert -f docker-compose.yml -f docker-compose.override-production.yml --out ./kubernetes
-        kompose.version: 1.32.0 (765fde254)
       labels:
         io.kompose.network/optica-store-optica-network: "true"
         io.kompose.service: app
     spec:
+      # --- PASO 1: ASEGURAR NODO ARGENTINA ---
+      nodeSelector:
+        area: optica-guzman
+
       containers:
-        - args:
-            - /usr/bin/supervisord
-            - -c
-            - /etc/supervisor/supervisord.conf
-          command:
-            - /var/www/html/docker/entrypoint.sh
-          env:
-            - name: APP_DEBUG
-              valueFrom:
-                configMapKeyRef:
-                  key: APP_DEBUG
-                  name: env
-            - name: APP_ENV
-              valueFrom:
-                configMapKeyRef:
-                  key: APP_ENV
-                  name: env
-            - name: APP_KEY
-              valueFrom:
-                configMapKeyRef:
-                  key: APP_KEY
-                  name: env
-            - name: APP_NAME
-              valueFrom:
-                configMapKeyRef:
-                  key: APP_NAME
-                  name: env
-            - name: APP_URL
-              valueFrom:
-                configMapKeyRef:
-                  key: APP_URL
-                  name: env
-            - name: ASSET_URL
-              valueFrom:
-                configMapKeyRef:
-                  key: ASSET_URL
-                  name: env
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                configMapKeyRef:
-                  key: AWS_ACCESS_KEY_ID
-                  name: env
-            - name: AWS_BUCKET
-              valueFrom:
-                configMapKeyRef:
-                  key: AWS_BUCKET
-                  name: env
-            - name: AWS_DEFAULT_REGION
-              valueFrom:
-                configMapKeyRef:
-                  key: AWS_DEFAULT_REGION
-                  name: env
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                configMapKeyRef:
-                  key: AWS_SECRET_ACCESS_KEY
-                  name: env
-            - name: AWS_USE_PATH_STYLE_ENDPOINT
-              valueFrom:
-                configMapKeyRef:
-                  key: AWS_USE_PATH_STYLE_ENDPOINT
-                  name: env
-            - name: CACHE_DRIVER
-              valueFrom:
-                configMapKeyRef:
-                  key: CACHE_DRIVER
-                  name: env
-            - name: DB_CONNECTION
-              valueFrom:
-                configMapKeyRef:
-                  key: DB_CONNECTION
-                  name: env
-            - name: FILESYSTEM_DISK
-              valueFrom:
-                configMapKeyRef:
-                  key: FILESYSTEM_DISK
-                  name: env
-            - name: LOG_CHANNEL
-              valueFrom:
-                configMapKeyRef:
-                  key: LOG_CHANNEL
-                  name: env
-            - name: LOG_DEPRECATIONS_CHANNEL
-              valueFrom:
-                configMapKeyRef:
-                  key: LOG_DEPRECATIONS_CHANNEL
-                  name: env
-            - name: LOG_LEVEL
-              valueFrom:
-                configMapKeyRef:
-                  key: LOG_LEVEL
-                  name: env
-            - name: MAIL_ENCRYPTION
-              valueFrom:
-                configMapKeyRef:
-                  key: MAIL_ENCRYPTION
-                  name: env
-            - name: MAIL_FROM_ADDRESS
-              valueFrom:
-                configMapKeyRef:
-                  key: MAIL_FROM_ADDRESS
-                  name: env
-            - name: MAIL_FROM_NAME
-              valueFrom:
-                configMapKeyRef:
-                  key: MAIL_FROM_NAME
-                  name: env
-            - name: MAIL_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: MAIL_HOST
-                  name: env
-            - name: MAIL_MAILER
-              valueFrom:
-                configMapKeyRef:
-                  key: MAIL_MAILER
-                  name: env
-            - name: MAIL_PASSWORD
-              valueFrom:
-                configMapKeyRef:
-                  key: MAIL_PASSWORD
-                  name: env
-            - name: MAIL_PORT
-              valueFrom:
-                configMapKeyRef:
-                  key: MAIL_PORT
-                  name: env
-            - name: MAIL_USERNAME
-              valueFrom:
-                configMapKeyRef:
-                  key: MAIL_USERNAME
-                  name: env
-            - name: MEMCACHED_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: MEMCACHED_HOST
-                  name: env
-            - name: MERCADOPAGO_ACCESS_TOKEN
-              valueFrom:
-                configMapKeyRef:
-                  key: MERCADOPAGO_ACCESS_TOKEN
-                  name: env
-            - name: MERCADOPAGO_PUBLIC_KEY
-              valueFrom:
-                configMapKeyRef:
-                  key: MERCADOPAGO_PUBLIC_KEY
-                  name: env
-            - name: MERCADOPAGO_WEBHOOK_SECRET
-              valueFrom:
-                configMapKeyRef:
-                  key: MERCADOPAGO_WEBHOOK_SECRET
-                  name: env
-            - name: MIX_PUSHER_APP_CLUSTER
-              valueFrom:
-                configMapKeyRef:
-                  key: MIX_PUSHER_APP_CLUSTER
-                  name: env
-            - name: MIX_PUSHER_APP_KEY
-              valueFrom:
-                configMapKeyRef:
-                  key: MIX_PUSHER_APP_KEY
-                  name: env
-            - name: PUSHER_APP_CLUSTER
-              valueFrom:
-                configMapKeyRef:
-                  key: PUSHER_APP_CLUSTER
-                  name: env
-            - name: PUSHER_APP_ID
-              valueFrom:
-                configMapKeyRef:
-                  key: PUSHER_APP_ID
-                  name: env
-            - name: PUSHER_APP_KEY
-              valueFrom:
-                configMapKeyRef:
-                  key: PUSHER_APP_KEY
-                  name: env
-            - name: PUSHER_APP_SECRET
-              valueFrom:
-                configMapKeyRef:
-                  key: PUSHER_APP_SECRET
-                  name: env
-            - name: QUEUE_CONNECTION
-              valueFrom:
-                configMapKeyRef:
-                  key: QUEUE_CONNECTION
-                  name: env
-            - name: REDIS_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: REDIS_HOST
-                  name: env
-            - name: REDIS_PASSWORD
-              valueFrom:
-                configMapKeyRef:
-                  key: REDIS_PASSWORD
-                  name: env
-            - name: REDIS_PORT
-              valueFrom:
-                configMapKeyRef:
-                  key: REDIS_PORT
-                  name: env
-            - name: SESSION_DRIVER
-              valueFrom:
-                configMapKeyRef:
-                  key: SESSION_DRIVER
-                  name: env
-            - name: SESSION_LIFETIME
-              valueFrom:
-                configMapKeyRef:
-                  key: SESSION_LIFETIME
-                  name: env
-            - name: STRIPE_KEY
-              valueFrom:
-                configMapKeyRef:
-                  key: STRIPE_KEY
-                  name: env
-            - name: STRIPE_SECRET
-              valueFrom:
-                configMapKeyRef:
-                  key: STRIPE_SECRET
-                  name: env
-            - name: ZIPNOVA_ACCOUNT_ID
-              valueFrom:
-                configMapKeyRef:
-                  key: ZIPNOVA_ACCOUNT_ID
-                  name: env
-            - name: ZIPNOVA_API_SECRET
-              valueFrom:
-                configMapKeyRef:
-                  key: ZIPNOVA_API_SECRET
-                  name: env
-            - name: ZIPNOVA_API_TOKEN
-              valueFrom:
-                configMapKeyRef:
-                  key: ZIPNOVA_API_TOKEN
-                  name: env
-            - name: ZIPNOVA_BASE_URL
-              valueFrom:
-                configMapKeyRef:
-                  key: ZIPNOVA_BASE_URL
-                  name: env
-            - name: ZIPNOVA_DEFAULT_HEIGHT_CM
-              valueFrom:
-                configMapKeyRef:
-                  key: ZIPNOVA_DEFAULT_HEIGHT_CM
-                  name: env
-            - name: ZIPNOVA_DEFAULT_LENGTH_CM
-              valueFrom:
-                configMapKeyRef:
-                  key: ZIPNOVA_DEFAULT_LENGTH_CM
-                  name: env
-            - name: ZIPNOVA_DEFAULT_WEIGHT_GRAMS
-              valueFrom:
-                configMapKeyRef:
-                  key: ZIPNOVA_DEFAULT_WEIGHT_GRAMS
-                  name: env
-            - name: ZIPNOVA_DEFAULT_WIDTH_CM
-              valueFrom:
-                configMapKeyRef:
-                  key: ZIPNOVA_DEFAULT_WIDTH_CM
-                  name: env
-            - name: ZIPNOVA_MOCK
-              valueFrom:
-                configMapKeyRef:
-                  key: ZIPNOVA_MOCK
-                  name: env
-          image: ghcr.io/leafmtz/optica-app:latest
+        - name: optica-app
+          image: ghcr.io/leafmtz/optica-app:latest # El CI cambiará ":latest" por el SHA
+          imagePullPolicy: Always
+          command: ["/var/www/html/docker/entrypoint.sh"]
+          args:
+            ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+
+          # --- PASO 2: CARGAR VARIABLES DE GOLPE ---
+          envFrom:
+            - configMapRef:
+                name: env # Esto carga todas las variables del ConfigMap de una
+
+          ports:
+            - containerPort: 80 # Puerto interno de Nginx/Apache en el pod
+
           livenessProbe:
             exec:
               command:
                 - curl
                 - -f
                 - http://localhost:80
-            failureThreshold: 5
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 3
-          name: optica-app
-          ports:
-            - containerPort: 80
-              hostPort: 8080
-              protocol: TCP
+            failureThreshold: 5
+
       restartPolicy: Always
