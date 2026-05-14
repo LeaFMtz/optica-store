@@ -19,6 +19,12 @@ jobs:
         run: |
           echo "REPO_LC=${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_ENV
 
+      # ACA CORREGIMOS EL ERROR DEL CACHE
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
       - name: Login a GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -52,6 +58,7 @@ jobs:
 
       - name: Update Kubernetes manifests
         run: |
+          # Usamos un delimitador diferente en sed por las dudas con las slashes
           sed -i "s|image: ghcr.io/${{ env.REPO_LC }}/optica-app:.*|image: ghcr.io/${{ env.REPO_LC }}/optica-app:${{ github.sha }}|g" kube-manifests/app-deployment.yaml
           sed -i "s|image: ghcr.io/${{ env.REPO_LC }}/optica-worker:.*|image: ghcr.io/${{ env.REPO_LC }}/optica-worker:${{ github.sha }}|g" kube-manifests/worker-deployment.yaml
 
@@ -60,4 +67,4 @@ jobs:
         with:
           commit_message: "chore: update image tags to ${{ github.sha }} [skip ci]"
           branch: main
-          file_pattern: "kube-manifests/*.yaml"
+          file_pattern: 'kube-manifests/*.yaml'
