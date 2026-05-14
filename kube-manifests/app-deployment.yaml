@@ -29,6 +29,52 @@ spec:
           command: ["/var/www/html/docker/entrypoint.sh"]
           args:
             ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
+          env:
+            - name: APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: optica-secrets
+                  key: APP_KEY
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: optica-secrets
+                  key: DB_PASSWORD
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: optica-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: optica-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: MERCADOPAGO_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: optica-secrets
+                  key: MERCADOPAGO_PUBLIC_KEY
+            - name: MERCADOPAGO_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: optica-secrets
+                  key: MERCADOPAGO_ACCESS_TOKEN
+            - name: MERCADOPAGO_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: optica-secrets
+                  key: MERCADOPAGO_WEBHOOK_SECRET
+            - name: ZIPNOVA_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: optica-secrets
+                  key: ZIPNOVA_API_TOKEN
+            - name: ZIPNOVA_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: optica-secrets
+                  key: ZIPNOVA_API_SECRET
           envFrom:
             - configMapRef:
                 name: env

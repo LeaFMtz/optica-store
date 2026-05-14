@@ -22,9 +22,21 @@ spec:
       containers:
         - name: optica-db
           image: mysql:8.4.8
-          envFrom:
-            - configMapRef:
-                name: env
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: optica-secrets
+                  key: DB_ROOT_PASSWORD
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: optica-secrets
+                  key: DB_PASSWORD
+            - name: MYSQL_USER
+              value: "guzman_user"
+            - name: MYSQL_DATABASE
+              value: "optica"
           ports:
             - containerPort: 3306
           resources:
