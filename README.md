@@ -1,6 +1,6 @@
 # Optica Store
 
-Tienda en línea de productos ópticos construida con Laravel y Lunar PHP.
+Tiienda en línea de productos ópticos construida con Laravel y Lunar PHP.
 
 ## Requisitos
 
