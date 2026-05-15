@@ -7,7 +7,7 @@
     <title>Óptica Guzmán</title>
     <meta name="description" content="Tus lentes hechos a tu medida.">
 
-    <link rel="icon" href="{{ asset('favicon.png') }}">
+    <link rel="icon" href="{{ asset('favicon.ico') }}">
 
     @routes
     @inertiaHead
