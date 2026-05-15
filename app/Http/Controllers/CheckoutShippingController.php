@@ -21,6 +21,7 @@ class CheckoutShippingController extends Controller
     {
         $validated = $request->validate([
             'identifier' => ['required', 'string'],
+            'point_id' => ['nullable', 'integer'],
         ]);
 
         $cart = CartSession::current();
@@ -40,14 +41,27 @@ class CheckoutShippingController extends Controller
             $data = $zipnovaOptions[$identifier] ?? null;
 
             if ($data) {
+                if (($data['service_type_code'] ?? '') === 'pickup_point' && empty($validated['point_id'])) {
+                    return response()->json(['message' => 'Debe seleccionar un punto de retiro.'], 422);
+                }
+
+                $isCollect = ($data['service_type_code'] ?? '') === 'pickup_point';
+
                 $option = new ShippingOption(
                     name: $data['name'],
                     description: $data['name'],
                     identifier: $identifier,
                     price: new Price($data['price'] * 100, $cart->currency, 1),
                     taxClass: TaxClass::getDefault(),
+                    collect: $isCollect,
                 );
                 ShippingManifest::addOption($option);
+
+                if (!empty($validated['point_id'])) {
+                    session(['zipnova_pending_point_id' => (int) $validated['point_id']]);
+                } else {
+                    session()->forget('zipnova_pending_point_id');
+                }
             }
         }
 

@@ -38,7 +38,39 @@
       },
       "amounts": {
         "price_incl_tax": 10962
-      }
+      },
+      "pickup_points": [
+        {
+          "point_id": 40040,
+          "description": "Correo Argentino - Recoleta Dietetica Grato",
+          "open_hours": null,
+          "phone": null,
+          "location": {
+            "street": "Av Callao",
+            "street_number": "1445",
+            "street_extras": null,
+            "city": "Capital Federal",
+            "state": "Capital Federal",
+            "zipcode": "1130",
+            "geolocation": { "lat": -34.5924059, "lng": -58.392415, "distance": 273 }
+          }
+        },
+        {
+          "point_id": 40041,
+          "description": "Correo Argentino - Recoleta Centro",
+          "open_hours": null,
+          "phone": null,
+          "location": {
+            "street": "Av Santa Fe",
+            "street_number": "1200",
+            "street_extras": null,
+            "city": "Capital Federal",
+            "state": "Capital Federal",
+            "zipcode": "1060",
+            "geolocation": { "lat": -34.5951, "lng": -58.3931, "distance": 450 }
+          }
+        }
+      ]
     },
     {
       "selectable": false,

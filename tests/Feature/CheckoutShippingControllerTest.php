@@ -93,6 +93,8 @@ class CheckoutShippingControllerTest extends TestCase
                 'estimated_days' => '4–5 días',
                 'logistic_type' => 'carrier_dropoff',
                 'carrier_logo' => '',
+                'service_type_code' => 'standard_delivery',
+                'pickup_points' => [],
             ],
         ]]);
 
@@ -104,6 +106,97 @@ class CheckoutShippingControllerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJson(['message' => 'Shipping option selected.']);
+    }
+
+    public function test_selecting_standard_delivery_does_not_require_point_id(): void
+    {
+        $cart = $this->makeCart();
+
+        session(['zipnova_quote_options' => [
+            'ZN_208_standard_delivery' => [
+                'identifier' => 'ZN_208_standard_delivery',
+                'name' => 'OCA — Entrega a domicilio',
+                'price' => 10588,
+                'currency' => 'ARS',
+                'estimated_days' => '4–5 días',
+                'logistic_type' => 'carrier_dropoff',
+                'carrier_logo' => '',
+                'service_type_code' => 'standard_delivery',
+                'pickup_points' => [],
+            ],
+        ]]);
+
+        $mock = $this->mock(CartSessionInterface::class);
+        $mock->shouldReceive('current')->andReturn($cart);
+        $mock->shouldReceive('setShippingOption')->once()->andReturn(null);
+
+        $response = $this->postJson('/checkout/shipping', ['identifier' => 'ZN_208_standard_delivery']);
+
+        $response->assertStatus(200);
+        $this->assertNull(session('zipnova_pending_point_id'));
+    }
+
+    public function test_selecting_pickup_point_without_point_id_returns_422(): void
+    {
+        $cart = $this->makeCart();
+
+        session(['zipnova_quote_options' => [
+            'ZN_233_pickup_point' => [
+                'identifier' => 'ZN_233_pickup_point',
+                'name' => 'Correo Argentino — Entrega en punto de entrega',
+                'price' => 10962,
+                'currency' => 'ARS',
+                'estimated_days' => '6–7 días',
+                'logistic_type' => 'carrier_dropoff',
+                'carrier_logo' => '',
+                'service_type_code' => 'pickup_point',
+                'pickup_points' => [
+                    ['point_id' => 40040, 'description' => 'Correo Argentino - Recoleta', 'location' => []],
+                ],
+            ],
+        ]]);
+
+        $mock = $this->mock(CartSessionInterface::class);
+        $mock->shouldReceive('current')->andReturn($cart);
+        $mock->shouldReceive('setShippingOption')->never();
+
+        $response = $this->postJson('/checkout/shipping', ['identifier' => 'ZN_233_pickup_point']);
+
+        $response->assertStatus(422);
+        $response->assertJson(['message' => 'Debe seleccionar un punto de retiro.']);
+    }
+
+    public function test_selecting_pickup_point_with_valid_point_id_stores_in_session(): void
+    {
+        $cart = $this->makeCart();
+
+        session(['zipnova_quote_options' => [
+            'ZN_233_pickup_point' => [
+                'identifier' => 'ZN_233_pickup_point',
+                'name' => 'Correo Argentino — Entrega en punto de entrega',
+                'price' => 10962,
+                'currency' => 'ARS',
+                'estimated_days' => '6–7 días',
+                'logistic_type' => 'carrier_dropoff',
+                'carrier_logo' => '',
+                'service_type_code' => 'pickup_point',
+                'pickup_points' => [
+                    ['point_id' => 40040, 'description' => 'Correo Argentino - Recoleta', 'location' => []],
+                ],
+            ],
+        ]]);
+
+        $mock = $this->mock(CartSessionInterface::class);
+        $mock->shouldReceive('current')->andReturn($cart);
+        $mock->shouldReceive('setShippingOption')->once()->andReturn(null);
+
+        $response = $this->postJson('/checkout/shipping', [
+            'identifier' => 'ZN_233_pickup_point',
+            'point_id' => 40040,
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertSame(40040, session('zipnova_pending_point_id'));
     }
 
     public function test_selecting_zipnova_option_not_in_session_returns_422(): void

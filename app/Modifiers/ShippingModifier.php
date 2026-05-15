@@ -48,6 +48,7 @@ class ShippingModifier
                     identifier: $activeIdentifier,
                     price: new Price((int) round($stored['price'] * 100), $cart->currency, 1),
                     taxClass: TaxClass::getDefault(),
+                    collect: (($stored['service_type_code'] ?? '') === 'pickup_point'),
                 ));
             }
         }

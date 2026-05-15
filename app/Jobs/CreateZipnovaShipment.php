@@ -37,8 +37,9 @@ class CreateZipnovaShipment implements ShouldQueue
         }
 
         $serviceType = substr($identifier, 3);
+        $pointId = isset($meta['zipnova_point_id']) ? (int) $meta['zipnova_point_id'] : null;
 
-        $result = $zipnova->createShipment($this->order, $serviceType);
+        $result = $zipnova->createShipment($this->order, $serviceType, $pointId);
 
         $meta['zipnova_shipment_id'] = $result['id'];
         $meta['zipnova_label_code'] = $result['label_code'];

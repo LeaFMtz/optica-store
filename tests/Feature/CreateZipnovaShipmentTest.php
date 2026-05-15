@@ -23,7 +23,7 @@ class CreateZipnovaShipmentTest extends TestCase
         $zipnova = $this->createMock(ZipnovaService::class);
         $zipnova->expects($this->once())
             ->method('createShipment')
-            ->with($order, 'OCA_STANDARD')
+            ->with($order, 'OCA_STANDARD', null)
             ->willReturn([
                 'id' => '789012',
                 'label_code' => 'OCA-ABC123',
@@ -37,6 +37,48 @@ class CreateZipnovaShipmentTest extends TestCase
         $this->assertSame('789012', $meta['zipnova_shipment_id']);
         $this->assertSame('OCA-ABC123', $meta['zipnova_label_code']);
         $this->assertSame('created', $meta['zipnova_status']);
+    }
+
+    public function test_point_id_from_meta_is_passed_to_create_shipment(): void
+    {
+        $order = $this->buildMockOrder([
+            'shipping_identifier' => 'ZN_233_pickup_point',
+            'zipnova_point_id' => 40040,
+        ]);
+
+        $zipnova = $this->createMock(ZipnovaService::class);
+        $zipnova->expects($this->once())
+            ->method('createShipment')
+            ->with($order, '233_pickup_point', 40040)
+            ->willReturn([
+                'id' => '111222',
+                'label_code' => 'CA-XYZ789',
+                'status' => 'new',
+            ]);
+
+        $job = new CreateZipnovaShipment($order);
+        $job->handle($zipnova);
+
+        $meta = (array) $order->meta;
+        $this->assertSame('111222', $meta['zipnova_shipment_id']);
+    }
+
+    public function test_missing_point_id_in_meta_passes_null_to_create_shipment(): void
+    {
+        $order = $this->buildMockOrder(['shipping_identifier' => 'ZN_208_standard_delivery']);
+
+        $zipnova = $this->createMock(ZipnovaService::class);
+        $zipnova->expects($this->once())
+            ->method('createShipment')
+            ->with($order, '208_standard_delivery', null)
+            ->willReturn([
+                'id' => '333444',
+                'label_code' => 'OCA-DEF456',
+                'status' => 'new',
+            ]);
+
+        $job = new CreateZipnovaShipment($order);
+        $job->handle($zipnova);
     }
 
     public function test_retloc_identifier_skips_zipnova_and_does_not_modify_meta(): void

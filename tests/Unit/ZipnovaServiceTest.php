@@ -23,7 +23,7 @@ class ZipnovaServiceTest extends TestCase
     {
         config(['services.zipnova.mock' => true]);
 
-        $options = $this->service->quote('1425', 500);
+        $options = $this->service->quote('1425', 'Buenos Aires', 'Buenos Aires', 500);
 
         $this->assertNotEmpty($options);
         $this->assertArrayHasKey('identifier', $options[0]);
@@ -31,14 +31,37 @@ class ZipnovaServiceTest extends TestCase
         $this->assertArrayHasKey('price', $options[0]);
         $this->assertArrayHasKey('currency', $options[0]);
         $this->assertArrayHasKey('estimated_days', $options[0]);
+        $this->assertArrayHasKey('service_type_code', $options[0]);
+        $this->assertArrayHasKey('pickup_points', $options[0]);
 
         foreach ($options as $option) {
             $this->assertStringStartsWith('ZN_', $option['identifier']);
             $this->assertIsString($option['name']);
             $this->assertIsInt($option['price']);
             $this->assertSame('ARS', $option['currency']);
-            $this->assertIsInt($option['estimated_days']);
+            $this->assertIsString($option['estimated_days']);
+            $this->assertIsString($option['service_type_code']);
+            $this->assertIsArray($option['pickup_points']);
         }
+    }
+
+    public function test_quote_maps_service_type_code_and_pickup_points(): void
+    {
+        config(['services.zipnova.mock' => true]);
+
+        $options = $this->service->quote('1425', 'Buenos Aires', 'Buenos Aires', 500);
+
+        $pickupOption = collect($options)->firstWhere('service_type_code', 'pickup_point');
+        $this->assertNotNull($pickupOption, 'Expected a pickup_point option from the fixture');
+        $this->assertNotEmpty($pickupOption['pickup_points']);
+        $this->assertArrayHasKey('point_id', $pickupOption['pickup_points'][0]);
+        $this->assertArrayHasKey('description', $pickupOption['pickup_points'][0]);
+        $this->assertArrayHasKey('location', $pickupOption['pickup_points'][0]);
+        $this->assertIsInt($pickupOption['pickup_points'][0]['point_id']);
+
+        $standardOption = collect($options)->firstWhere('service_type_code', 'standard_delivery');
+        $this->assertNotNull($standardOption, 'Expected a standard_delivery option from the fixture');
+        $this->assertSame([], $standardOption['pickup_points']);
     }
 
     public function test_create_shipment_with_mock_returns_expected_shape(): void
@@ -97,7 +120,7 @@ class ZipnovaServiceTest extends TestCase
             ], 200),
         ]);
 
-        $this->service->quote('1425', 500);
+        $this->service->quote('1425', 'Buenos Aires', 'Buenos Aires', 500);
 
         Http::assertSent(function (Request $request) use ($expectedEncoded): bool {
             return $request->hasHeader('Authorization', 'Basic ' . $expectedEncoded);

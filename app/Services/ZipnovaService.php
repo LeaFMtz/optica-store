@@ -81,7 +81,7 @@ class ZipnovaService
      *
      * @throws RuntimeException on HTTP failure
      */
-    public function createShipment(Order $order, string $serviceType): array
+    public function createShipment(Order $order, string $serviceType, ?int $pointId = null): array
     {
         if ($this->isMock()) {
             $fixture = $this->fixture('create');
@@ -118,6 +118,7 @@ class ZipnovaService
                 'width_cm' => (int) config('services.zipnova.default_package.width_cm'),
                 'length_cm' => (int) config('services.zipnova.default_package.length_cm'),
             ],
+            ...(($pointId !== null) ? ['pickup_point' => ['point_id' => $pointId]] : []),
         ];
 
         try {
@@ -287,11 +288,20 @@ class ZipnovaService
      * Map raw Zipnova quote response to the normalized options array.
      *
      * @param  array<string, mixed>  $data
-     * @return array<int, array{identifier: string, name: string, price: int, currency: string, estimated_days: int}>
+     * @return array<int, array{
+     *   identifier: string,
+     *   name: string,
+     *   price: int,
+     *   currency: string,
+     *   estimated_days: string,
+     *   logistic_type: string,
+     *   carrier_logo: string,
+     *   service_type_code: string,
+     *   pickup_points: array<int, array{point_id: int, description: string, location: array<string, mixed>}>,
+     * }>
      */
     private function mapQuoteResults(array $data): array
     {
-        \Log::info(print_r($data, true));
         $results = $data['results'] ?? [];
 
         return array_values(array_filter(array_map(function (array $item): ?array {
@@ -313,6 +323,14 @@ class ZipnovaService
                 'estimated_days' => $days,
                 'logistic_type' => (string) ($item['logistic_type'] ?? ''),
                 'carrier_logo' => (string) ($item['carrier']['logo'] ?? ''),
+                'service_type_code' => $serviceCode,
+                'pickup_points' => array_values(array_map(function (array $p): array {
+                    return [
+                        'point_id' => (int) $p['point_id'],
+                        'description' => (string) ($p['description'] ?? ''),
+                        'location' => $p['location'] ?? [],
+                    ];
+                }, (array) ($item['pickup_points'] ?? []))),
             ];
         }, $results)));
     }

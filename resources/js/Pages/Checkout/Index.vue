@@ -22,8 +22,13 @@ const page = usePage()
 // ─── Steps ────────────────────────────────────────────────────────────────────
 // Always: 1 = facturación, 2 = envío, 3 = dirección (delivery only), confirm = 3 or 4
 const selectedIsCollect = computed(() => {
-  const opt = props.shippingOptions.find(o => o.identifier === selectedShipping.value)
-  return opt?.collect ?? true
+  const staticOpt = props.shippingOptions.find(o => o.identifier === selectedShipping.value)
+  if (staticOpt) return staticOpt.collect ?? true
+
+  const znOpt = zipnovaOptions.value.find(o => o.identifier === selectedShipping.value)
+  if (znOpt) return znOpt.service_type_code === 'pickup_point'
+
+  return true
 })
 
 // Address step only exists in delivery mode when a non-collect option is chosen
@@ -70,12 +75,20 @@ const shippingLoading = ref(false)
 
 // ─── Zipnova dynamic options ──────────────────────────────────────────────────
 const zipnovaOptions = ref(props.initialZipnovaOption ? [props.initialZipnovaOption] : [])
+const selectedPointId = ref(null)
+
+const showPickupSelector = computed(() =>
+  selectedShipping.value?.startsWith('ZN_') &&
+  selectedIsCollect.value &&
+  (zipnovaOptions.value.find(o => o.identifier === selectedShipping.value)?.pickup_points?.length ?? 0) > 0
+)
 
 function onZipnovaSelected(option) {
   if (!zipnovaOptions.value.find(o => o.identifier === option.identifier)) {
     zipnovaOptions.value.push(option)
   }
   selectedShipping.value = option.identifier
+  selectedPointId.value = null
 }
 
 function onZipnovaPostcodeChanged(pc) {
@@ -175,7 +188,7 @@ async function submitShipping() {
   shippingErrors.value = {}
   shippingLoading.value = true
   try {
-    await jsonPost('/checkout/shipping', { identifier: selectedShipping.value })
+    await jsonPost('/checkout/shipping', { identifier: selectedShipping.value, point_id: selectedPointId.value ?? null })
     // Reload cart prop so the sidebar total includes the shipping cost
     router.reload({
       only: ['cart'],
@@ -604,6 +617,25 @@ onUnmounted(() => {
                   </label>
                 </div>
               </div>
+              <!-- Pickup point selector for Zipnova pickup_point options -->
+              <div v-if="showPickupSelector" class="mt-4 px-1 pb-2">
+                <p class="text-[10px] font-bold text-gray-600 mb-2 uppercase tracking-widest">Seleccioná un punto de retiro</p>
+                <div class="space-y-2">
+                  <label
+                    v-for="point in zipnovaOptions.find(o => o.identifier === selectedShipping)?.pickup_points ?? []"
+                    :key="point.point_id"
+                    class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all duration-200"
+                    :class="selectedPointId === point.point_id ? 'border-primary-500 bg-primary-50' : 'border-gray-200'"
+                  >
+                    <input type="radio" :value="point.point_id" v-model="selectedPointId" class="mt-0.5 accent-primary-500" />
+                    <div>
+                      <p class="text-[10px] font-bold text-gray-800">{{ point.description }}</p>
+                      <p class="text-[9px] text-gray-500">{{ point.location.street }} {{ point.location.street_number }}, {{ point.location.city }} ({{ point.location.geolocation?.distance }}m)</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <p v-if="shippingErrors.identifier" class="mt-4 text-[10px] font-bold text-red-600 uppercase tracking-widest">
                 {{ shippingErrors.identifier[0] }}
               </p>
