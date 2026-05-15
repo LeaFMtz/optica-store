@@ -24,14 +24,14 @@ return new class extends Migration
         Schema::create($this->prefix.'prescription_type_prescription_field', function (Blueprint $table) {
             $table->id();
             $table->foreignId('prescription_type_id')
-                ->constrained($this->prefix.'prescription_types')
+                ->constrained($this->prefix.'prescription_types', indexName: 'opt_p_type_id_fk')
                 ->cascadeOnDelete();
             $table->foreignId('prescription_field_id')
-                ->constrained($this->prefix.'prescription_fields')
+                ->constrained($this->prefix.'prescription_fields', indexName: 'opt_p_field_id_fk')
                 ->cascadeOnDelete();
             $table->unsignedInteger('sort_order')->default(0);
 
-            $table->unique(['prescription_type_id', 'prescription_field_id']);
+            $table->unique(['prescription_type_id', 'prescription_field_id'], 'opt_p_type_field_unique');
         });
     }
 
