@@ -312,6 +312,7 @@ class ZipnovaService
                 'currency' => 'ARS',
                 'estimated_days' => $days,
                 'logistic_type' => (string) ($item['logistic_type'] ?? ''),
+                'carrier_logo' => (string) ($item['carrier']['logo'] ?? ''),
             ];
         }, $results)));
     }

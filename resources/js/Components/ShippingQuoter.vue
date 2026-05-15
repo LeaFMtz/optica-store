@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   productWeight: {
@@ -23,21 +23,28 @@ const error = ref(null)
 const selected = ref(null)
 const postcodeError = ref(null)
 const unknownPostcode = ref(false)
+let debounceTimer = null
 
 const isValid = computed(() => POSTCODE_REGEX.test(postcode.value))
 
-function validate() {
-  if (!postcode.value) {
-    postcodeError.value = 'Ingresá un código postal.'
-    return false
-  }
-  if (!POSTCODE_REGEX.test(postcode.value)) {
-    postcodeError.value = 'El código postal debe tener 4 dígitos.'
-    return false
-  }
+watch(postcode, (val) => {
+  clearTimeout(debounceTimer)
   postcodeError.value = null
-  return true
-}
+
+  if (val.length < 4) {
+    options.value = []
+    error.value = null
+    unknownPostcode.value = false
+    return
+  }
+
+  if (!POSTCODE_REGEX.test(val)) {
+    postcodeError.value = 'El código postal debe tener 4 dígitos.'
+    return
+  }
+
+  debounceTimer = setTimeout(fetchQuotes, 400)
+})
 
 function getWeightGrams() {
   return Math.max(10, props.productWeight ?? 10)
@@ -58,7 +65,7 @@ function formatPrice(price) {
 }
 
 async function fetchQuotes() {
-  if (!validate()) return
+  if (!isValid.value) return
 
   loading.value = true
   error.value = null
@@ -103,9 +110,13 @@ async function fetchQuotes() {
   }
 }
 
-function handleBlur() {
-  if (isValid.value) fetchQuotes()
-  else if (postcode.value) validate()
+function clearPostcode() {
+  postcode.value = ''
+  options.value = []
+  error.value = null
+  unknownPostcode.value = false
+  postcodeError.value = null
+  selected.value = null
 }
 
 function selectOption(option) {
@@ -122,7 +133,7 @@ function selectOption(option) {
     </p>
 
     <!-- CP input -->
-    <div class="flex gap-2">
+    <div class="relative">
       <input
         v-model="postcode"
         type="text"
@@ -130,45 +141,48 @@ function selectOption(option) {
         maxlength="4"
         placeholder="Código postal"
         :class="[
-          'flex-1 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors border',
-          postcodeError ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-primary-500',
+          'w-full rounded-xl px-4 py-3 pr-10 text-sm border transition-all duration-200 focus:outline-none focus:ring-2 focus:border-transparent',
+          postcodeError
+            ? 'border-red-400 focus:ring-red-400 bg-red-50'
+            : isValid
+              ? 'border-primary-400 focus:ring-primary-400'
+              : 'border-gray-200 focus:ring-primary-400',
         ]"
-        @blur="handleBlur"
-        @keydown.enter.prevent="fetchQuotes"
       >
-      <button
-        type="button"
-        :disabled="loading || !postcode"
-        class="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        @click="fetchQuotes"
-      >
-        <span v-if="loading" class="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-        <span v-else>Calcular</span>
-      </button>
+      <div class="absolute inset-y-0 right-3 flex items-center">
+        <span
+          v-if="loading"
+          class="w-4 h-4 border-2 border-gray-200 border-t-primary-500 rounded-full animate-spin"
+        />
+        <button
+          v-else-if="postcode"
+          type="button"
+          class="text-gray-300 hover:text-gray-500 transition-colors"
+          @click="clearPostcode"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <p v-if="postcodeError" class="text-[10px] font-bold text-red-600">{{ postcodeError }}</p>
-
-    <!-- Loading -->
-    <div v-if="loading" class="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-      <span class="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-      Calculando...
-    </div>
+    <p v-if="postcodeError" class="text-[10px] font-bold text-red-500">{{ postcodeError }}</p>
 
     <!-- Unknown CP -->
-    <div v-else-if="unknownPostcode" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+    <p v-if="unknownPostcode" class="text-[10px] font-bold uppercase tracking-widest text-amber-500">
       Código postal no encontrado.
-    </div>
+    </p>
 
     <!-- No options -->
-    <div v-else-if="error === 'no disponible'" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+    <p v-else-if="error === 'no disponible'" class="text-[10px] font-bold uppercase tracking-widest text-gray-400">
       Envío no disponible para ese destino.
-    </div>
+    </p>
 
     <!-- Options -->
-    <div v-else-if="options.length" class="space-y-2">
-      <div v-for="option in options" :key="option.identifier">
-        <template v-if="cartMode">
+    <div v-else-if="options.length" class="flex flex-col gap-2">
+      <template v-if="cartMode">
+        <div v-for="option in options" :key="option.identifier">
           <input
             :id="option.identifier"
             v-model="selected"
@@ -180,26 +194,54 @@ function selectOption(option) {
           >
           <label
             :for="option.identifier"
-            class="flex items-center justify-between p-4 text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-primary-500 hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-primary-500/20 transition-all duration-300"
+            class="flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border cursor-pointer transition-all duration-200
+              border-gray-100 bg-white hover:border-gray-300 hover:bg-gray-50
+              peer-checked:border-primary-500 peer-checked:bg-primary-50 peer-checked:ring-1 peer-checked:ring-primary-400"
           >
-            <div>
-              <p class="text-gray-900">{{ option.name }}</p>
-              <p class="text-gray-400 font-bold normal-case tracking-normal text-[9px] mt-0.5">{{ option.estimated_days }}</p>
+            <div class="flex items-center gap-3 min-w-0">
+              <img
+                v-if="option.carrier_logo"
+                :src="option.carrier_logo"
+                :alt="option.name"
+                class="w-8 h-8 object-contain flex-shrink-0 rounded"
+              >
+              <svg v-else class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+              </svg>
+              <div class="min-w-0">
+                <p class="text-[10px] font-black uppercase tracking-widest text-gray-800 truncate">{{ option.name }}</p>
+                <p class="text-[9px] text-gray-400 mt-0.5">{{ option.estimated_days }}</p>
+              </div>
             </div>
-            <p class="text-primary-500">{{ formatPrice(option.price) }}</p>
+            <p class="text-sm font-black text-primary-500 flex-shrink-0">{{ formatPrice(option.price) }}</p>
           </label>
-        </template>
+        </div>
+      </template>
 
-        <template v-else>
-          <div class="flex items-center justify-between p-4 text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl bg-gray-50">
-            <div>
-              <p class="text-gray-900">{{ option.name }}</p>
-              <p class="text-gray-400 font-bold normal-case tracking-normal text-[9px] mt-0.5">{{ option.estimated_days }}</p>
+      <template v-else>
+        <div
+          v-for="option in options"
+          :key="option.identifier"
+          class="flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border border-gray-100 bg-gray-50"
+        >
+          <div class="flex items-center gap-3 min-w-0">
+            <img
+              v-if="option.carrier_logo"
+              :src="option.carrier_logo"
+              :alt="option.name"
+              class="w-8 h-8 object-contain flex-shrink-0 rounded"
+            >
+            <svg v-else class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+            </svg>
+            <div class="min-w-0">
+              <p class="text-[10px] font-black uppercase tracking-widest text-gray-800 truncate">{{ option.name }}</p>
+              <p class="text-[9px] text-gray-400 mt-0.5">{{ option.estimated_days }}</p>
             </div>
-            <p class="text-primary-500">{{ formatPrice(option.price) }}</p>
           </div>
-        </template>
-      </div>
+          <p class="text-sm font-black text-primary-500 flex-shrink-0">{{ formatPrice(option.price) }}</p>
+        </div>
+      </template>
     </div>
   </div>
 </template>
