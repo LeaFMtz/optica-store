@@ -18,7 +18,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
-          extensions: mbstring, xml, ctype, iconv, intl, dom, bcmath
+          extensions: mbstring, xml, ctype, iconv, intl, bcmath, dom
 
       - name: Install Composer Dependencies
         run: composer install --no-dev --optimize-autoloader
@@ -33,7 +33,7 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install dependencies
+      - name: Install Node dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build assets con Vite
@@ -41,7 +41,7 @@ jobs:
         env:
           ASSET_URL: https://assets.opticaguzman.com.ar
 
-      - name: Publish Filament & Lunar Assets
+      - name: Publish Package Assets
         run: |
           php artisan filament:assets
           php artisan vendor:publish --tag=lunar-assets --force
