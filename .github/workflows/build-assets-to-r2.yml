@@ -14,6 +14,15 @@ jobs:
       - name: Checkout del código
         uses: actions/checkout@v4
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, xml, ctype, iconv, intl, dom, bcmath
+
+      - name: Install Composer Dependencies
+        run: composer install --no-dev --optimize-autoloader
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -32,6 +41,11 @@ jobs:
         env:
           ASSET_URL: https://assets.opticaguzman.com.ar
 
+      - name: Publish Filament & Lunar Assets
+        run: |
+          php artisan filament:assets
+          php artisan vendor:publish --tag=lunar-assets --force
+
       - name: Upload to R2
         uses: jakejarvis/s3-sync-action@master
         with:
@@ -42,5 +56,5 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_REGION: auto
           AWS_S3_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
-          SOURCE_DIR: "public/build"
-          DEST_DIR: "build"
+          SOURCE_DIR: "public"
+          DEST_DIR: ""
