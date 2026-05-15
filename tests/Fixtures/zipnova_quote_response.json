@@ -1,29 +1,62 @@
 {
-  "status": "success",
-  "all_results": [
+  "results": [
     {
-      "service_type": "OCA_STANDARD",
-      "carrier_name": "OCA",
-      "service_name": "OCA Estándar",
-      "price": 180000,
-      "currency": "ARS",
-      "estimated_days": 5
+      "selectable": true,
+      "logistic_type": "carrier_dropoff",
+      "carrier": {
+        "id": 208,
+        "name": "OCA",
+        "logo": "https://zippincore.s3.amazonaws.com/carriers/oca/logo.png"
+      },
+      "service_type": {
+        "code": "standard_delivery",
+        "name": "Entrega a domicilio"
+      },
+      "delivery_time": {
+        "min": 4,
+        "max": 5
+      },
+      "amounts": {
+        "price_incl_tax": 10588
+      }
     },
     {
-      "service_type": "ANDREANI_STANDARD",
-      "carrier_name": "Andreani",
-      "service_name": "Andreani Estándar",
-      "price": 195000,
-      "currency": "ARS",
-      "estimated_days": 4
+      "selectable": true,
+      "logistic_type": "carrier_dropoff",
+      "carrier": {
+        "id": 233,
+        "name": "Correo Argentino",
+        "logo": "https://zippincore.s3.amazonaws.com/carriers/correo-argentino/logo.png"
+      },
+      "service_type": {
+        "code": "pickup_point",
+        "name": "Entrega en punto de entrega"
+      },
+      "delivery_time": {
+        "min": 6,
+        "max": 7
+      },
+      "amounts": {
+        "price_incl_tax": 10962
+      }
     },
     {
-      "service_type": "CORREO_ARGENTINO",
-      "carrier_name": "Correo Argentino",
-      "service_name": "Correo Argentino Clásico",
-      "price": 120000,
-      "currency": "ARS",
-      "estimated_days": 7
+      "selectable": false,
+      "carrier": {
+        "id": 999,
+        "name": "Carrier no disponible"
+      },
+      "service_type": {
+        "code": "express",
+        "name": "Express"
+      },
+      "delivery_time": {
+        "min": 1,
+        "max": 2
+      },
+      "amounts": {
+        "price_incl_tax": 99999
+      }
     }
   ]
 }

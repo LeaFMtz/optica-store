@@ -41,6 +41,12 @@ class ShippingQuoteController extends Controller
                 return $this->zipnova->quote($postcode, $location['city'], $location['state'], $weightGrams);
             });
 
+            $sessionMap = collect($options)->keyBy('identifier')->all();
+            session(['zipnova_quote_options' => array_merge(
+                session('zipnova_quote_options', []),
+                $sessionMap,
+            )]);
+
             return response()->json(['options' => $options]);
         } catch (RuntimeException) {
             return response()->json(['options' => []]);

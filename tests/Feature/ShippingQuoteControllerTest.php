@@ -113,10 +113,10 @@ class ShippingQuoteControllerTest extends TestCase
         ]);
 
         // First request — hits API
-        $this->postJson('/api/shipping/quote', ['postcode' => '9999', 'weight_grams' => 300]);
+        $this->postJson('/api/shipping/quote', ['postcode' => '1425', 'weight_grams' => 300]);
 
         // Second request — should be served from cache
-        $this->postJson('/api/shipping/quote', ['postcode' => '9999', 'weight_grams' => 300]);
+        $this->postJson('/api/shipping/quote', ['postcode' => '1425', 'weight_grams' => 300]);
 
         // Assert HTTP was called only once (cache hit on second request)
         Http::assertSentCount(1);

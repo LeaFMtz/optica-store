@@ -90,9 +90,23 @@ let cardPaymentBrickController = null
 const cartTotal = ref(props.cart.total)
 const cartSubTotal = ref(props.cart.sub_total)
 
-const selectedShippingOption = computed(() =>
-  props.shippingOptions.find(o => o.identifier === selectedShipping.value),
-)
+function formatPrice(value) {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
+const selectedShippingOption = computed(() => {
+  const staticOpt = props.shippingOptions.find(o => o.identifier === selectedShipping.value)
+  if (staticOpt) return staticOpt
+
+  const zipnovaOpt = zipnovaOptions.value.find(o => o.identifier === selectedShipping.value)
+  if (!zipnovaOpt) return null
+
+  return { ...zipnovaOpt, price: formatPrice(zipnovaOpt.price) }
+})
 
 // ─── CSRF helper ──────────────────────────────────────────────────────────────
 function getCsrf() {
@@ -531,7 +545,7 @@ onUnmounted(() => {
                   <input :id="option.identifier" v-model="selectedShipping" class="hidden peer" type="radio" :value="option.identifier" name="shippingOption">
                   <label
                     :for="option.identifier"
-                    class="flex items-center justify-between p-5 text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-primary-500 hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-primary-500/20 transition-all duration-300"
+                    class="flex items-center justify-between p-5 h-full text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-primary-500 hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-primary-500/20 transition-all duration-300"
                   >
                     <p class="text-gray-900">{{ option.name }}</p>
                     <p class="text-primary-500">{{ option.price }}</p>
@@ -543,17 +557,15 @@ onUnmounted(() => {
                   <input :id="option.identifier" v-model="selectedShipping" class="hidden peer" type="radio" :value="option.identifier" name="shippingOption">
                   <label
                     :for="option.identifier"
-                    class="flex items-center justify-between p-5 text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-primary-500 hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-primary-500/20 transition-all duration-300"
+                    class="flex items-center justify-between p-5 h-full text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-primary-500 hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-primary-500/20 transition-all duration-300"
                   >
                     <div>
                       <p class="text-gray-900">{{ option.name }}</p>
                       <p class="text-gray-400 font-bold normal-case tracking-normal text-[9px] mt-0.5">
-                        {{ option.estimated_days }} días hábiles
+                        {{ option.estimated_days }}
                       </p>
                     </div>
-                    <p class="text-primary-500">
-                      {{ new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format((option.price ?? 0) / 100) }}
-                    </p>
+                    <p class="text-primary-500">{{ formatPrice(option.price) }}</p>
                   </label>
                 </div>
               </div>
