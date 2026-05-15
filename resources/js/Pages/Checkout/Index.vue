@@ -14,6 +14,7 @@ const props = defineProps({
   savedAddress: { type: Object, default: null },
   countries: { type: Array, default: () => [] },
   hasDeliveryShipping: { type: Boolean, required: true },
+  initialZipnovaOption: { type: Object, default: null },
 })
 
 const page = usePage()
@@ -61,12 +62,14 @@ const addressErrors = ref({})
 const addressLoading = ref(false)
 
 // ─── Shipping selection ───────────────────────────────────────────────────────
-const selectedShipping = ref(props.shippingOptions[0]?.identifier ?? null)
+const selectedShipping = ref(
+  props.initialZipnovaOption?.identifier ?? props.shippingOptions[0]?.identifier ?? null,
+)
 const shippingErrors = ref({})
 const shippingLoading = ref(false)
 
 // ─── Zipnova dynamic options ──────────────────────────────────────────────────
-const zipnovaOptions = ref([])
+const zipnovaOptions = ref(props.initialZipnovaOption ? [props.initialZipnovaOption] : [])
 
 function onZipnovaSelected(option) {
   if (!zipnovaOptions.value.find(o => o.identifier === option.identifier)) {
@@ -77,6 +80,13 @@ function onZipnovaSelected(option) {
 
 function onZipnovaPostcodeChanged(pc) {
   address.value.postcode = pc
+}
+
+function onZipnovaOptionsCleared() {
+  zipnovaOptions.value = []
+  if (selectedShipping.value?.startsWith('ZN_')) {
+    selectedShipping.value = props.shippingOptions[0]?.identifier ?? null
+  }
 }
 
 // ─── Payment — Card Payment Brick ─────────────────────────────────────────────
@@ -107,6 +117,8 @@ const selectedShippingOption = computed(() => {
 
   return { ...zipnovaOpt, price: formatPrice(zipnovaOpt.price) }
 })
+
+const storeLogo = '/images/logo.webp'
 
 // ─── CSRF helper ──────────────────────────────────────────────────────────────
 function getCsrf() {
@@ -164,9 +176,12 @@ async function submitShipping() {
   shippingLoading.value = true
   try {
     await jsonPost('/checkout/shipping', { identifier: selectedShipping.value })
-    // collect (retiro) → skip address, go to confirm (step 3)
-    // delivery → show address form (step 3, which maps to address panel)
-    currentStep.value = 3
+    // Reload cart prop so the sidebar total includes the shipping cost
+    router.reload({
+      only: ['cart'],
+      onSuccess: () => { currentStep.value = 3 },
+      onError: () => { currentStep.value = 3 },
+    })
   } catch (err) {
     if (err.status === 422 && err.data?.errors) {
       shippingErrors.value = err.data.errors
@@ -241,6 +256,7 @@ async function mountCardPaymentBrick() {
         customization: {
           visual: {
             style: { theme: 'default' },
+            hidePaymentButton: true,
           },
           paymentMethods: {
             creditCard: 'all',
@@ -385,11 +401,11 @@ onUnmounted(() => {
               </div>
 
               <div
-                v-if="selectedShippingOption && currentStep >= confirmStep"
-                class="flex flex-wrap py-3 items-center justify-between"
+                v-if="selectedShippingOption && currentStep >= 2"
+                class="flex py-3 items-start justify-between gap-2"
               >
-                <dt class="text-gray-400">Envío ({{ selectedShippingOption.name }})</dt>
-                <dd class="text-gray-900 font-black">{{ selectedShippingOption.price }}</dd>
+                <dt class="text-gray-400 flex-1 min-w-0 line-clamp-2">Envío ({{ selectedShippingOption.name }})</dt>
+                <dd class="text-gray-900 font-black shrink-0">{{ selectedShippingOption.price }}</dd>
               </div>
 
               <div
@@ -533,6 +549,7 @@ onUnmounted(() => {
                   :cart-mode="true"
                   @option-selected="onZipnovaSelected"
                   @postcode-changed="onZipnovaPostcodeChanged"
+                  @options-cleared="onZipnovaOptionsCleared"
                 />
               </div>
 
@@ -545,10 +562,17 @@ onUnmounted(() => {
                   <input :id="option.identifier" v-model="selectedShipping" class="hidden peer" type="radio" :value="option.identifier" name="shippingOption">
                   <label
                     :for="option.identifier"
-                    class="flex items-center justify-between p-5 h-full text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-primary-500 hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-primary-500/20 transition-all duration-300"
+                    class="flex items-center justify-between gap-3 px-4 py-3.5 h-full text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-primary-500 hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-primary-500/20 transition-all duration-300"
                   >
-                    <p class="text-gray-900">{{ option.name }}</p>
-                    <p class="text-primary-500">{{ option.price }}</p>
+                    <div class="flex items-center gap-3 min-w-0">
+                      <img
+                        :src="storeLogo"
+                        alt="Óptica Guzmán"
+                        class="w-8 h-8 object-contain flex-shrink-0 rounded"
+                      >
+                      <p class="text-gray-900 truncate">{{ option.name }}</p>
+                    </div>
+                    <p class="text-primary-500 flex-shrink-0">{{ option.price }}</p>
                   </label>
                 </div>
 
@@ -557,15 +581,26 @@ onUnmounted(() => {
                   <input :id="option.identifier" v-model="selectedShipping" class="hidden peer" type="radio" :value="option.identifier" name="shippingOption">
                   <label
                     :for="option.identifier"
-                    class="flex items-center justify-between p-5 h-full text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-primary-500 hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-primary-500/20 transition-all duration-300"
+                    class="flex items-center justify-between gap-3 px-4 py-3.5 h-full text-[10px] font-black uppercase tracking-widest border border-gray-100 rounded-xl shadow-sm cursor-pointer peer-checked:border-primary-500 hover:bg-gray-50 peer-checked:ring-2 peer-checked:ring-primary-500/20 transition-all duration-300"
                   >
-                    <div>
-                      <p class="text-gray-900">{{ option.name }}</p>
-                      <p class="text-gray-400 font-bold normal-case tracking-normal text-[9px] mt-0.5">
-                        {{ option.estimated_days }}
-                      </p>
+                    <div class="flex items-center gap-3 min-w-0">
+                      <img
+                        v-if="option.carrier_logo"
+                        :src="option.carrier_logo"
+                        :alt="option.name"
+                        class="w-8 h-8 object-contain flex-shrink-0 rounded"
+                      >
+                      <svg v-else class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+                      </svg>
+                      <div class="min-w-0">
+                        <p class="text-gray-900 truncate">{{ option.name }}</p>
+                        <p class="text-gray-400 font-bold normal-case tracking-normal text-[9px] mt-0.5">
+                          {{ option.estimated_days }}
+                        </p>
+                      </div>
                     </div>
-                    <p class="text-primary-500">{{ formatPrice(option.price) }}</p>
+                    <p class="text-primary-500 flex-shrink-0">{{ formatPrice(option.price) }}</p>
                   </label>
                 </div>
               </div>
@@ -579,11 +614,21 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <div v-else-if="currentStep > 2 && selectedShippingOption" class="p-8">
-              <dl class="flex flex-wrap max-w-xs text-[10px] font-black uppercase tracking-widest">
-                <dt class="w-1/2 text-gray-400">{{ selectedShippingOption.name }}</dt>
-                <dd class="w-1/2 text-right text-primary-500">{{ selectedShippingOption.price }}</dd>
-              </dl>
+            <div v-else-if="currentStep > 2 && selectedShippingOption" class="px-8 py-6">
+              <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-4 min-w-0">
+                  <img
+                    :src="selectedShippingOption.carrier_logo || storeLogo"
+                    :alt="selectedShippingOption.name"
+                    class="w-10 h-10 object-contain flex-shrink-0 rounded-lg border border-gray-100 p-1"
+                  >
+                  <div class="min-w-0">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-800 truncate">{{ selectedShippingOption.name }}</p>
+                    <p v-if="selectedShippingOption.estimated_days" class="text-[9px] text-gray-400 mt-0.5">{{ selectedShippingOption.estimated_days }}</p>
+                  </div>
+                </div>
+                <p class="text-sm font-black text-primary-500 flex-shrink-0">{{ selectedShippingOption.price }}</p>
+              </div>
             </div>
           </div>
 
@@ -686,6 +731,17 @@ onUnmounted(() => {
 
               <!-- Card Payment Brick renders its own form -->
               <div id="cardPaymentBrick_container" />
+
+              <div v-if="mpReady" class="mt-6 flex justify-end">
+                <AppButton
+                  variant="secondary"
+                  size="lg"
+                  :disabled="payLoading"
+                  @click="cardPaymentBrickController?.submit()"
+                >
+                  {{ payLoading ? 'Procesando...' : 'Pagar ahora' }}
+                </AppButton>
+              </div>
             </div>
           </div>
 
