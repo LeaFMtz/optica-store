@@ -12,7 +12,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['option-selected', 'postcode-changed'])
+const emit = defineEmits(['option-selected', 'postcode-changed', 'options-cleared'])
 
 const POSTCODE_REGEX = /^\d{4}$/
 
@@ -35,6 +35,7 @@ watch(postcode, (val) => {
     options.value = []
     error.value = null
     unknownPostcode.value = false
+    emit('options-cleared')
     return
   }
 
@@ -72,6 +73,7 @@ async function fetchQuotes() {
   unknownPostcode.value = false
   options.value = []
   selected.value = null
+  emit('options-cleared')
 
   try {
     const response = await fetch('/api/shipping/quote', {
