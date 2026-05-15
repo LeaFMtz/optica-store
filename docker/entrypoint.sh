@@ -40,6 +40,7 @@ if [ "$APP_ENV" = "local" ]; then
             touch "$SQLITE_PATH"
             chmod 666 "$SQLITE_PATH"
             chmod 777 "$(dirname "$SQLITE_PATH")"
+            php artisan migrate:fresh --seed
         fi
     else
         php artisan migrate --force
