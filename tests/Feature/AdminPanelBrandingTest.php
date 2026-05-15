@@ -44,7 +44,7 @@ class AdminPanelBrandingTest extends TestCase
     {
         $panel = Filament::getPanel('lunar');
 
-        $this->assertStringContainsString('favicon.png', $panel->getFavicon());
+        $this->assertStringContainsString('favicon.ico', $panel->getFavicon());
     }
 
     public function test_font_is_null_for_system_fonts(): void

@@ -53,7 +53,7 @@ class AppServiceProvider extends ServiceProvider
                 ->brandName('Óptica Guzmán')
                 ->brandLogo(asset('images/logo-light.png'))
                 ->darkModeBrandLogo(asset('images/logo.webp'))
-                ->favicon(asset('favicon.png'))
+                ->favicon(asset('favicon.ico'))
                 ->brandLogoHeight('3.5rem')
                 ->colors(['primary' => '#427318'])
                 ->font(null),
