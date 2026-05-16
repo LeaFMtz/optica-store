@@ -8,7 +8,6 @@ use App\Http\Middleware\VerifyCsrfToken;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Lunar\Base\CartSessionInterface;
-use Lunar\Facades\CartSession;
 use Lunar\Models\Cart;
 use Lunar\Models\CartAddress;
 use Lunar\Models\Channel;
@@ -20,38 +19,6 @@ use Tests\TestCase;
 class CheckoutShippingControllerTest extends TestCase
 {
     use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->withoutMiddleware(VerifyCsrfToken::class);
-    }
-
-    private function makeCart(): Cart
-    {
-        $channel = Channel::factory()->create(['default' => true]);
-        $currency = Currency::factory()->create(['code' => 'ARS', 'decimal_places' => 2, 'default' => true]);
-        TaxClass::factory()->create(['name' => 'Default', 'default' => true]);
-        $country = Country::factory()->create();
-
-        $user = User::factory()->create();
-        $this->actingAs($user);
-
-        $cart = Cart::factory()->create([
-            'user_id' => $user->id,
-            'currency_id' => $currency->id,
-            'channel_id' => $channel->id,
-        ]);
-
-        CartAddress::factory()->create([
-            'cart_id' => $cart->id,
-            'country_id' => $country->id,
-            'type' => 'shipping',
-            'contact_email' => 'test@example.com',
-        ]);
-
-        return $cart;
-    }
 
     public function test_selecting_retloc_option_returns_200(): void
     {
@@ -237,5 +204,37 @@ class CheckoutShippingControllerTest extends TestCase
         $response = $this->actingAs($user)->postJson('/checkout/shipping', ['identifier' => 'RETLOC']);
 
         $response->assertStatus(422);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(VerifyCsrfToken::class);
+    }
+
+    private function makeCart(): Cart
+    {
+        $channel = Channel::factory()->create(['default' => true]);
+        $currency = Currency::factory()->create(['code' => 'ARS', 'decimal_places' => 2, 'default' => true]);
+        TaxClass::factory()->create(['name' => 'Default', 'default' => true]);
+        $country = Country::factory()->create();
+
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $cart = Cart::factory()->create([
+            'user_id' => $user->id,
+            'currency_id' => $currency->id,
+            'channel_id' => $channel->id,
+        ]);
+
+        CartAddress::factory()->create([
+            'cart_id' => $cart->id,
+            'country_id' => $country->id,
+            'type' => 'shipping',
+            'contact_email' => 'test@example.com',
+        ]);
+
+        return $cart;
     }
 }

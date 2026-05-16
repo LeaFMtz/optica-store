@@ -135,7 +135,7 @@ function formatPrice(value) {
     style: 'currency',
     currency: 'ARS',
     maximumFractionDigits: 0,
-  }).format(value)
+  }).format(value / 100)
 }
 
 const selectedShippingOption = computed(() => {

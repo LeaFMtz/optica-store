@@ -5,22 +5,16 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Filament\Resources\OrderResource\Pages\ManageOrderExtension;
-use App\Services\ZipnovaService;
+use Filament\Schemas\Components\Section;
 use Tests\TestCase;
 
 class ManageOrderZipnovaActionsTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-        config(['services.zipnova.mock' => true]);
-    }
-
     // ─── Infolist section tests ───────────────────────────────────────────────
 
     public function test_extend_infolist_schema_adds_two_sections(): void
     {
-        $extension = new ManageOrderExtension();
+        $extension = new ManageOrderExtension;
         $schema = $extension->extendInfolistSchema([]);
 
         // Prescription section + Zipnova section are both added
@@ -28,7 +22,7 @@ class ManageOrderZipnovaActionsTest extends TestCase
 
         // Both are Filament Section components
         foreach ($schema as $component) {
-            $this->assertInstanceOf(\Filament\Schemas\Components\Section::class, $component);
+            $this->assertInstanceOf(Section::class, $component);
         }
     }
 
@@ -53,7 +47,7 @@ class ManageOrderZipnovaActionsTest extends TestCase
 
     public function test_header_actions_returned_correctly(): void
     {
-        $extension = new ManageOrderExtension();
+        $extension = new ManageOrderExtension;
         $actions = $extension->headerActions([]);
 
         $actionNames = collect($actions)->map(fn ($a) => $a->getName())->all();
@@ -65,7 +59,7 @@ class ManageOrderZipnovaActionsTest extends TestCase
 
     public function test_crear_envio_visible_when_status_is_null(): void
     {
-        $extension = new ManageOrderExtension();
+        $extension = new ManageOrderExtension;
         $actions = $extension->headerActions([]);
 
         $crearEnvio = collect($actions)->first(fn ($a) => $a->getName() === 'crear_envio_zipnova');
@@ -79,7 +73,7 @@ class ManageOrderZipnovaActionsTest extends TestCase
 
     public function test_crear_envio_visible_when_status_is_failed(): void
     {
-        $extension = new ManageOrderExtension();
+        $extension = new ManageOrderExtension;
         $actions = $extension->headerActions([]);
 
         $crearEnvio = collect($actions)->first(fn ($a) => $a->getName() === 'crear_envio_zipnova');
@@ -91,7 +85,7 @@ class ManageOrderZipnovaActionsTest extends TestCase
 
     public function test_crear_envio_hidden_when_status_is_created(): void
     {
-        $extension = new ManageOrderExtension();
+        $extension = new ManageOrderExtension;
         $actions = $extension->headerActions([]);
 
         $crearEnvio = collect($actions)->first(fn ($a) => $a->getName() === 'crear_envio_zipnova');
@@ -103,7 +97,7 @@ class ManageOrderZipnovaActionsTest extends TestCase
 
     public function test_ver_tracking_hidden_when_no_shipment_id(): void
     {
-        $extension = new ManageOrderExtension();
+        $extension = new ManageOrderExtension;
         $actions = $extension->headerActions([]);
 
         $verTracking = collect($actions)->first(fn ($a) => $a->getName() === 'ver_tracking');
@@ -116,7 +110,7 @@ class ManageOrderZipnovaActionsTest extends TestCase
 
     public function test_ver_tracking_visible_when_shipment_id_exists(): void
     {
-        $extension = new ManageOrderExtension();
+        $extension = new ManageOrderExtension;
         $actions = $extension->headerActions([]);
 
         $verTracking = collect($actions)->first(fn ($a) => $a->getName() === 'ver_tracking');
@@ -128,7 +122,7 @@ class ManageOrderZipnovaActionsTest extends TestCase
 
     public function test_cancelar_envio_hidden_when_already_cancelled(): void
     {
-        $extension = new ManageOrderExtension();
+        $extension = new ManageOrderExtension;
         $actions = $extension->headerActions([]);
 
         $cancelarEnvio = collect($actions)->first(fn ($a) => $a->getName() === 'cancelar_envio');
@@ -141,7 +135,7 @@ class ManageOrderZipnovaActionsTest extends TestCase
 
     public function test_cancelar_envio_visible_when_shipment_id_and_not_cancelled(): void
     {
-        $extension = new ManageOrderExtension();
+        $extension = new ManageOrderExtension;
         $actions = $extension->headerActions([]);
 
         $cancelarEnvio = collect($actions)->first(fn ($a) => $a->getName() === 'cancelar_envio');
@@ -149,6 +143,12 @@ class ManageOrderZipnovaActionsTest extends TestCase
         $record = (object) ['meta' => (object) ['zipnova_shipment_id' => '789012', 'zipnova_status' => 'created']];
         $visible = $this->callVisibleCallback($cancelarEnvio, $record);
         $this->assertTrue($visible);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['services.zipnova.mock' => true]);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

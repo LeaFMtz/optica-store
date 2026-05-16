@@ -17,33 +17,6 @@ class CartControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        Currency::factory()->create(['default' => true]);
-        Channel::factory()->create(['default' => true]);
-    }
-
-    private function makeVariant(): ProductVariant
-    {
-        return ProductVariant::factory()->create(['purchasable' => 'always']);
-    }
-
-    private function makeLensConfig(ProductVariant $variant): ProductLensConfiguration
-    {
-        $lensUse = LensUse::create(['name' => 'Visión Simple', 'sort_order' => 1]);
-        $lensType = LensType::create(['name' => 'Orgánico', 'handle' => 'organico', 'sort_order' => 1]);
-
-        return ProductLensConfiguration::create([
-            'product_id' => $variant->product_id,
-            'lens_use_id' => $lensUse->id,
-            'lens_type_id' => $lensType->id,
-            'crystal_product_id' => $variant->product_id,
-            'price_override' => 15000,
-        ]);
-    }
-
     public function test_store_persists_prescription_data_in_meta(): void
     {
         $variant = $this->makeVariant();
@@ -102,5 +75,32 @@ class CartControllerTest extends TestCase
 
         $response->assertUnprocessable();
         $response->assertJsonValidationErrors(['prescription_data.od_esfera']);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Currency::factory()->create(['default' => true]);
+        Channel::factory()->create(['default' => true]);
+    }
+
+    private function makeVariant(): ProductVariant
+    {
+        return ProductVariant::factory()->create(['purchasable' => 'always']);
+    }
+
+    private function makeLensConfig(ProductVariant $variant): ProductLensConfiguration
+    {
+        $lensUse = LensUse::create(['name' => 'Visión Simple', 'sort_order' => 1]);
+        $lensType = LensType::create(['name' => 'Orgánico', 'handle' => 'organico', 'sort_order' => 1]);
+
+        return ProductLensConfiguration::create([
+            'product_id' => $variant->product_id,
+            'lens_use_id' => $lensUse->id,
+            'lens_type_id' => $lensType->id,
+            'crystal_product_id' => $variant->product_id,
+            'price_override' => 15000,
+        ]);
     }
 }

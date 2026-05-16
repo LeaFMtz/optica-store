@@ -11,15 +11,6 @@ use Tests\TestCase;
 
 class ShippingQuoteControllerTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-        config(['services.zipnova.mock' => true]);
-        // The shipping quote endpoint uses XSRF-TOKEN cookie (same pattern as checkout).
-        // In tests we bypass CSRF middleware directly.
-        $this->withoutMiddleware(VerifyCsrfToken::class);
-    }
-
     public function test_valid_four_digit_cp_returns_options(): void
     {
         $response = $this->postJson('/api/shipping/quote', [
@@ -89,7 +80,7 @@ class ShippingQuoteControllerTest extends TestCase
         $response->assertJson(['options' => []]);
     }
 
-    public function test_same_cp_and_weight_served_from_cache_on_second_request(): void
+    public function test_same_cp_and_weight_makes_separate_api_calls(): void
     {
         config(['services.zipnova.mock' => false]);
         config(['services.zipnova.token' => 'test_token']);
@@ -115,10 +106,19 @@ class ShippingQuoteControllerTest extends TestCase
         // First request — hits API
         $this->postJson('/api/shipping/quote', ['postcode' => '1425', 'weight_grams' => 300]);
 
-        // Second request — should be served from cache
+        // Second request — also hits API (no cache, Argentina prices are volatile)
         $this->postJson('/api/shipping/quote', ['postcode' => '1425', 'weight_grams' => 300]);
 
-        // Assert HTTP was called only once (cache hit on second request)
-        Http::assertSentCount(1);
+        // Assert HTTP was called twice (quotes are never cached for Argentina)
+        Http::assertSentCount(2);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['services.zipnova.mock' => true]);
+        // The shipping quote endpoint uses XSRF-TOKEN cookie (same pattern as checkout).
+        // In tests we bypass CSRF middleware directly.
+        $this->withoutMiddleware(VerifyCsrfToken::class);
     }
 }

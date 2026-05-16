@@ -62,7 +62,7 @@ function formatPrice(price) {
     style: 'currency',
     currency: 'ARS',
     maximumFractionDigits: 0,
-  }).format(price)
+  }).format(price / 100)
 }
 
 async function fetchQuotes() {

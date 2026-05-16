@@ -6,24 +6,21 @@ namespace Tests\Feature;
 
 use App\Jobs\CreateZipnovaShipment;
 use App\Services\ZipnovaService;
+use Lunar\Models\Order;
+use Lunar\Models\OrderAddress;
+use PHPUnit\Framework\MockObject\MockObject;
 use Tests\TestCase;
 
 class CreateZipnovaShipmentTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-        config(['services.zipnova.mock' => true]);
-    }
-
     public function test_zn_identifier_triggers_create_shipment_and_updates_meta(): void
     {
-        $order = $this->buildMockOrder(['shipping_identifier' => 'ZN_OCA_STANDARD']);
+        $order = $this->buildMockOrder('ZN_233_standard_delivery');
 
         $zipnova = $this->createMock(ZipnovaService::class);
         $zipnova->expects($this->once())
             ->method('createShipment')
-            ->with($order, 'OCA_STANDARD', null)
+            ->with($order, 'standard_delivery', null)
             ->willReturn([
                 'id' => '789012',
                 'label_code' => 'OCA-ABC123',
@@ -41,15 +38,13 @@ class CreateZipnovaShipmentTest extends TestCase
 
     public function test_point_id_from_meta_is_passed_to_create_shipment(): void
     {
-        $order = $this->buildMockOrder([
-            'shipping_identifier' => 'ZN_233_pickup_point',
-            'zipnova_point_id' => 40040,
-        ]);
+        $order = $this->buildMockOrder('ZN_233_pickup_point');
+        $order->meta->zipnova_point_id = 40040;
 
         $zipnova = $this->createMock(ZipnovaService::class);
         $zipnova->expects($this->once())
             ->method('createShipment')
-            ->with($order, '233_pickup_point', 40040)
+            ->with($order, 'pickup_point', 40040)
             ->willReturn([
                 'id' => '111222',
                 'label_code' => 'CA-XYZ789',
@@ -65,12 +60,12 @@ class CreateZipnovaShipmentTest extends TestCase
 
     public function test_missing_point_id_in_meta_passes_null_to_create_shipment(): void
     {
-        $order = $this->buildMockOrder(['shipping_identifier' => 'ZN_208_standard_delivery']);
+        $order = $this->buildMockOrder('ZN_208_standard_delivery');
 
         $zipnova = $this->createMock(ZipnovaService::class);
         $zipnova->expects($this->once())
             ->method('createShipment')
-            ->with($order, '208_standard_delivery', null)
+            ->with($order, 'standard_delivery', null)
             ->willReturn([
                 'id' => '333444',
                 'label_code' => 'OCA-DEF456',
@@ -83,7 +78,7 @@ class CreateZipnovaShipmentTest extends TestCase
 
     public function test_retloc_identifier_skips_zipnova_and_does_not_modify_meta(): void
     {
-        $order = $this->buildMockOrder(['shipping_identifier' => 'RETLOC']);
+        $order = $this->buildMockOrder('RETLOC');
 
         $zipnova = $this->createMock(ZipnovaService::class);
         $zipnova->expects($this->never())->method('createShipment');
@@ -97,7 +92,7 @@ class CreateZipnovaShipmentTest extends TestCase
 
     public function test_empty_identifier_skips_zipnova_and_does_not_modify_meta(): void
     {
-        $order = $this->buildMockOrder([]);
+        $order = $this->buildMockOrder(null);
 
         $zipnova = $this->createMock(ZipnovaService::class);
         $zipnova->expects($this->never())->method('createShipment');
@@ -111,7 +106,7 @@ class CreateZipnovaShipmentTest extends TestCase
 
     public function test_failed_method_sets_zipnova_status_failed(): void
     {
-        $order = $this->buildMockOrder(['shipping_identifier' => 'ZN_OCA_STANDARD']);
+        $order = $this->buildMockOrder('ZN_233_standard_delivery');
 
         $job = new CreateZipnovaShipment($order);
         $job->failed(new \RuntimeException('API error on every attempt'));
@@ -120,21 +115,38 @@ class CreateZipnovaShipmentTest extends TestCase
         $this->assertSame('failed', $meta['zipnova_status']);
     }
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['services.zipnova.mock' => true]);
+    }
+
     /**
      * Build a partial mock of Order that tracks meta mutations in memory.
      *
-     * @param  array<string, mixed>  $initialMeta
+     * When {@see $shippingOption} is not null, a shippingAddress relation mock
+     * is set up with that value on {@see OrderAddress::$shipping_option}.
+     * When null, no relation is set — simulating an order without a shipping address.
      */
-    private function buildMockOrder(array $initialMeta): \Lunar\Models\Order
+    private function buildMockOrder(?string $shippingOption): Order
     {
-        /** @var \Lunar\Models\Order&\PHPUnit\Framework\MockObject\MockObject $order */
-        $order = $this->getMockBuilder(\Lunar\Models\Order::class)
+        /** @var Order&MockObject $order */
+        $order = $this->getMockBuilder(Order::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['save'])
             ->getMock();
 
-        $order->meta = (object) $initialMeta;
+        $order->meta = (object) [];
         $order->expects($this->any())->method('save')->willReturn(true);
+
+        if ($shippingOption !== null) {
+            $address = $this->getMockBuilder(OrderAddress::class)
+                ->disableOriginalConstructor()
+                ->onlyMethods([])
+                ->getMock();
+            $address->shipping_option = $shippingOption;
+            $order->setRelation('shippingAddress', $address);
+        }
 
         return $order;
     }

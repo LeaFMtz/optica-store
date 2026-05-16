@@ -51,7 +51,7 @@ class CheckoutShippingController extends Controller
                     name: $data['name'],
                     description: $data['name'],
                     identifier: $identifier,
-                    price: new Price($data['price'] * 100, $cart->currency, 1),
+                    price: new Price($data['price'], $cart->currency, 1),
                     taxClass: TaxClass::getDefault(),
                     collect: $isCollect,
                 );

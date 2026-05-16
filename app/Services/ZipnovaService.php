@@ -6,8 +6,10 @@ namespace App\Services;
 
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Lunar\Models\Order;
+use Lunar\Models\ProductVariant;
 use RuntimeException;
 
 /**
@@ -25,7 +27,7 @@ class ZipnovaService
      *
      * @throws RuntimeException on HTTP failure
      */
-    public function quote(string $postcode, string $city, string $state, int $weightGrams): array
+    public function quote(string $postcode, string $city, string $state, int $weightGrams, int $declaredValue = 2000): array
     {
         if ($this->isMock()) {
             return $this->mapQuoteResults($this->fixture('quote'));
@@ -50,7 +52,8 @@ class ZipnovaService
                         'description' => 'Producto',
                     ],
                 ],
-                'declared_value' => 10000,
+                'declared_value' => $declaredValue,
+                'type_packaging' => 'dynamic',
                 'sort_by' => 'price',
             ];
 
@@ -99,6 +102,18 @@ class ZipnovaService
             ->reject(fn ($line) => str_contains((string) ($line->identifier ?? ''), 'shipping'))
             ->sum('sub_total.value');
 
+        // Calculate actual package weight from order lines (same as quote uses from cart)
+        $totalWeight = $order->lines->sum(function ($line) {
+            if ($line->purchasable_type === 'product_variant') {
+                $variant = ProductVariant::find($line->purchasable_id);
+
+                return $variant ? (int) ($variant->weight_value ?? 0) : 0;
+            }
+
+            return 0;
+        });
+        $weight = $totalWeight > 0 ? max(10, $totalWeight) : (int) config('services.zipnova.default_package.weight_grams');
+
         $lineOne = $address->line_one ?? '';
         [$street, $streetNumber] = $this->parseStreetAndNumber($lineOne);
 
@@ -120,7 +135,7 @@ class ZipnovaService
             'origin_id' => config('services.zipnova.origin_id'),
             'destination' => [
                 'name' => trim(($address->first_name ?? '').' '.($address->last_name ?? '')),
-                'postcode' => $address->postcode ?? '',
+                'zipcode' => $address->postcode ?? '',
                 'city' => $address->city ?? '',
                 'state' => $state,
                 'street' => $street,
@@ -131,10 +146,10 @@ class ZipnovaService
                 'document' => $addressMeta['dni'] ?? $address->tax_identifier ?? '',
                 ...(($pointId !== null) ? ['point_id' => $pointId] : []),
             ],
-            'declared_value' => $subtotal,
+            'declared_value' => (int) round($subtotal / 100),
             'packages' => [[
                 'description_1' => 'Producto',
-                'weight' => (int) config('services.zipnova.default_package.weight_grams'),
+                'weight' => $weight,
                 'height' => (int) config('services.zipnova.default_package.height_cm'),
                 'width' => (int) config('services.zipnova.default_package.width_cm'),
                 'length' => (int) config('services.zipnova.default_package.length_cm'),
@@ -245,10 +260,27 @@ class ZipnovaService
 
             $data = $response->json();
 
+            // Zipnova returns a flat array of events, not { events: [...] }
+            $rawEvents = is_array($data) ? $data : [];
+            $events = array_map(function (array $item): array {
+                $date = !empty($item['occurred_at'])
+                    ? Carbon::parse($item['occurred_at'])->setTimezone('America/Argentina/Buenos_Aires')->format('d/m/Y H:i')
+                    : '';
+
+                return [
+                    'date' => $date,
+                    'description' => $item['status']['visible_name'] ?? $item['status']['name'] ?? '',
+                    'location' => $item['status']['substatus'] ?? '',
+                    'code' => $item['status']['code'] ?? '',
+                ];
+            }, $rawEvents);
+
+            $lastEvent = end($events);
+
             return [
-                'id' => (string) ($data['id'] ?? $shipmentId),
-                'status' => (string) ($data['status'] ?? ''),
-                'events' => (array) ($data['events'] ?? []),
+                'id' => $shipmentId,
+                'status' => $lastEvent['code'] ?? 'unknown',
+                'events' => $events,
             ];
         } catch (ConnectionException $e) {
             throw new RuntimeException(
@@ -287,7 +319,7 @@ class ZipnovaService
 
         return Http::withHeaders(['Authorization' => 'Basic '.$encoded])
             ->baseUrl((string) config('services.zipnova.base_url'))
-            ->timeout(10)
+            ->timeout(30)
             ->acceptJson();
     }
 
@@ -357,7 +389,7 @@ class ZipnovaService
             return [
                 'identifier' => "ZN_{$carrierId}_{$serviceCode}",
                 'name' => ($item['carrier']['name'] ?? '').' — '.($item['service_type']['name'] ?? ''),
-                'price' => (int) round((float) ($item['amounts']['price_incl_tax'] ?? 0)),
+                'price' => (int) round((float) ($item['amounts']['price_incl_tax'] ?? 0) * 100 * 1.21),
                 'currency' => 'ARS',
                 'estimated_days' => $days,
                 'logistic_type' => (string) ($item['logistic_type'] ?? ''),

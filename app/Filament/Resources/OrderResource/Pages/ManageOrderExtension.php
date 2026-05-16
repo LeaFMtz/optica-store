@@ -8,6 +8,7 @@ use App\Services\ZipnovaService;
 use Filament\Actions\Action;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Support\Enums\FontWeight;
 use Lunar\Admin\Support\Extending\ViewPageExtension;
@@ -73,8 +74,8 @@ class ManageOrderExtension extends ViewPageExtension
     }
 
     /**
-     * @param  \Filament\Actions\Action[]  $actions
-     * @return \Filament\Actions\Action[]
+     * @param  Action[]  $actions
+     * @return Action[]
      */
     public function headerActions(array $actions): array
     {
@@ -90,10 +91,10 @@ class ManageOrderExtension extends ViewPageExtension
             })
             ->action(function ($record): void {
                 $meta = (array) ($record->meta ?? []);
-                $identifier = (string) ($meta['shipping_identifier'] ?? '');
+                $identifier = (string) ($record->shippingAddress?->shipping_option ?? '');
 
                 if (!str_starts_with($identifier, 'ZN_')) {
-                    \Filament\Notifications\Notification::make()
+                    Notification::make()
                         ->title('Este pedido no tiene envío Zipnova asignado.')
                         ->warning()
                         ->send();
@@ -101,7 +102,8 @@ class ManageOrderExtension extends ViewPageExtension
                     return;
                 }
 
-                $serviceType = substr($identifier, 3);
+                $parts = explode('_', $identifier);
+                $serviceType = count($parts) >= 3 ? implode('_', array_slice($parts, 2)) : '';
 
                 try {
                     /** @var ZipnovaService $zipnova */
@@ -114,13 +116,13 @@ class ManageOrderExtension extends ViewPageExtension
                     $record->meta = $meta;
                     $record->save();
 
-                    \Filament\Notifications\Notification::make()
+                    Notification::make()
                         ->title('Envío creado correctamente.')
                         ->success()
                         ->send();
                 } catch (\Throwable $e) {
-                    \Filament\Notifications\Notification::make()
-                        ->title('Error al crear el envío: ' . $e->getMessage())
+                    Notification::make()
+                        ->title('Error al crear el envío: '.$e->getMessage())
                         ->danger()
                         ->send();
                 }
@@ -183,13 +185,13 @@ class ManageOrderExtension extends ViewPageExtension
                     $record->meta = $meta;
                     $record->save();
 
-                    \Filament\Notifications\Notification::make()
+                    Notification::make()
                         ->title('Envío cancelado correctamente.')
                         ->success()
                         ->send();
                 } catch (\Throwable $e) {
-                    \Filament\Notifications\Notification::make()
-                        ->title('Error al cancelar el envío: ' . $e->getMessage())
+                    Notification::make()
+                        ->title('Error al cancelar el envío: '.$e->getMessage())
                         ->danger()
                         ->send();
                 }
@@ -244,7 +246,7 @@ class ManageOrderExtension extends ViewPageExtension
         if (isset($data['pd']) && $data['pd'] !== null && $data['pd'] !== '') {
             $rows['DP'] = (string) $data['pd'];
         } elseif (isset($data['pd_od']) || isset($data['pd_oi'])) {
-            $rows['DP'] = ($data['pd_od'] ?? '—') . ' / ' . ($data['pd_oi'] ?? '—');
+            $rows['DP'] = ($data['pd_od'] ?? '—').' / '.($data['pd_oi'] ?? '—');
         }
 
         return $rows;

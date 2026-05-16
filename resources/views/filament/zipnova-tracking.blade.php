@@ -34,6 +34,9 @@
             </table>
         </div>
     @else
-        <p class="text-sm text-gray-400 text-center py-6">No hay eventos de tracking disponibles.</p>
+        <div class="text-center py-6 space-y-2">
+            <p class="text-sm text-gray-400">Aún no hay eventos de tracking.</p>
+            <p class="text-xs text-gray-300">Los eventos aparecen cuando el carrier comienza a procesar el envío. Revisá más tarde.</p>
+        </div>
     @endif
 </div>

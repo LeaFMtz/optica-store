@@ -8,7 +8,7 @@ use App\Http\Requests\ShippingQuoteRequest;
 use App\Services\PostalCodeService;
 use App\Services\ZipnovaService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Cache;
+use Lunar\Facades\CartSession;
 use RuntimeException;
 
 class ShippingQuoteController extends Controller
@@ -34,12 +34,14 @@ class ShippingQuoteController extends Controller
             return response()->json(['options' => [], 'unknown_postcode' => true]);
         }
 
-        $cacheKey = "zipnova_quote_{$postcode}_{$weightGrams}";
+        $cart = CartSession::current();
+        $declaredValue = $cart
+            ? (int) round($cart->lines->sum('sub_total.value') / 100)
+            : 0;
+        $declaredValue = max($declaredValue, 2000);
 
         try {
-            $options = Cache::remember($cacheKey, 1800, function () use ($postcode, $location, $weightGrams): array {
-                return $this->zipnova->quote($postcode, $location['city'], $location['state'], $weightGrams);
-            });
+            $options = $this->zipnova->quote($postcode, $location['city'], $location['state'], $weightGrams, $declaredValue);
 
             $sessionMap = collect($options)->keyBy('identifier')->all();
             session(['zipnova_quote_options' => array_merge(

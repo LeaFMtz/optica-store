@@ -7,17 +7,12 @@ namespace Tests\Unit;
 use App\Services\ZipnovaService;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Lunar\Models\Order;
 use Tests\TestCase;
 
 class ZipnovaServiceTest extends TestCase
 {
     private ZipnovaService $service;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->service = new ZipnovaService();
-    }
 
     public function test_quote_with_mock_returns_mapped_options(): void
     {
@@ -123,16 +118,22 @@ class ZipnovaServiceTest extends TestCase
         $this->service->quote('1425', 'Buenos Aires', 'Buenos Aires', 500);
 
         Http::assertSent(function (Request $request) use ($expectedEncoded): bool {
-            return $request->hasHeader('Authorization', 'Basic ' . $expectedEncoded);
+            return $request->hasHeader('Authorization', 'Basic '.$expectedEncoded);
         });
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->service = new ZipnovaService;
     }
 
     /**
      * Create a minimal Order-like mock for testing.
      */
-    private function createMockOrder(): \Lunar\Models\Order
+    private function createMockOrder(): Order
     {
-        $address = new \stdClass();
+        $address = new \stdClass;
         $address->first_name = 'Test';
         $address->last_name = 'User';
         $address->postcode = '1425';
@@ -143,8 +144,8 @@ class ZipnovaServiceTest extends TestCase
         $address->contact_phone = '';
         $address->contact_email = 'test@test.com';
 
-        /** @var \Lunar\Models\Order $order */
-        $order = $this->getMockBuilder(\Lunar\Models\Order::class)
+        /** @var Order $order */
+        $order = $this->getMockBuilder(Order::class)
             ->disableOriginalConstructor()
             ->getMock();
 
