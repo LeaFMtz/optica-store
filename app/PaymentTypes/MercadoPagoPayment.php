@@ -169,7 +169,7 @@ class MercadoPagoPayment extends AbstractPayment
                 $orderId = $transaction->order_id ?? null;
 
                 if ($orderId) {
-                    $order = \Lunar\Models\Order::find($orderId);
+                    $order = Order::find($orderId);
 
                     if ($order) {
                         $order->transactions()->create([

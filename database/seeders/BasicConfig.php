@@ -185,9 +185,9 @@ class BasicConfig extends Seeder
 
         // Each type attaches its fields in clinical order with sort_order on the pivot
         $typeFields = [
-            'Receta Lentes Disntacia'    => ['esfera', 'cilindro', 'eje', 'distancia_pupilar'],
-            'Receta Lentes de Lectura'   => ['esfera', 'cilindro', 'eje', 'distancia_pupilar'],
-            'Recetas Lentes Bifocales'   => ['esfera', 'cilindro', 'eje', 'add', 'distancia_pupilar'],
+            'Receta Lentes Disntacia' => ['esfera', 'cilindro', 'eje', 'distancia_pupilar'],
+            'Receta Lentes de Lectura' => ['esfera', 'cilindro', 'eje', 'distancia_pupilar'],
+            'Recetas Lentes Bifocales' => ['esfera', 'cilindro', 'eje', 'add', 'distancia_pupilar'],
             'Recetas Lentes Progresivos' => ['esfera', 'cilindro', 'eje', 'add', 'distancia_pupilar'],
         ];
 

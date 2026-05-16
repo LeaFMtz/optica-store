@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Jobs\CreateZipnovaShipment;
 use App\PaymentTypes\MercadoPagoPayment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -87,6 +88,12 @@ class CheckoutPaymentController extends Controller
             $meta = $order->meta ? $order->meta->toArray() : [];
             $meta['mp_order_id'] = $driver->lastOrderId;
 
+            $pointId = session('zipnova_pending_point_id');
+            if ($pointId !== null) {
+                $meta['zipnova_point_id'] = $pointId;
+                session()->forget('zipnova_pending_point_id');
+            }
+
             if ($result->message === 'accredited') {
                 $meta['mp_status'] = 'accredited';
                 $order->status = 'payment-received';
@@ -96,6 +103,8 @@ class CheckoutPaymentController extends Controller
 
             $order->meta = $meta;
             $order->save();
+
+            CreateZipnovaShipment::dispatch($order);
 
             // Create a payment transaction so Lunar shows the correct paid amount
             $order->transactions()->create([

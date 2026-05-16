@@ -53,7 +53,7 @@ class CartController extends Controller
             ->where('purchasable_id', $variant->id)
             ->sum('quantity') ?? 0;
 
-        if (! $variant->canBeFulfilledAtQuantity($alreadyInCart + $validated['quantity'])) {
+        if (!$variant->canBeFulfilledAtQuantity($alreadyInCart + $validated['quantity'])) {
             return response()->json([
                 'message' => 'La cantidad supera el stock disponible.',
             ], 422);
@@ -126,7 +126,7 @@ class CartController extends Controller
                     ->where('id', '!=', $id)
                     ->sum('quantity') ?? 0;
 
-                if (! $variant->canBeFulfilledAtQuantity($otherLinesQty + $newQty)) {
+                if (!$variant->canBeFulfilledAtQuantity($otherLinesQty + $newQty)) {
                     return response()->json([
                         'message' => 'La cantidad supera el stock disponible.',
                     ], 422);
@@ -262,7 +262,7 @@ class CartController extends Controller
         if (isset($data['pd']) && $data['pd'] !== null && $data['pd'] !== '') {
             $rows[] = ['label' => 'DP', 'value' => (string) $data['pd']];
         } elseif (isset($data['pd_od']) || isset($data['pd_oi'])) {
-            $rows[] = ['label' => 'DP', 'value' => ($data['pd_od'] ?? '—') . ' / ' . ($data['pd_oi'] ?? '—')];
+            $rows[] = ['label' => 'DP', 'value' => ($data['pd_od'] ?? '—').' / '.($data['pd_oi'] ?? '—')];
         }
 
         return $rows;

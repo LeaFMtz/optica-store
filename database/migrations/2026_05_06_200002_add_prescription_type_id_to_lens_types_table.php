@@ -12,7 +12,7 @@ return new class extends Migration
     {
         // 185218 moves prescription_type_id to lens_uses but runs out-of-order on existing DBs.
         // On a fresh DB this migration is responsible for the final state: column on lens_uses.
-        if (! Schema::hasColumn($this->prefix.'lens_uses', 'prescription_type_id')) {
+        if (!Schema::hasColumn($this->prefix.'lens_uses', 'prescription_type_id')) {
             Schema::table($this->prefix.'lens_uses', function (Blueprint $table) {
                 $table->foreignId('prescription_type_id')
                     ->nullable()

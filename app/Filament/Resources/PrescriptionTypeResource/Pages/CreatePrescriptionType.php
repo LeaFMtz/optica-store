@@ -10,5 +10,4 @@ use Filament\Resources\Pages\CreateRecord;
 class CreatePrescriptionType extends CreateRecord
 {
     protected static string $resource = PrescriptionTypeResource::class;
-
 }

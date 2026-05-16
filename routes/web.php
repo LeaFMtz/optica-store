@@ -22,6 +22,7 @@ use App\Http\Controllers\LensConfigurationController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RefundPolicyController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\ShippingQuoteController;
 use App\Http\Controllers\Webhooks\MercadoPagoController as MercadoPagoWebhookController;
 use App\Http\Middleware\VerifyMercadoPagoSignature;
 use Illuminate\Support\Facades\Auth;
@@ -73,6 +74,9 @@ Route::prefix('checkout')->name('checkout.')->group(function () {
     Route::post('/place', CheckoutPlaceController::class)->name('place');  // deprecated: kept for rollback safety
     Route::post('/payment', CheckoutPaymentController::class)->name('payment');
 });
+
+// Shipping quote — no auth required, uses XSRF-TOKEN cookie pattern
+Route::post('/api/shipping/quote', ShippingQuoteController::class)->name('api.shipping.quote');
 
 // MercadoPago webhook — no CSRF (excluded in VerifyCsrfToken), signature verified via middleware
 Route::post('/webhooks/mercadopago', MercadoPagoWebhookController::class)

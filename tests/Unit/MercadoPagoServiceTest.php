@@ -10,12 +10,6 @@ use Tests\TestCase;
 
 class MercadoPagoServiceTest extends TestCase
 {
-    protected function setUp(): void
-    {
-        parent::setUp();
-        config(['services.mercadopago.access_token' => 'test_token']);
-    }
-
     public function test_create_order_uses_deterministic_idempotency_key_from_external_reference(): void
     {
         $capturedKeys = [];
@@ -32,7 +26,7 @@ class MercadoPagoServiceTest extends TestCase
             },
         ]);
 
-        $service = new MercadoPagoService();
+        $service = new MercadoPagoService;
 
         $service->createOrder(
             amount: 100.00,
@@ -59,7 +53,7 @@ class MercadoPagoServiceTest extends TestCase
         $this->assertEquals(
             hash('sha256', 'CART-ABC'),
             $capturedKeys[0],
-            'Idempotency key must be SHA-256 hash of externalReference'
+            'Idempotency key must be SHA-256 hash of externalReference',
         );
     }
 
@@ -79,7 +73,7 @@ class MercadoPagoServiceTest extends TestCase
             },
         ]);
 
-        $service = new MercadoPagoService();
+        $service = new MercadoPagoService;
 
         $service->createOrder(
             amount: 100.00,
@@ -122,7 +116,7 @@ class MercadoPagoServiceTest extends TestCase
             },
         ]);
 
-        $service = new MercadoPagoService();
+        $service = new MercadoPagoService;
         $result = $service->refundOrder('ORD-TEST-123');
 
         $this->assertEquals('approved', $result['status']);
@@ -138,7 +132,7 @@ class MercadoPagoServiceTest extends TestCase
             ], 404),
         ]);
 
-        $service = new MercadoPagoService();
+        $service = new MercadoPagoService;
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('MercadoPago API error');
@@ -161,7 +155,7 @@ class MercadoPagoServiceTest extends TestCase
             },
         ]);
 
-        $service = new MercadoPagoService();
+        $service = new MercadoPagoService;
         $result = $service->refundPayment('PAY-789', 50.00);
 
         $this->assertEquals('approved', $result['status']);
@@ -177,11 +171,17 @@ class MercadoPagoServiceTest extends TestCase
             ], 404),
         ]);
 
-        $service = new MercadoPagoService();
+        $service = new MercadoPagoService;
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('MercadoPago API error');
 
         $service->refundPayment('PAY-INVALID', 10.00);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['services.mercadopago.access_token' => 'test_token']);
     }
 }

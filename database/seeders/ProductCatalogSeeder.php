@@ -551,7 +551,7 @@ class ProductCatalogSeeder extends Seeder
                 // First color keeps the base SKU for backward-compat (LensConfigSeeder lookup)
                 $sku = $i === 0
                     ? $baseSku
-                    : $baseSku . '-' . strtoupper(str_replace('-', '', $colorHandle));
+                    : $baseSku.'-'.strtoupper(str_replace('-', '', $colorHandle));
 
                 $variant = $this->createVariant($product, $sku, $taxClass->id, $currency->id, $priceArs, $stock);
 

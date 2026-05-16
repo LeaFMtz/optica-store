@@ -18,21 +18,21 @@ class DecrementStock
                 /** @var ProductVariant $variant */
                 $variant = ProductVariant::lockForUpdate()->find($line->purchasable_id);
 
-                if (! $variant) {
+                if (!$variant) {
                     return;
                 }
 
-                if (! $variant->canBeFulfilledAtQuantity($line->quantity)) {
+                if (!$variant->canBeFulfilledAtQuantity($line->quantity)) {
                     throw new \RuntimeException(
-                        "Stock insuficiente para la variante {$variant->id} al crear la orden."
+                        "Stock insuficiente para la variante {$variant->id} al crear la orden.",
                     );
                 }
 
                 match ($variant->purchasable) {
-                    'always'                   => null,
-                    'in_stock'                 => $variant->decrement('stock', $line->quantity),
+                    'always' => null,
+                    'in_stock' => $variant->decrement('stock', $line->quantity),
                     'in_stock_or_on_backorder' => $this->decrementBackorder($variant, $line->quantity),
-                    default                    => null,
+                    default => null,
                 };
             });
 

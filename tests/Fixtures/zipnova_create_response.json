@@ -1,0 +1,20 @@
+{
+  "id": "789012",
+  "status": "new",
+  "service_type": "OCA_STANDARD",
+  "packages": [
+    {
+      "label_code": "OCA-ABC123",
+      "weight_grams": 500,
+      "height_cm": 10,
+      "width_cm": 10,
+      "length_cm": 15
+    }
+  ],
+  "destination": {
+    "postcode": "1425",
+    "city": "Buenos Aires",
+    "province": "Buenos Aires"
+  },
+  "created_at": "2026-05-14T12:00:00Z"
+}

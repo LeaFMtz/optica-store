@@ -41,11 +41,98 @@ class ManageProductLensConfigurationsExtension extends BaseManageRelatedRecords
         return 'Configuración de Lentes';
     }
 
+    public function form(Schema $form): Schema
+    {
+        return $form->schema([]);
+    }
+
+    public function table(Table $table): Table
+    {
+        $page = $this;
+
+        return $table
+            ->modifyQueryUsing(fn ($query) => $query
+                ->whereIn('id', function ($sub) {
+                    $sub->from('opt_product_lens_configurations')
+                        ->selectRaw('MIN(id)')
+                        ->groupBy('product_id', 'lens_use_id');
+                }),
+            )
+            ->defaultSort('lens_use_id')
+            ->columns([
+                TextColumn::make('lensUse.name')
+                    ->label('Uso')
+                    ->sortable(),
+
+                TextColumn::make('tipos')
+                    ->label('Tipos configurados')
+                    ->getStateUsing(function ($record) {
+                        return ProductLensConfiguration::where([
+                            'product_id' => $record->product_id,
+                            'lens_use_id' => $record->lens_use_id,
+                        ])
+                            ->with('lensType')
+                            ->get()
+                            ->pluck('lensType.name')
+                            ->unique()
+                            ->filter()
+                            ->join(', ') ?: '—';
+                    })
+                    ->wrap(),
+            ])
+            ->headerActions([
+                CreateAction::make()
+                    ->label('Agregar configuración')
+                    ->schema(fn () => $page->configFormSchema(lockUse: false))
+                    ->using(function (array $data) use ($page): ProductLensConfiguration {
+                        $productId = $page->getOwnerRecord()->getKey();
+                        $useId = (int) $data['_lens_use_id'];
+
+                        $page->replaceUseConfigs($productId, $useId, $data['groups'] ?? []);
+
+                        return ProductLensConfiguration::where([
+                            'product_id' => $productId,
+                            'lens_use_id' => $useId,
+                        ])->first() ?? new ProductLensConfiguration;
+                    }),
+            ])
+            ->actions([
+                Action::make('edit_use')
+                    ->label('Editar')
+                    ->icon('heroicon-m-pencil-square')
+                    ->fillForm(fn ($record) => [
+                        '_lens_use_id' => $record->lens_use_id,
+                        'groups' => $page->existingGroups($record->product_id, $record->lens_use_id),
+                    ])
+                    ->form(fn () => $page->configFormSchema(lockUse: true))
+                    ->action(function (array $data, $record) use ($page): void {
+                        $page->replaceUseConfigs(
+                            $record->product_id,
+                            $record->lens_use_id,
+                            $data['groups'] ?? [],
+                        );
+                    }),
+
+                Action::make('delete_use')
+                    ->label('Eliminar')
+                    ->icon('heroicon-m-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalDescription('Esto eliminará todas las configuraciones de cristales para este uso en este producto.')
+                    ->action(function ($record): void {
+                        ProductLensConfiguration::where([
+                            'product_id' => $record->product_id,
+                            'lens_use_id' => $record->lens_use_id,
+                        ])->delete();
+                    }),
+            ]);
+    }
+
     private function crystalOptions(): array
     {
         $typeId = ProductType::where('name', 'Lentes Compuestos')->value('id');
 
-        if (! $typeId) {
+        if (!$typeId) {
             return [];
         }
 
@@ -111,7 +198,7 @@ class ManageProductLensConfigurationsExtension extends BaseManageRelatedRecords
             $keep = collect($desired)->contains(fn ($d) => $d['lens_type_id'] === (int) $row->lens_type_id
                 && $d['crystal_product_id'] === (int) $row->crystal_product_id);
 
-            if (! $keep) {
+            if (!$keep) {
                 $row->delete();
             }
         }
@@ -126,7 +213,7 @@ class ManageProductLensConfigurationsExtension extends BaseManageRelatedRecords
             $alreadyExists = $existingPairs->contains(fn ($e) => $e['lens_type_id'] === $d['lens_type_id']
                 && $e['crystal_product_id'] === $d['crystal_product_id']);
 
-            if (! $alreadyExists) {
+            if (!$alreadyExists) {
                 ProductLensConfiguration::create([
                     'product_id' => $productId,
                     'lens_use_id' => $useId,
@@ -182,92 +269,5 @@ class ManageProductLensConfigurationsExtension extends BaseManageRelatedRecords
                         ->helperText('Ej: [Fotocromáticos + Polarizadas → Crystal X] y [Monofocal → Crystal Y]'),
                 ]),
         ];
-    }
-
-    public function form(Schema $form): Schema
-    {
-        return $form->schema([]);
-    }
-
-    public function table(Table $table): Table
-    {
-        $page = $this;
-
-        return $table
-            ->modifyQueryUsing(fn ($query) => $query
-                ->whereIn('id', function ($sub) {
-                    $sub->from('opt_product_lens_configurations')
-                        ->selectRaw('MIN(id)')
-                        ->groupBy('product_id', 'lens_use_id');
-                })
-            )
-            ->defaultSort('lens_use_id')
-            ->columns([
-                TextColumn::make('lensUse.name')
-                    ->label('Uso')
-                    ->sortable(),
-
-                TextColumn::make('tipos')
-                    ->label('Tipos configurados')
-                    ->getStateUsing(function ($record) {
-                        return ProductLensConfiguration::where([
-                            'product_id' => $record->product_id,
-                            'lens_use_id' => $record->lens_use_id,
-                        ])
-                            ->with('lensType')
-                            ->get()
-                            ->pluck('lensType.name')
-                            ->unique()
-                            ->filter()
-                            ->join(', ') ?: '—';
-                    })
-                    ->wrap(),
-            ])
-            ->headerActions([
-                CreateAction::make()
-                    ->label('Agregar configuración')
-                    ->schema(fn () => $page->configFormSchema(lockUse: false))
-                    ->using(function (array $data) use ($page): ProductLensConfiguration {
-                        $productId = $page->getOwnerRecord()->getKey();
-                        $useId = (int) $data['_lens_use_id'];
-
-                        $page->replaceUseConfigs($productId, $useId, $data['groups'] ?? []);
-
-                        return ProductLensConfiguration::where([
-                            'product_id' => $productId,
-                            'lens_use_id' => $useId,
-                        ])->first() ?? new ProductLensConfiguration();
-                    }),
-            ])
-            ->actions([
-                Action::make('edit_use')
-                    ->label('Editar')
-                    ->icon('heroicon-m-pencil-square')
-                    ->fillForm(fn ($record) => [
-                        '_lens_use_id' => $record->lens_use_id,
-                        'groups' => $page->existingGroups($record->product_id, $record->lens_use_id),
-                    ])
-                    ->form(fn () => $page->configFormSchema(lockUse: true))
-                    ->action(function (array $data, $record) use ($page): void {
-                        $page->replaceUseConfigs(
-                            $record->product_id,
-                            $record->lens_use_id,
-                            $data['groups'] ?? [],
-                        );
-                    }),
-
-                Action::make('delete_use')
-                    ->label('Eliminar')
-                    ->icon('heroicon-m-trash')
-                    ->color('danger')
-                    ->requiresConfirmation()
-                    ->modalDescription('Esto eliminará todas las configuraciones de cristales para este uso en este producto.')
-                    ->action(function ($record): void {
-                        ProductLensConfiguration::where([
-                            'product_id' => $record->product_id,
-                            'lens_use_id' => $record->lens_use_id,
-                        ])->delete();
-                    }),
-            ]);
     }
 }

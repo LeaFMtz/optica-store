@@ -9,7 +9,6 @@ use App\Services\MercadoPagoService;
 use Lunar\Base\DataTransferObjects\PaymentRefund;
 use Lunar\Models\Contracts\Transaction;
 use Mockery;
-use Mockery\MockInterface;
 use Tests\TestCase;
 
 class MercadoPagoRefundTest extends TestCase

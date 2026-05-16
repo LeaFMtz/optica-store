@@ -33,6 +33,26 @@ class ShippingModifier
             );
         }
 
+        // ShippingManifest is in-memory per request. If the cart has an active Zipnova
+        // option (ZN_*), re-register it from the session so the manifest is consistent
+        // across all requests (shipping selection, cart calculation, order creation).
+        $activeIdentifier = $cart->shippingAddress?->shipping_option;
+
+        if ($activeIdentifier && str_starts_with($activeIdentifier, 'ZN_')) {
+            $stored = session('zipnova_quote_options', [])[$activeIdentifier] ?? null;
+
+            if ($stored) {
+                ShippingManifest::addOption(new ShippingOption(
+                    name: $stored['name'],
+                    description: $stored['name'],
+                    identifier: $activeIdentifier,
+                    price: new Price($stored['price'], $cart->currency, 1),
+                    taxClass: TaxClass::getDefault(),
+                    collect: (($stored['service_type_code'] ?? '') === 'pickup_point'),
+                ));
+            }
+        }
+
         return $next($cart);
     }
 }

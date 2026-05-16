@@ -49,15 +49,27 @@ class CheckoutController extends Controller
 
         $options = ShippingManifest::getOptions($cart);
 
-        $hasDeliveryShipping = $options->contains(fn ($o) => !$o->collect);
+        // ZN_* options are managed by the Zipnova quoter — exclude them from the static list.
+        $staticOptions = $options->filter(fn ($o) => !str_starts_with($o->getIdentifier(), 'ZN_'));
 
-        $shippingOptions = $options->map(fn ($option) => [
+        $hasDeliveryShipping = $staticOptions->contains(fn ($o) => !$o->collect);
+
+        $shippingOptions = $staticOptions->map(fn ($option) => [
             'identifier' => $option->getIdentifier(),
             'name' => $option->getName(),
             'description' => $option->getDescription(),
             'price' => $option->getPrice()->formatted(),
             'collect' => $option->collect,
         ])->values()->all();
+
+        // If a Zipnova option was previously confirmed, pass its full data so the
+        // frontend can pre-select it in the dynamic quoter area on page load.
+        $storedIdentifier = $cart->shippingAddress?->shipping_option;
+        $initialZipnovaOption = null;
+
+        if ($storedIdentifier && str_starts_with($storedIdentifier, 'ZN_')) {
+            $initialZipnovaOption = session('zipnova_quote_options', [])[$storedIdentifier] ?? null;
+        }
 
         $countries = Country::orderBy('name')->get()
             ->sortByDesc(fn ($c) => $c->iso3 === 'ARG')
@@ -87,6 +99,7 @@ class CheckoutController extends Controller
         }
 
         $cartData = [
+            'count' => $cart->lines->sum('quantity'),
             'lines' => $cart->lines->map(fn ($line) => [
                 'id' => $line->id,
                 'description' => $line->purchasable->getDescription(),
@@ -97,7 +110,7 @@ class CheckoutController extends Controller
             ])->values()->all(),
             'sub_total' => $cart->subTotal->formatted(),
             'total' => $cart->total->formatted(),
-            'total_raw' => $cart->total->value / 100,  // float in ARS for MP card form / installments
+            'total_raw' => $cart->total->value / 100,
             'tax_breakdown' => $cart->taxBreakdown->amounts->map(fn ($tax) => [
                 'description' => $tax->description,
                 'price' => $tax->price->formatted(),
@@ -113,6 +126,8 @@ class CheckoutController extends Controller
             'savedAddress' => $savedAddress,
             'countries' => $countries,
             'hasDeliveryShipping' => $hasDeliveryShipping,
+            'initialZipnovaOption' => $initialZipnovaOption,
+            'provincias' => require config_path('provincias.php'),
         ]);
     }
 }

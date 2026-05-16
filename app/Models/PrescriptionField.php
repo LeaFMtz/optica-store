@@ -20,15 +20,6 @@ class PrescriptionField extends Model
         'sort_order',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'min' => 'float',
-            'max' => 'float',
-            'step' => 'float',
-        ];
-    }
-
     /**
      * @return BelongsToMany<PrescriptionType>
      */
@@ -40,5 +31,14 @@ class PrescriptionField extends Model
             'prescription_field_id',
             'prescription_type_id',
         )->withPivot('sort_order')->orderByPivot('sort_order');
+    }
+
+    protected function casts(): array
+    {
+        return [
+            'min' => 'float',
+            'max' => 'float',
+            'step' => 'float',
+        ];
     }
 }
