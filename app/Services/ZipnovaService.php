@@ -94,30 +94,52 @@ class ZipnovaService
         }
 
         $address = $order->shippingAddress;
+        $addressMeta = (array) ($address->meta ?? []);
         $subtotal = $order->lines
             ->reject(fn ($line) => str_contains((string) ($line->identifier ?? ''), 'shipping'))
             ->sum('sub_total.value');
 
+        $lineOne = $address->line_one ?? '';
+        [$street, $streetNumber] = $this->parseStreetAndNumber($lineOne);
+
+        // Zipnova requires street_number as a non-empty string
+        if ($streetNumber === '' || $streetNumber === '0') {
+            $streetNumber = 'S/N';
+        }
+
+        $state = $address->state ?? '';
+        // Zipnova requires state as a non-empty string when city is present
+        if ($state === '') {
+            $state = '-';
+        }
+
         $payload = [
+            'external_id' => 'OPT-'.$order->id,
             'service_type' => $serviceType,
             'account_id' => config('services.zipnova.account_id'),
+            'origin_id' => config('services.zipnova.origin_id'),
             'destination' => [
                 'name' => trim(($address->first_name ?? '').' '.($address->last_name ?? '')),
                 'postcode' => $address->postcode ?? '',
                 'city' => $address->city ?? '',
-                'province' => $address->state ?? '',
-                'address' => $address->line_one ?? '',
-                'address_extra' => $address->line_two ?? '',
+                'state' => $state,
+                'street' => $street,
+                'street_number' => $streetNumber,
+                'street_extras' => $address->line_two ?? '',
                 'phone' => $address->contact_phone ?? '',
                 'email' => $address->contact_email ?? '',
+                'document' => $addressMeta['dni'] ?? $address->tax_identifier ?? '',
+                ...(($pointId !== null) ? ['point_id' => $pointId] : []),
             ],
             'declared_value' => $subtotal,
-            'package' => [
-                'weight_grams' => (int) config('services.zipnova.default_package.weight_grams'),
-                'height_cm' => (int) config('services.zipnova.default_package.height_cm'),
-                'width_cm' => (int) config('services.zipnova.default_package.width_cm'),
-                'length_cm' => (int) config('services.zipnova.default_package.length_cm'),
-            ],
+            'packages' => [[
+                'description_1' => 'Producto',
+                'weight' => (int) config('services.zipnova.default_package.weight_grams'),
+                'height' => (int) config('services.zipnova.default_package.height_cm'),
+                'width' => (int) config('services.zipnova.default_package.width_cm'),
+                'length' => (int) config('services.zipnova.default_package.length_cm'),
+                'classification_id' => (string) config('services.zipnova.default_package.classification_id', '1'),
+            ]],
             ...(($pointId !== null) ? ['pickup_point' => ['point_id' => $pointId]] : []),
         ];
 
@@ -238,6 +260,23 @@ class ZipnovaService
     }
 
     /**
+     * Extract the service type code from a Zipnova shipping identifier.
+     *
+     * Format: ZN_{carrierId}_{serviceTypeCode}
+     * Example: ZN_233_pickup_point → pickup_point
+     */
+    public function extractServiceType(string $identifier): string
+    {
+        $parts = explode('_', $identifier);
+
+        if (count($parts) < 3 || $parts[0] !== 'ZN') {
+            return '';
+        }
+
+        return implode('_', array_slice($parts, 2));
+    }
+
+    /**
      * Build an authenticated HTTP client for Zipnova API.
      */
     private function httpClient(): PendingRequest
@@ -333,5 +372,24 @@ class ZipnovaService
                 }, (array) ($item['pickup_points'] ?? []))),
             ];
         }, $results)));
+    }
+
+    /**
+     * Parse street name and number from an address line like "SAN MARTIN 333".
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function parseStreetAndNumber(string $line): array
+    {
+        $parts = explode(' ', trim($line));
+        $last = end($parts);
+
+        if (is_numeric($last) && count($parts) > 1) {
+            array_pop($parts);
+
+            return [implode(' ', $parts), $last];
+        }
+
+        return [$line, ''];
     }
 }

@@ -127,6 +127,7 @@ class CheckoutController extends Controller
             'countries' => $countries,
             'hasDeliveryShipping' => $hasDeliveryShipping,
             'initialZipnovaOption' => $initialZipnovaOption,
+            'provincias' => require config_path('provincias.php'),
         ]);
     }
 }

@@ -49,7 +49,7 @@ class CheckoutPlaceController extends Controller
 
             $variant = ProductVariant::find($line->purchasable_id);
 
-            if ($variant && ! $variant->canBeFulfilledAtQuantity($line->quantity)) {
+            if ($variant && !$variant->canBeFulfilledAtQuantity($line->quantity)) {
                 return response()->json([
                     'message' => 'Uno o más productos ya no tienen stock suficiente para completar el pedido.',
                 ], 422);

@@ -30,13 +30,14 @@ class CreateZipnovaShipment implements ShouldQueue
     public function handle(ZipnovaService $zipnova): void
     {
         $meta = (array) ($this->order->meta ?? []);
-        $identifier = (string) ($meta['shipping_identifier'] ?? '');
+        $identifier = (string) ($this->order->shippingAddress?->shipping_option ?? '');
 
         if (!str_starts_with($identifier, 'ZN_')) {
             return;
         }
 
-        $serviceType = substr($identifier, 3);
+        $parts = explode('_', $identifier);
+        $serviceType = count($parts) >= 3 ? implode('_', array_slice($parts, 2)) : '';
         $pointId = isset($meta['zipnova_point_id']) ? (int) $meta['zipnova_point_id'] : null;
 
         $result = $zipnova->createShipment($this->order, $serviceType, $pointId);

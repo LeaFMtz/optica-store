@@ -49,6 +49,7 @@ return [
         'token' => env('ZIPNOVA_API_TOKEN'),
         'secret' => env('ZIPNOVA_API_SECRET'),
         'account_id' => env('ZIPNOVA_ACCOUNT_ID'),
+        'origin_id' => env('ZIPNOVA_ORIGIN_ID'),
         'base_url' => env('ZIPNOVA_BASE_URL', 'https://api.zipnova.com.ar'),
         'mock' => env('ZIPNOVA_MOCK', false),
         'default_package' => [
@@ -56,6 +57,7 @@ return [
             'height_cm' => env('ZIPNOVA_DEFAULT_HEIGHT_CM', 10),
             'width_cm' => env('ZIPNOVA_DEFAULT_WIDTH_CM', 10),
             'length_cm' => env('ZIPNOVA_DEFAULT_LENGTH_CM', 15),
+            'classification_id' => env('ZIPNOVA_DEFAULT_CLASSIFICATION_ID', 1),
         ],
     ],
 

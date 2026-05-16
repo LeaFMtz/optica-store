@@ -15,13 +15,30 @@ const props = defineProps({
   countries: { type: Array, default: () => [] },
   hasDeliveryShipping: { type: Boolean, required: true },
   initialZipnovaOption: { type: Object, default: null },
+  provincias: { type: Object, default: () => ({}) },
 })
 
 const page = usePage()
 
-// ─── Steps ────────────────────────────────────────────────────────────────────
-// Always: 1 = facturación, 2 = envío, 3 = dirección (delivery only), confirm = 3 or 4
+// ─── Steps: 1=contacto, 2=envío, 3=recibe, 4=pago ──────────────────────────
+const stepLabels = ['Datos de Contacto', 'Tipo de Envío', 'Persona que Recibe', 'Pago']
+
+const currentStep = ref(props.savedAddress ? 2 : 1)
+
+// ─── Delivery type (inferred from selected shipping) ──────────────────────────
+const deliveryType = computed(() => {
+  if (selectedShipping.value?.startsWith('RETLOC')) return 'retiro_local'
+
+  const znOpt = zipnovaOptions.value.find(o => o.identifier === selectedShipping.value)
+  if (znOpt?.service_type_code === 'pickup_point') return 'pickup_point'
+
+  return 'domicilio'
+})
+
 const selectedIsCollect = computed(() => {
+  // retiro_local is always collect
+  if (deliveryType.value === 'retiro_local') return true
+
   const staticOpt = props.shippingOptions.find(o => o.identifier === selectedShipping.value)
   if (staticOpt) return staticOpt.collect ?? true
 
@@ -31,42 +48,21 @@ const selectedIsCollect = computed(() => {
   return true
 })
 
-// Address step only exists in delivery mode when a non-collect option is chosen
-const showAddressStep = computed(() =>
-  props.hasDeliveryShipping && !selectedIsCollect.value && currentStep.value >= 3,
-)
+// Address fields shown only for domicilio delivery type in step 3
+const showAddressFields = computed(() => deliveryType.value === 'domicilio')
 
-const confirmStep = computed(() => (showAddressStep.value ? 4 : 3))
-
-const stepLabels = computed(() => {
-  if (showAddressStep.value) return ['Facturación', 'Envío', 'Dirección', 'Pago']
-  return ['Facturación', 'Envío', 'Pago']
-})
-
-const currentStep = ref(props.savedAddress ? 2 : 1)
-
-// ─── Address form ─────────────────────────────────────────────────────────────
-const address = ref({
+// ─── Contact form (step 1) ───────────────────────────────────────────────────
+const contact = ref({
   first_name: props.savedAddress?.first_name ?? '',
   last_name: props.savedAddress?.last_name ?? '',
-  company_name: props.savedAddress?.company_name ?? '',
-  line_one: props.savedAddress?.line_one ?? '',
-  line_two: props.savedAddress?.line_two ?? '',
-  line_three: props.savedAddress?.line_three ?? '',
-  city: props.savedAddress?.city ?? '',
-  state: props.savedAddress?.state ?? '',
-  postcode: props.savedAddress?.postcode ?? '',
-  country_id: props.savedAddress?.country_id ?? '',
   contact_email: props.savedAddress?.contact_email ?? '',
   contact_phone: props.savedAddress?.contact_phone ?? '',
-  delivery_instructions: props.savedAddress?.delivery_instructions ?? '',
-  shipping_is_billing: true,
 })
 
-const addressErrors = ref({})
-const addressLoading = ref(false)
+const contactErrors = ref({})
+const contactLoading = ref(false)
 
-// ─── Shipping selection ───────────────────────────────────────────────────────
+// ─── Shipping selection (step 2) ──────────────────────────────────────────────
 const selectedShipping = ref(
   props.initialZipnovaOption?.identifier ?? props.shippingOptions[0]?.identifier ?? null,
 )
@@ -92,7 +88,7 @@ function onZipnovaSelected(option) {
 }
 
 function onZipnovaPostcodeChanged(pc) {
-  address.value.postcode = pc
+  receiver.value.postcode = pc
 }
 
 function onZipnovaOptionsCleared() {
@@ -102,6 +98,27 @@ function onZipnovaOptionsCleared() {
   }
 }
 
+// ─── Receiver form (step 3) ──────────────────────────────────────────────────
+const receiver = ref({
+  first_name: '',
+  last_name: '',
+  dni: '',
+  line_one: props.savedAddress?.line_one || '',
+  line_two: props.savedAddress?.line_two || '',
+  city: props.savedAddress?.city || '',
+  state: props.savedAddress?.state || '',
+  postcode: props.savedAddress?.postcode || '',
+  contact_phone: props.savedAddress?.contact_phone || '',
+  delivery_instructions: props.savedAddress?.delivery_instructions || '',
+})
+
+const receiverErrors = ref({})
+const receiverLoading = ref(false)
+
+const provinciaOptions = computed(() =>
+  Object.entries(props.provincias).map(([code, name]) => ({ value: code, label: name }))
+)
+
 // ─── Payment — Card Payment Brick ─────────────────────────────────────────────
 const payLoading = ref(false)
 const paymentError = ref(null)
@@ -109,7 +126,7 @@ const mpReady = ref(false)
 
 let cardPaymentBrickController = null
 
-// ─── Cart totals (may update after shipping chosen) ───────────────────────────
+// ─── Cart totals (may update after shipping chosen) ────────────────────────────
 const cartTotal = ref(props.cart.total)
 const cartSubTotal = ref(props.cart.sub_total)
 
@@ -133,7 +150,13 @@ const selectedShippingOption = computed(() => {
 
 const storeLogo = '/images/logo.webp'
 
-// ─── CSRF helper ──────────────────────────────────────────────────────────────
+// Argentina country ID for backend
+const argentinaCountryId = computed(() => {
+  const arg = props.countries.find(c => c.name === 'Argentina')
+  return arg?.id ?? ''
+})
+
+// ─── CSRF helper ───────────────────────────────────────────────────────────────
 function getCsrf() {
   return decodeURIComponent(
     document.cookie.split('; ').find(r => r.startsWith('XSRF-TOKEN='))?.split('=')[1] ?? '',
@@ -159,37 +182,41 @@ async function jsonPost(url, data) {
   return json
 }
 
-// ─── Step 1: save billing/contact info ───────────────────────────────────────
-async function submitBilling() {
-  addressErrors.value = {}
-  addressLoading.value = true
+// ─── Step 1: save contact info ─────────────────────────────────────────────────
+async function submitContact() {
+  contactErrors.value = {}
+  contactLoading.value = true
   try {
     await jsonPost('/checkout/address', {
-      first_name: address.value.first_name,
-      last_name: address.value.last_name,
-      contact_email: address.value.contact_email,
-      contact_phone: address.value.contact_phone,
+      first_name: contact.value.first_name,
+      last_name: contact.value.last_name,
+      contact_email: contact.value.contact_email,
+      contact_phone: contact.value.contact_phone,
       save_type: 'contact',
     })
     currentStep.value = 2
   } catch (err) {
     if (err.status === 422 && err.data?.errors) {
-      addressErrors.value = err.data.errors
+      contactErrors.value = err.data.errors
     } else {
-      addressErrors.value = { _general: ['Error al guardar los datos. Intentá de nuevo.'] }
+      contactErrors.value = { _general: ['Error al guardar los datos. Intentá de nuevo.'] }
     }
   } finally {
-    addressLoading.value = false
+    contactLoading.value = false
   }
 }
 
-// ─── Step 2: save shipping option ────────────────────────────────────────────
+// ─── Step 2: save shipping option ──────────────────────────────────────────────
 async function submitShipping() {
   shippingErrors.value = {}
   shippingLoading.value = true
   try {
     await jsonPost('/checkout/shipping', { identifier: selectedShipping.value, point_id: selectedPointId.value ?? null })
-    // Reload cart prop so the sidebar total includes the shipping cost
+
+    // Pre-fill receiver name from contact data
+    receiver.value.first_name = contact.value.first_name
+    receiver.value.last_name = contact.value.last_name
+
     router.reload({
       only: ['cart'],
       onSuccess: () => { currentStep.value = 3 },
@@ -206,26 +233,44 @@ async function submitShipping() {
   }
 }
 
-// ─── Step 3: save delivery address (only for non-collect options) ─────────────
-async function submitAddress() {
-  addressErrors.value = {}
-  addressLoading.value = true
+// ─── Step 3: save receiver ─────────────────────────────────────────────────────
+async function submitReceiver() {
+  receiverErrors.value = {}
+  receiverLoading.value = true
   try {
-    await jsonPost('/checkout/address', { ...address.value, save_type: 'delivery' })
+    const payload = {
+      save_type: 'receiver',
+      delivery_type: deliveryType.value,
+      first_name: receiver.value.first_name,
+      last_name: receiver.value.last_name,
+      dni: receiver.value.dni,
+      contact_phone: receiver.value.contact_phone,
+      delivery_instructions: receiver.value.delivery_instructions,
+    }
+
+    if (showAddressFields.value) {
+      Object.assign(payload, {
+        line_one: receiver.value.line_one,
+        city: receiver.value.city,
+        state: receiver.value.state,
+        postcode: receiver.value.postcode,
+      })
+    }
+
+    await jsonPost('/checkout/address', payload)
     currentStep.value = 4
   } catch (err) {
     if (err.status === 422 && err.data?.errors) {
-      addressErrors.value = err.data.errors
+      receiverErrors.value = err.data.errors
     } else {
-      addressErrors.value = { _general: ['Error al guardar la dirección. Intentá de nuevo.'] }
+      receiverErrors.value = { _general: ['Error al guardar los datos. Intentá de nuevo.'] }
     }
   } finally {
-    addressLoading.value = false
+    receiverLoading.value = false
   }
 }
 
-// ─── Card Payment Brick (designed for Orders API) ────────────────────────────
-
+// ─── Card Payment Brick ────────────────────────────────────────────────────────
 const mpPublicKey = computed(() => page.props.mpPublicKey)
 
 function loadMpSdk() {
@@ -263,7 +308,7 @@ async function mountCardPaymentBrick() {
         initialization: {
           amount: props.cart.total_raw,
           payer: {
-            email: address.value.contact_email || '',
+            email: contact.value.contact_email || '',
           },
         },
         customization: {
@@ -279,39 +324,6 @@ async function mountCardPaymentBrick() {
         callbacks: {
           onReady: () => {
             mpReady.value = true
-          },
-          onSubmit: (formData, additionalData) => {
-            payLoading.value = true
-            paymentError.value = null
-
-            return new Promise((resolve) => {
-              jsonPost('/checkout/payment', {
-                token: formData.token,
-                payment_method_id: formData.payment_method_id,
-                installments: formData.installments,
-                payment_type_id: additionalData?.paymentTypeId ?? 'credit_card',
-                payer: {
-                  email: formData.payer?.email || address.value.contact_email,
-                  identification: formData.payer?.identification || {},
-                },
-              })
-                .then((result) => {
-                  paymentError.value = null
-                  router.visit(`/checkout/success?order=${encodeURIComponent(result.reference)}`)
-                  resolve()
-                })
-                .catch((err) => {
-                  if (err.status === 422) {
-                    paymentError.value = err.data?.message ?? 'Pago rechazado. Verificá los datos de tu tarjeta.'
-                  } else {
-                    paymentError.value = err.data?.message ?? 'Error al procesar el pago. Intentá de nuevo más tarde.'
-                  }
-                  resolve() // always resolve so Brick re-enables the button
-                })
-                .finally(() => {
-                  payLoading.value = false
-                })
-            })
           },
           onError: (error) => {
             console.error('Card Payment Brick error:', error)
@@ -334,10 +346,46 @@ function destroyBrick() {
   mpReady.value = false
 }
 
+async function submitPayment() {
+  if (!cardPaymentBrickController) return
+  if (payLoading.value) return
+
+  payLoading.value = true
+  paymentError.value = null
+
+  try {
+    const formData = await cardPaymentBrickController.getFormData()
+    const additionalData = await cardPaymentBrickController.getAdditionalData().catch(() => ({}))
+
+    const result = await jsonPost('/checkout/payment', {
+      token: formData.token,
+      payment_method_id: formData.payment_method_id,
+      installments: formData.installments,
+      payment_type_id: additionalData?.paymentTypeId ?? 'credit_card',
+      payer: {
+        email: formData.payer?.email || contact.value.contact_email,
+        identification: formData.payer?.identification || {},
+      },
+    })
+
+    paymentError.value = null
+    router.visit(`/checkout/success?order=${encodeURIComponent(result.reference)}`)
+  } catch (err) {
+    if (err.status === 422) {
+      paymentError.value = err.data?.message ?? 'Pago rechazado. Verificá los datos de tu tarjeta.'
+    } else {
+      paymentError.value = err.data?.message ?? 'Error al procesar el pago. Intentá de nuevo más tarde.'
+    }
+  } finally {
+    payLoading.value = false
+  }
+}
+
+// When step changes to payment, mount brick; when leaving, destroy it
 watch(currentStep, (step) => {
-  if (step === confirmStep.value && !cardPaymentBrickController) {
+  if (step === 4 && !cardPaymentBrickController) {
     setTimeout(() => mountCardPaymentBrick(), 100)
-  } else if (step !== confirmStep.value && cardPaymentBrickController) {
+  } else if (step !== 4 && cardPaymentBrickController) {
     destroyBrick()
     paymentError.value = null
   }
@@ -442,7 +490,7 @@ onUnmounted(() => {
         <div class="space-y-8 lg:col-span-2">
 
           <!-- Step indicator -->
-          <div class="flex items-center gap-3 mb-4">
+          <div class="flex flex-wrap items-center gap-3 mb-4">
             <div
               v-for="(label, idx) in stepLabels"
               :key="idx"
@@ -468,11 +516,11 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- ─── Step 1: Facturación ───────────────────────────────────────── -->
+          <!-- ═══ Step 1: Datos de Contacto ═══════════════════════════════════════ -->
           <div class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
             <div class="flex items-center justify-between h-16 px-8 border-b border-gray-50 bg-gray-50/50">
               <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
-                Datos de Facturación
+                Datos de Contacto
                 <span class="h-1 w-1 rounded-full bg-primary-500" />
               </h3>
               <button
@@ -489,25 +537,25 @@ onUnmounted(() => {
             </div>
 
             <div v-if="currentStep === 1" class="p-8">
-              <div v-if="addressErrors._general" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-[10px] font-bold text-red-600 uppercase tracking-widest">
-                {{ addressErrors._general[0] }}
+              <div v-if="contactErrors._general" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-[10px] font-bold text-red-600 uppercase tracking-widest">
+                {{ contactErrors._general[0] }}
               </div>
-              <form class="grid grid-cols-6 gap-6" @submit.prevent="submitBilling">
+              <form class="grid grid-cols-6 gap-6" @submit.prevent="submitContact">
                 <div class="col-span-3">
-                  <AppInput v-model="address.first_name" label="Nombre *" type="text" :error="addressErrors.first_name?.[0]" />
+                  <AppInput v-model="contact.first_name" label="Nombre *" type="text" :error="contactErrors.first_name?.[0]" />
                 </div>
                 <div class="col-span-3">
-                  <AppInput v-model="address.last_name" label="Apellido *" type="text" :error="addressErrors.last_name?.[0]" />
+                  <AppInput v-model="contact.last_name" label="Apellido *" type="text" :error="contactErrors.last_name?.[0]" />
                 </div>
                 <div class="col-span-6 sm:col-span-3">
-                  <AppInput v-model="address.contact_email" label="Email *" type="email" :error="addressErrors.contact_email?.[0]" />
+                  <AppInput v-model="contact.contact_email" label="Email *" type="email" :error="contactErrors.contact_email?.[0]" />
                 </div>
                 <div class="col-span-6 sm:col-span-3">
-                  <AppInput v-model="address.contact_phone" label="Teléfono" type="tel" />
+                  <AppInput v-model="contact.contact_phone" label="Teléfono" type="tel" />
                 </div>
                 <div class="col-span-6 text-right">
-                  <AppButton type="submit" variant="secondary" size="lg" :disabled="addressLoading" class="ml-auto">
-                    {{ addressLoading ? 'Guardando...' : 'Continuar' }}
+                  <AppButton type="submit" variant="secondary" size="lg" :disabled="contactLoading" class="ml-auto">
+                    {{ contactLoading ? 'Guardando...' : 'Continuar' }}
                   </AppButton>
                 </div>
               </form>
@@ -517,25 +565,25 @@ onUnmounted(() => {
               <dl class="grid grid-cols-1 gap-4 text-[10px] uppercase tracking-widest font-bold sm:grid-cols-3">
                 <div>
                   <dt class="text-gray-400">Nombre</dt>
-                  <dd class="mt-1 text-gray-900 font-black">{{ address.first_name }} {{ address.last_name }}</dd>
+                  <dd class="mt-1 text-gray-900 font-black">{{ contact.first_name }} {{ contact.last_name }}</dd>
                 </div>
-                <div v-if="address.contact_email">
+                <div v-if="contact.contact_email">
                   <dt class="text-gray-400">Email</dt>
-                  <dd class="mt-1 text-gray-900 font-black lowercase tracking-normal">{{ address.contact_email }}</dd>
+                  <dd class="mt-1 text-gray-900 font-black lowercase tracking-normal">{{ contact.contact_email }}</dd>
                 </div>
-                <div v-if="address.contact_phone">
+                <div v-if="contact.contact_phone">
                   <dt class="text-gray-400">Teléfono</dt>
-                  <dd class="mt-1 text-gray-900 font-black">{{ address.contact_phone }}</dd>
+                  <dd class="mt-1 text-gray-900 font-black">{{ contact.contact_phone }}</dd>
                 </div>
               </dl>
             </div>
           </div>
 
-          <!-- ─── Step 2: Método de Envío (always shown) ────────────────────── -->
+          <!-- ═══ Step 2: Tipo de Envío ═══════════════════════════════════════════ -->
           <div v-if="currentStep >= 2" class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
             <div class="flex items-center justify-between h-16 px-8 border-b border-gray-50 bg-gray-50/50">
               <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
-                Método de Envío
+                Tipo de Envío
                 <span class="h-1 w-1 rounded-full bg-primary-500" />
               </h3>
               <button
@@ -556,7 +604,7 @@ onUnmounted(() => {
                 {{ shippingErrors._general[0] }}
               </div>
 
-              <!-- Zipnova CP quoter — shown above the static RETLOC option -->
+              <!-- Zipnova CP quoter — always visible -->
               <div class="mb-6 pb-6 border-b border-gray-100">
                 <ShippingQuoter
                   :cart-mode="true"
@@ -589,7 +637,7 @@ onUnmounted(() => {
                   </label>
                 </div>
 
-                <!-- Dynamic Zipnova options (added by ShippingQuoter) -->
+                <!-- Dynamic Zipnova options -->
                 <div v-for="option in zipnovaOptions" :key="option.identifier">
                   <input :id="option.identifier" v-model="selectedShipping" class="hidden peer" type="radio" :value="option.identifier" name="shippingOption">
                   <label
@@ -617,7 +665,7 @@ onUnmounted(() => {
                   </label>
                 </div>
               </div>
-              <!-- Pickup point selector for Zipnova pickup_point options -->
+              <!-- Pickup point selector -->
               <div v-if="showPickupSelector" class="mt-4 px-1 pb-2">
                 <p class="text-[10px] font-bold text-gray-600 mb-2 uppercase tracking-widest">Seleccioná un punto de retiro</p>
                 <div class="space-y-2">
@@ -664,11 +712,11 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- ─── Step 3: Dirección de Entrega (solo si eligió domicilio) ──── -->
-          <div v-if="showAddressStep" class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          <!-- ═══ Step 3: Persona que Recibe ═══════════════════════════════════════ -->
+          <div v-if="currentStep >= 3" class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
             <div class="flex items-center justify-between h-16 px-8 border-b border-gray-50 bg-gray-50/50">
               <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
-                Dirección de Entrega
+                Persona que Recibe
                 <span class="h-1 w-1 rounded-full bg-primary-500" />
               </h3>
               <button
@@ -685,64 +733,100 @@ onUnmounted(() => {
             </div>
 
             <div v-if="currentStep === 3" class="p-8">
-              <div v-if="addressErrors._general" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-[10px] font-bold text-red-600 uppercase tracking-widest">
-                {{ addressErrors._general[0] }}
+              <div v-if="receiverErrors._general" class="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-[10px] font-bold text-red-600 uppercase tracking-widest">
+                {{ receiverErrors._general[0] }}
               </div>
-              <form class="grid grid-cols-6 gap-6" @submit.prevent="submitAddress">
+              <form class="grid grid-cols-6 gap-6" @submit.prevent="submitReceiver">
+                <!-- Name fields — always shown -->
                 <div class="col-span-3">
-                  <AppInput v-model="address.company_name" label="Empresa (Opcional)" type="text" />
+                  <AppInput v-model="receiver.first_name" label="Nombre *" type="text" :error="receiverErrors.first_name?.[0]" />
                 </div>
-                <div class="col-span-3" />
-                <div class="col-span-3 sm:col-span-2">
-                  <AppInput v-model="address.line_one" label="Dirección *" type="text" :error="addressErrors.line_one?.[0]" />
+                <div class="col-span-3">
+                  <AppInput v-model="receiver.last_name" label="Apellido *" type="text" :error="receiverErrors.last_name?.[0]" />
                 </div>
-                <div class="col-span-3 sm:col-span-2">
-                  <AppInput v-model="address.line_two" label="Piso/Depto" type="text" />
+
+                <!-- DNI — always shown, always required -->
+                <div class="col-span-6 sm:col-span-3">
+                  <AppInput v-model="receiver.dni" label="DNI *" type="text" placeholder="Sin puntos ni espacios" :error="receiverErrors.dni?.[0]" />
                 </div>
-                <div class="col-span-3 sm:col-span-2">
-                  <AppInput v-model="address.line_three" label="Referencia" type="text" />
+
+                <div class="col-span-6 sm:col-span-3">
+                  <AppInput v-model="receiver.contact_phone" label="Teléfono de contacto" type="tel" :error="receiverErrors.contact_phone?.[0]" />
                 </div>
-                <div class="col-span-3 sm:col-span-2">
-                  <AppInput v-model="address.city" label="Ciudad *" type="text" :error="addressErrors.city?.[0]" />
-                </div>
-                <div class="col-span-3 sm:col-span-2">
-                  <AppInput v-model="address.state" label="Provincia" type="text" />
-                </div>
-                <div class="col-span-3 sm:col-span-2">
-                  <AppInput v-model="address.postcode" label="Cód. Postal *" type="text" :error="addressErrors.postcode?.[0]" />
-                </div>
+
+                <!-- Address fields — only for domicilio -->
+                <template v-if="showAddressFields">
+                  <div class="col-span-6">
+                    <hr class="border-gray-100">
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-4 mb-2">Dirección de entrega</p>
+                  </div>
+                  <div class="col-span-6 sm:col-span-4">
+                    <AppInput v-model="receiver.line_one" label="Dirección *" type="text" :error="receiverErrors.line_one?.[0]" />
+                  </div>
+                  <div class="col-span-6 sm:col-span-2">
+                    <AppInput v-model="receiver.line_two" label="Piso/Depto" type="text" />
+                  </div>
+                  <div class="col-span-6 sm:col-span-3">
+                    <AppInput v-model="receiver.city" label="Ciudad *" type="text" :error="receiverErrors.city?.[0]" />
+                  </div>
+                  <div class="col-span-6 sm:col-span-3">
+                    <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">Provincia *</label>
+                    <select
+                      v-model="receiver.state"
+                      class="w-full px-4 py-3 border border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-gray-50 outline-none"
+                      :class="{ 'border-red-400': receiverErrors.state }"
+                    >
+                      <option value="">Seleccionar</option>
+                      <option v-for="opt in provinciaOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </select>
+                    <p v-if="receiverErrors.state" class="mt-1 text-[9px] text-red-500 font-bold">{{ receiverErrors.state[0] }}</p>
+                  </div>
+                  <div class="col-span-6 sm:col-span-3">
+                    <AppInput v-model="receiver.postcode" label="Cód. Postal *" type="text" :error="receiverErrors.postcode?.[0]" />
+                  </div>
+                </template>
+
+                <!-- Delivery instructions -->
                 <div class="col-span-6">
-                  <label class="block text-[9px] font-black uppercase tracking-widest text-gray-500 mb-1">País *</label>
-                  <select v-model="address.country_id" required class="w-full px-4 py-3 border border-gray-100 rounded-xl text-xs font-bold focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none bg-gray-50 outline-none" :class="{ 'border-red-400': addressErrors.country_id }">
-                    <option value="">Seleccionar país</option>
-                    <option v-for="country in countries" :key="country.id" :value="country.id">{{ country.name }}</option>
-                  </select>
-                  <p v-if="addressErrors.country_id" class="mt-1 text-[9px] text-red-500 font-bold">{{ addressErrors.country_id[0] }}</p>
+                  <AppInput v-model="receiver.delivery_instructions" label="Instrucciones de entrega (opcional)" type="text" />
                 </div>
+
                 <div class="col-span-6 text-right">
-                  <AppButton type="submit" variant="secondary" size="lg" :disabled="addressLoading" class="ml-auto">
-                    {{ addressLoading ? 'Guardando...' : 'Guardar Dirección' }}
+                  <AppButton type="submit" variant="secondary" size="lg" :disabled="receiverLoading" class="ml-auto">
+                    {{ receiverLoading ? 'Guardando...' : 'Continuar' }}
                   </AppButton>
                 </div>
               </form>
             </div>
 
             <div v-else-if="currentStep > 3" class="p-8">
-              <dl class="text-[10px] uppercase tracking-widest font-bold">
-                <dt class="text-gray-400">Dirección</dt>
-                <dd class="mt-1 text-gray-900 font-black">
-                  {{ address.line_one }}<br>
-                  <template v-if="address.line_two">{{ address.line_two }}<br></template>
-                  <template v-if="address.city">{{ address.city }}, </template>
-                  <template v-if="address.state">{{ address.state }} </template>
-                  CP: {{ address.postcode }}
-                </dd>
+              <dl class="grid grid-cols-1 gap-4 text-[10px] uppercase tracking-widest font-bold sm:grid-cols-3">
+                <div>
+                  <dt class="text-gray-400">Recibe</dt>
+                  <dd class="mt-1 text-gray-900 font-black">{{ receiver.first_name }} {{ receiver.last_name }}</dd>
+                </div>
+                <div>
+                  <dt class="text-gray-400">DNI</dt>
+                  <dd class="mt-1 text-gray-900 font-black">{{ receiver.dni }}</dd>
+                </div>
+                <template v-if="showAddressFields && receiver.line_one">
+                  <div class="col-span-full">
+                    <dt class="text-gray-400">Dirección</dt>
+                    <dd class="mt-1 text-gray-900 font-black">
+                      {{ receiver.line_one }}<br>
+                      <template v-if="receiver.line_two">{{ receiver.line_two }}<br></template>
+                      <template v-if="receiver.city">{{ receiver.city }}, </template>
+                      <template v-if="receiver.state">{{ receiver.state }} </template>
+                      CP: {{ receiver.postcode }}
+                    </dd>
+                  </div>
+                </template>
               </dl>
             </div>
           </div>
 
-          <!-- ─── Payment step: Card Payment Brick ────────────────────────────── -->
-          <div v-if="currentStep >= confirmStep" class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          <!-- ═══ Step 4: Pago ═════════════════════════════════════════════════════ -->
+          <div v-if="currentStep >= 4" class="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
             <div class="h-16 px-8 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
               <h3 class="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
                 Pago
@@ -769,7 +853,7 @@ onUnmounted(() => {
                   variant="secondary"
                   size="lg"
                   :disabled="payLoading"
-                  @click="cardPaymentBrickController?.submit()"
+                  @click="submitPayment()"
                 >
                   {{ payLoading ? 'Procesando...' : 'Pagar ahora' }}
                 </AppButton>
