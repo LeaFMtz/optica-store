@@ -103,6 +103,7 @@ COPY docker/xdebug.ini /etc/php/8.4/fpm/conf.d/99-xdebug.ini
 COPY docker/xdebug.ini /etc/php/8.4/cli/conf.d/99-xdebug.ini
 
 COPY docker/php-fpm-dev.conf /etc/php/8.4/fpm/pool.d/www.conf
+COPY docker/php-fpm-main.conf /etc/php/8.4/fpm/php-fpm.conf
 
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
 COPY docker/nginx.conf /etc/nginx/sites-available/optica.conf
