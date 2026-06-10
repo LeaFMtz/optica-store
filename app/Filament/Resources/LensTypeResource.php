@@ -7,8 +7,8 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\LensTypeResource\Pages;
 use App\Models\LensType;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Textarea;
@@ -18,6 +18,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
 use UnitEnum;
 
 class LensTypeResource extends Resource
@@ -99,11 +100,45 @@ class LensTypeResource extends Resource
             ->defaultSort('sort_order')
             ->actions([
                 EditAction::make(),
-                DeleteAction::make(),
+                Action::make('delete')
+                    ->label(__('Borrar'))
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalIcon('heroicon-o-exclamation-triangle')
+                    ->modalIconColor('danger')
+                    ->modalHeading('Eliminar tipo de lente')
+                    ->modalDescription(function (LensType $record): string {
+                        $count = $record->productLensConfigurations()->count();
+
+                        if ($count > 0) {
+                            return "Este tipo de lente tiene {$count} configuración(es) de producto asociada(s) "
+                                .'que serán desvinculadas antes de eliminarlo. No se eliminarán las configuraciones.';
+                        }
+
+                        return 'Este tipo de lente no tiene configuraciones asociadas. Se eliminará permanentemente.';
+                    })
+                    ->modalSubmitActionLabel(function (LensType $record): string {
+                        return $record->productLensConfigurations()->count() > 0
+                            ? 'Si, desvincular y eliminar'
+                            : 'Si, eliminar';
+                    })
+                    ->action(function (LensType $record): void {
+                        $record->productLensConfigurations()->update(['lens_type_id' => null]);
+                        $record->delete();
+                    }),
             ])
             ->bulkActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->modalHeading('Eliminar tipos de lente')
+                        ->modalDescription('Si los tipos de lente seleccionados tienen configuraciones de producto asociadas, serán desvinculadas automáticamente antes de la eliminación.')
+                        ->modalSubmitActionLabel('Si, desvincular y eliminar')
+                        ->before(function (Collection $records): void {
+                            $records->each(
+                                fn (LensType $record) => $record->productLensConfigurations()->update(['lens_type_id' => null]),
+                            );
+                        }),
                 ]),
             ]);
     }
