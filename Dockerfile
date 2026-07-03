@@ -59,6 +59,10 @@ CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/conf.d/supervisord.con
 FROM base AS worker
 WORKDIR /var/www/html
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    mariadb-client \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build --chown=www-data:www-data /var/www/html /var/www/html
 COPY --from=node_builder /app/public/build /var/www/html/public/build/
 
