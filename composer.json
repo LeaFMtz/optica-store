@@ -23,6 +23,7 @@
     "lunarphp/table-rate-shipping": "^1.0",
     "meilisearch/meilisearch-php": "^1.6",
     "predis/predis": "^2.2",
+    "spatie/laravel-backup": "^10.3",
     "tightenco/ziggy": "^2.6"
   },
   "require-dev": {

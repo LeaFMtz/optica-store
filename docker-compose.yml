@@ -1,12 +1,23 @@
 services:
   app:
-    image: ghcr.io/leafmtz/optica-app:latest
+    build:
+      context: .
+      target: dev
+      args:
+        WITH_DEV_DEPS: "true"
+    environment:
+      - DB_CONNECTION=${DB_CONNECTION}
+      - APP_ENV=${APP_ENV}
+      - WITH_ASSETS=empty_assets
     container_name: optica_app
+    volumes:
+      - .:/var/www/html:z
     restart: unless-stopped
     entrypoint: ["/var/www/html/docker/entrypoint.sh"]
     command: ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
     ports:
       - "8080:80"
+      - "5173:5173"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 5s
@@ -15,6 +26,27 @@ services:
       start_period: 10s
     networks:
       - optica_network
+        
+  cache:
+    image: redis:7.4-alpine
+    container_name: optica_redis
+    restart: unless-stopped
+    networks:
+      - optica_network
+
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    networks:
+      - optica_network
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+
+volumes:
+  mysql_data:
 
 networks:
   optica_network:
