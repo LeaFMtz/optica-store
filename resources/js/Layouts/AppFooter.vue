@@ -7,7 +7,7 @@
 
       <!-- Logo + Socials centrados -->
       <div class="mb-8 flex flex-col items-center gap-4">
-        <img :src="'/images/logo.webp'" alt="Óptica Guzmán" class="h-16 w-auto">
+        <span class="text-center text-3xl font-black tracking-widest text-white">Orquesta</span>
         <div class="flex gap-3">
           <a href="#" target="_blank" class="border border-gray-700 rounded-full p-1.5 hover:bg-primary-500 hover:border-primary-500 hover:text-black transition-all">
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
