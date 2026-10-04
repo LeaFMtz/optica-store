@@ -88,7 +88,7 @@ function closeMobileMenu() {
         <!-- Logo centrado -->
         <div class="flex justify-center">
           <a href="/" class="block hover:opacity-80 transition">
-            <img :src="'/images/logo.webp'" alt="Óptica Guzmán" class="h-14 w-auto">
+            <span class="flex h-14 items-center text-4xl font-bold tracking-tight">Orky</span>
           </a>
         </div>
 
@@ -137,7 +137,7 @@ function closeMobileMenu() {
         <!-- Center: Logo -->
         <div class="flex justify-center">
           <a href="/" class="block hover:opacity-80 transition">
-            <img :src="'/images/logo.webp'" alt="Óptica Guzmán" class="h-14 w-auto">
+            <span class="flex h-14 items-center text-4xl font-bold tracking-tight">Orky</span>
           </a>
         </div>
 
@@ -213,7 +213,7 @@ function closeMobileMenu() {
       >
         <!-- Header -->
         <div class="shrink-0 flex items-center justify-center px-5 py-8 border-b border-white/8">
-          <img :src="'/images/logo.webp'" alt="Óptica Guzmán" class="h-14 w-auto">
+          <span class="flex h-14 items-center text-4xl font-bold tracking-tight">Orky</span>
         </div>
 
         <!-- Colecciones + links secundarios (scrolleable) -->
