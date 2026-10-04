@@ -20,7 +20,7 @@
             {{-- Columna 1: Marca y Redes (Desktop: Stacked / Mobile: Side-by-Side) --}}
             <div class="flex flex-col sm:flex-row md:flex-col justify-between sm:items-center md:items-start gap-8">
                 <div class="flex-shrink-0">
-                    <img src="{{ asset('images/logo.webp') }}" alt="Óptica Guzmán" class="h-12 w-auto">
+                    <span class="text-white font-bold text-3xl tracking-wide">Orky</span>
                 </div>
                 
                 <div class="space-y-4">
